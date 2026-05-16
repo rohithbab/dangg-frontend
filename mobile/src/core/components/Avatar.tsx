@@ -5,6 +5,11 @@ import FastImage from 'react-native-fast-image';
 import { AppColors } from '@theme/colors';
 import { AppTypography } from '@theme/typography';
 
+/**
+ * Kept for API back-compat. With the unified rose palette every variant
+ * resolves to the same fallback colors — gender now drives default
+ * illustrations (when added), not background tint.
+ */
 export enum AvatarGender {
   Female = 'female',
   Male = 'male',
@@ -21,26 +26,13 @@ export type AvatarProps = {
   borderWidth?: number;
 };
 
-const GENDER_BG: Record<AvatarGender, string> = {
-  [AvatarGender.Female]: AppColors.femalePrimaryLight,
-  [AvatarGender.Male]: AppColors.malePrimaryLight,
-  [AvatarGender.Neutral]: AppColors.surfaceVariant,
-};
-
-const GENDER_FG: Record<AvatarGender, string> = {
-  [AvatarGender.Female]: AppColors.femalePrimaryDark,
-  [AvatarGender.Male]: AppColors.malePrimaryDark,
-  [AvatarGender.Neutral]: AppColors.onSurfaceMuted,
-};
-
 /**
- * Circular avatar — cached via FastImage with an initials/gender fallback.
+ * Circular avatar — cached via FastImage with an initials fallback.
  * Never reach for `<Image source={{ uri }}>` — always go through this.
  */
 function Avatar({
   uri,
   size = 48,
-  gender = AvatarGender.Neutral,
   initials = '?',
   borderColor,
   borderWidth = 0,
@@ -69,17 +61,11 @@ function Avatar({
           width: size,
           height: size,
           borderRadius: radius,
-          backgroundColor: GENDER_BG[gender],
         },
         border,
       ]}
     >
-      <Text
-        style={[
-          AppTypography.titleMedium,
-          { color: GENDER_FG[gender], fontSize: Math.round(size * 0.4) },
-        ]}
-      >
+      <Text style={[styles.text, { fontSize: Math.round(size * 0.4) }]}>
         {initials.slice(0, 2).toUpperCase()}
       </Text>
     </View>
@@ -87,8 +73,16 @@ function Avatar({
 }
 
 const styles = StyleSheet.create({
-  image: { backgroundColor: AppColors.surfaceVariant },
-  fallback: { alignItems: 'center', justifyContent: 'center' },
+  image: { backgroundColor: AppColors.primarySubtle },
+  fallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: AppColors.primarySubtle,
+  },
+  text: {
+    ...AppTypography.titleMedium,
+    color: AppColors.primary,
+  },
 });
 
 export default Avatar;

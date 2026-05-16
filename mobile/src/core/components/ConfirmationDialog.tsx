@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'flex-end' },
   action: { paddingHorizontal: AppSpacing.md, paddingVertical: AppSpacing.sm },
   cancel: { ...AppTypography.labelLarge, color: AppColors.onSurfaceMuted },
-  confirm: { ...AppTypography.labelLarge, color: AppColors.brandPrimary },
+  confirm: { ...AppTypography.labelLarge, color: AppColors.primary },
   destructive: { color: AppColors.error },
 });
 

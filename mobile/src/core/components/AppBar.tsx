@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: AppSpacing.md,
-    backgroundColor: AppColors.surface,
+    backgroundColor: AppColors.background,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: AppColors.divider,
   },
@@ -85,15 +85,18 @@ const styles = StyleSheet.create({
   backChevron: {
     fontSize: 30,
     lineHeight: 30,
-    color: AppColors.onSurface,
+    color: AppColors.primary,
     fontWeight: '500',
   },
   backSpacer: { width: 40 },
   titleBlock: { flex: 1, marginHorizontal: AppSpacing.sm },
-  title: AppTypography.titleLarge,
+  title: {
+    ...AppTypography.titleLarge,
+    color: AppColors.primaryDark,
+  },
   subtitle: {
     ...AppTypography.labelSmall,
-    color: AppColors.onSurfaceMuted,
+    color: AppColors.primary,
   },
   actions: { flexDirection: 'row', alignItems: 'center' },
 });

@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
     textAlign: 'center',
   },
-  boxFilled: { borderColor: AppColors.brandPrimary },
+  boxFilled: { borderColor: AppColors.primary },
   boxError: { borderColor: AppColors.error },
 });
 

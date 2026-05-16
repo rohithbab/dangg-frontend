@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: AppSpacing.md,
     minHeight: 52,
   },
-  fieldRowFocused: { borderColor: AppColors.brandPrimary, borderWidth: 1.5 },
+  fieldRowFocused: { borderColor: AppColors.primary, borderWidth: 1.5 },
   fieldRowError: { borderColor: AppColors.error, borderWidth: 1.5 },
   iconLeft: { marginRight: AppSpacing.sm },
   iconRight: { marginLeft: AppSpacing.sm },
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     ...AppTypography.labelSmall,
-    color: AppColors.brandPrimary,
+    color: AppColors.primary,
   },
   metaRow: {
     flexDirection: 'row',

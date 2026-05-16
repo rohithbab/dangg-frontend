@@ -1,52 +1,66 @@
 /**
- * Single source of truth for color tokens.
+ * Single source of truth for color tokens. Never hard-code `#xxxxxx`
+ * outside this file — ESLint will flag any drift.
  *
- * Never hard-code `#xxxxxx` outside this file. Material-style component
- * styling lives in `theme.ts`; raw token values live here.
+ * v2 palette: vibrant rose throughout. The app sits on a faint rose-white
+ * `background`, with white `surface` reserved for cards and elevated areas
+ * that pop against the rose base. Role differentiation (male vs female)
+ * lives in iconography, copy, and screen content — not in color.
  */
 export const AppColors = {
-  // Female palette — soft coral / pink.
-  femalePrimary: '#EC5A86',
-  femalePrimaryLight: '#FFD0DD',
-  femalePrimaryDark: '#C83D69',
+  // Brand — vibrant rose
+  primary: '#D81B60',
+  primaryDark: '#880E4F',
+  primaryLight: '#F8BBD0',
+  primarySubtle: '#FCE4EC',
 
-  // Male palette — soft blue / teal.
-  malePrimary: '#2E86C1',
-  malePrimaryLight: '#BDE2F4',
-  malePrimaryDark: '#1F5F8B',
-
-  // Brand-neutral primary (used in role-agnostic screens like onboarding).
-  brandPrimary: '#2C2C54',
-
-  // Neutrals.
-  background: '#FAFAFA',
+  // Background hierarchy. `background` is rose-tinted, NOT pure white.
+  background: '#FFF5F8',
   surface: '#FFFFFF',
-  surfaceVariant: '#F3F4F6',
-  onSurface: '#1F2937',
-  onSurfaceMuted: '#6B7280',
-  divider: '#E5E7EB',
-  border: '#D1D5DB',
+  surfaceVariant: '#FFE4EC',
+  surfaceHigh: '#FFFFFF',
 
-  // Semantic.
-  success: '#16A34A',
-  warning: '#F59E0B',
-  error: '#DC2626',
-  info: '#2563EB',
-
-  // Status indicators.
-  onlineGreen: '#22C55E',
-  offlineGray: '#9CA3AF',
-  availableYellow: '#FACC15',
-
-  // On-color tokens.
+  // Text
   onPrimary: '#FFFFFF',
+  onSurface: '#1A0E11',
+  onSurfaceMuted: '#7A5560',
+  onSurfaceDisabled: '#C2A8B0',
   onError: '#FFFFFF',
 
-  // Overlay / scrim.
-  scrim: 'rgba(0,0,0,0.6)',
-  shimmerBase: '#E0E0E0',
-  shimmerHighlight: '#F5F5F5',
+  // Borders & dividers
+  border: '#F4C2D0',
+  borderStrong: '#E89AB0',
+  divider: '#FCE4EC',
+
+  // Semantic — neutral hues, distinct from brand rose
+  success: '#2E7D32',
+  successLight: '#C8E6C9',
+  warning: '#ED6C02',
+  warningLight: '#FFE0B2',
+  error: '#C62828',
+  errorLight: '#FFCDD2',
+  info: '#1976D2',
+  infoLight: '#BBDEFB',
+
+  // Status indicators
+  onlineGreen: '#4CAF50',
+  offlineGray: '#9E9E9E',
+  availableYellow: '#FFB300',
+
+  // Gradient anchors (splash, account-type cards, hero areas)
+  gradientRoseStart: '#FF4081',
+  gradientRoseEnd: '#D81B60',
+  gradientRoseSubtleStart: '#FFE4EC',
+  gradientRoseSubtleEnd: '#FFF5F8',
+
+  // Utility
+  scrim: 'rgba(26,14,17,0.6)',
+  shimmerBase: '#F4C2D0',
+  shimmerHighlight: '#FFE4EC',
   transparent: 'transparent',
 } as const;
 
-export type AppColor = keyof typeof AppColors;
+export type AppColorKey = keyof typeof AppColors;
+
+/** @deprecated Use AppColorKey — alias kept so older imports compile. */
+export type AppColor = AppColorKey;

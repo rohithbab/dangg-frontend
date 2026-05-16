@@ -60,6 +60,13 @@ export class ValidationException extends AppException {
   }
 }
 
+/** OTP failed verification — wrong code, expired, or replayed. UI shows inline error. */
+export class InvalidOtpException extends ValidationException {
+  constructor(message = 'Incorrect code, try again', originalError: unknown = null) {
+    super(message, 'otp', originalError);
+  }
+}
+
 /** 5xx server failure. RetryPolicy may handle. */
 export class ServerException extends AppException {
   constructor(message: string, statusCode: number = 500, originalError: unknown = null) {

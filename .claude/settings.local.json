@@ -24,7 +24,13 @@
       "Bash(cmd //c \"if exist C:\\\\dangg-build \\(rmdir C:\\\\dangg-build\\) & mklink /J C:\\\\dangg-build D:\\\\Projects_folder\\\\SparksAI_Projects\\\\dangg-frontend\\\\mobile\")",
       "PowerShell(New-Item *)",
       "Bash(./gradlew assembleDebug --stacktrace --console=plain)",
-      "PowerShell(try { \\(Get-Item \"C:\\\\dangg-build\" -Force\\).Delete\\(\\); Write-Output \"junction removed\" } catch { Write-Output \"removal failed: $_\" })"
+      "PowerShell(try { \\(Get-Item \"C:\\\\dangg-build\" -Force\\).Delete\\(\\); Write-Output \"junction removed\" } catch { Write-Output \"removal failed: $_\" })",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Remove-Item *)",
+      "Bash(./gradlew assembleDebug --console=plain)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(./gradlew installDebug -PreactNativeDevServerPort=8081)"
     ]
   }
 }

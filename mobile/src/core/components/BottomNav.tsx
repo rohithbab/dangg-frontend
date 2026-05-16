@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     color: AppColors.onSurfaceMuted,
     marginTop: 2,
   },
-  labelActive: { color: AppColors.brandPrimary },
+  labelActive: { color: AppColors.primary },
 });
 
 export default BottomNav;

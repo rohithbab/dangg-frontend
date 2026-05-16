@@ -43,7 +43,7 @@ function PrimaryButton({
       ? AppColors.error
       : variant === 'success'
         ? AppColors.success
-        : AppColors.brandPrimary;
+        : AppColors.primary;
 
   return (
     <Pressable

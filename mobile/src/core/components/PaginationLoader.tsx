@@ -20,7 +20,7 @@ function PaginationLoader({
   if (isLoading) {
     return (
       <View style={styles.row}>
-        <ActivityIndicator color={AppColors.brandPrimary} />
+        <ActivityIndicator color={AppColors.primary} />
       </View>
     );
   }

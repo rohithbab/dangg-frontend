@@ -43,7 +43,7 @@ function SecondaryButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={AppColors.brandPrimary} />
+        <ActivityIndicator color={AppColors.primary} />
       ) : (
         <View style={styles.content}>
           {leftIcon ? <View style={styles.icon}>{leftIcon}</View> : null}
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   icon: { marginRight: AppSpacing.sm },
   label: {
     ...AppTypography.labelLarge,
-    color: AppColors.brandPrimary,
+    color: AppColors.primary,
   },
 });
 

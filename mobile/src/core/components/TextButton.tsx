@@ -19,7 +19,7 @@ function TextButton({
   label,
   onPress,
   leftIcon,
-  color = AppColors.brandPrimary,
+  color = AppColors.primary,
   disabled = false,
   testID,
 }: TextButtonProps): React.ReactElement {

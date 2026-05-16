@@ -27,7 +27,7 @@ function LoadingOverlay({ visible, message }: LoadingOverlayProps): React.ReactE
     >
       <View style={styles.scrim}>
         <View style={styles.card}>
-          <ActivityIndicator color={AppColors.brandPrimary} />
+          <ActivityIndicator color={AppColors.primary} />
           {message ? <Text style={styles.message}>{message}</Text> : null}
         </View>
       </View>
