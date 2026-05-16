@@ -1,10 +1,10 @@
-# [App Name] — Project Context for Claude Code
+# Dangg — Project Context for Claude Code
 
 > This file is read automatically by Claude Code on every session. Keep it updated as the project evolves.
 
 ## Project Summary
 
-**[App Name]** is a text-only paid chat marketplace, mobile-first.
+**Dangg** is a text-only paid chat marketplace, mobile-first.
 
 - **Female users** are service providers. They earn by chatting with paying males.
 - **Male users** buy coins, spend coins to send chat requests to online females.
@@ -27,33 +27,48 @@
 | Payout flow | ✅ | — |
 | Admin dashboard | ✅ (web, separate repo) | — |
 
-Phase 2 chat experience is intentionally deferred. Build Phase 1 end-to-end first.
+Phase 2 chat experience is intentionally deferred.
 
 ## Tech Stack
 
 | Layer | Choice | Reasoning |
 |---|---|---|
-| Mobile app | **Flutter** | Single codebase iOS + Android |
-| State management | **Riverpod** | Modern, clean, testable |
-| Routing | **GoRouter** | Declarative, deep-link friendly |
-| Backend | **Supabase** (`ap-south-1`, Mumbai) | Auth + Postgres + Storage + Realtime + Edge Functions in one |
+| Mobile framework | **React Native CLI** (bare workflow) | Full native control for Razorpay, Vision Camera, FCM |
+| Language | **TypeScript** (strict mode) | Type safety end-to-end |
+| State management | **Zustand** | Lightweight, TS-friendly, no boilerplate |
+| Navigation | **React Navigation v7** (native stack + tabs) | Typed route params, native screens for performance |
+| Forms | **React Hook Form** + **Zod** | Minimal re-renders, schema validation |
+| Animation | **React Native Reanimated 3** | UI-thread worklets, smooth animations |
+| Backend | **Supabase** (`ap-south-1`, Mumbai) | Auth + Postgres + Storage + Realtime + Edge Functions |
+| Supabase client | **@supabase/supabase-js** + `react-native-url-polyfill` | Standard JS SDK |
 | Auth | **Supabase Auth** with custom SMS hook | OTP-based phone login |
-| SMS provider | **MSG91** | Cheap Indian SMS (~₹0.25/SMS) via Supabase Send SMS Hook |
+| SMS provider | **MSG91** | Cheap Indian SMS via Supabase Send SMS Hook |
 | Image hosting | **Cloudinary** | CDN, transformations, free tier 25GB |
-| Sensitive photos | **Supabase Storage** (private bucket) | Verification photos stay in Mumbai for DPDP compliance |
-| Payments | **Razorpay** | Coin purchases, webhook-driven coin credit |
-| Push notifications | **FCM** (Firebase Cloud Messaging) | Android standard; iOS via APNs through Flutter's `firebase_messaging` |
+| Sensitive photos | **Supabase Storage** (private, Mumbai region) | DPDP compliance for verification photos |
+| Payments | **Razorpay** (`react-native-razorpay`) | Coin purchases, webhook-driven credit |
+| Push notifications | **@react-native-firebase/messaging** | Android standard; iOS via APNs |
 | Real-time | **Supabase Realtime** | Online status, incoming chat requests, notifications |
-| API docs | OpenAPI / Swagger (generated from `API_REFERENCE.md`) | — |
+| Secure storage | **react-native-keychain** | Session tokens, refresh tokens |
+| Fast key-value | **react-native-mmkv** | Prefs and caches (10× faster than AsyncStorage) |
+| Image rendering | **react-native-fast-image** | Cached remote images |
+| Camera | **react-native-vision-camera** | Verification photo capture |
+| Permissions | **react-native-permissions** | Camera, gallery, notifications |
+| Connectivity | **@react-native-community/netinfo** | Offline state |
+| Date/time | **date-fns** | Tree-shakable, lightweight |
+| Lists | **@shopify/flash-list** | High-performance virtualized lists |
+| HTTP client | **Supabase SDK** (primary) + native `fetch` for Cloudinary | — |
+| Env vars | **react-native-config** | Native-readable, build-time injection |
+| Testing | **Jest** + **React Native Testing Library** | Standard |
+| Linting | **ESLint** + **Prettier** (strict) | — |
 
-**Firebase Auth is NOT used.** Firebase is only present for FCM push delivery.
+**Firebase Auth is NOT used.** Firebase is present only via `@react-native-firebase/messaging` for FCM push delivery.
 
-## Architecture in One Diagram (text form)
+## Architecture Diagram
 
 ```
                   ┌─────────────────────────┐
-                  │   Flutter Mobile App    │
-                  │   (iOS + Android)       │
+                  │  React Native CLI App   │
+                  │   (iOS + Android, TS)   │
                   └────────────┬────────────┘
                                │
             ┌──────────────────┼──────────────────┐
@@ -76,99 +91,95 @@ Phase 2 chat experience is intentionally deferred. Build Phase 1 end-to-end firs
  ┌─────┐ ┌─────┐ ┌──────────┐
  │MSG91│ │Razor│ │  Admin   │
  │(SMS)│ │ pay │ │Dashboard │
- └─────┘ └─────┘ │(web app, │
-                 │separate) │
+ └─────┘ └─────┘ │(separate)│
                  └──────────┘
 ```
 
-## Authentication Flow (read this carefully)
+## Authentication Flow
 
-1. **User enters mobile number** in the app.
+1. User enters mobile number.
 2. App calls `supabase.auth.signInWithOtp({ phone })`.
-3. Supabase generates an OTP, stores it, and invokes the **Send SMS Hook** (configured to point at our Edge Function `send-sms-hook`).
-4. The hook function calls **MSG91's API** with the OTP and phone number.
-5. MSG91 delivers the SMS to the user.
-6. User enters the OTP in the app.
-7. App calls `supabase.auth.verifyOtp({ phone, token, type: 'sms' })`.
-8. Supabase verifies, issues a JWT, app stores it via Flutter Secure Storage.
-9. All subsequent API calls use this JWT; Row Level Security (RLS) policies in Postgres enforce per-user access.
-
-**Why this works:** Supabase handles session lifecycle (creation, refresh, expiry, revocation, last-login timestamps, multiple-device support). MSG91 is purely the SMS delivery pipe. No JWT bridging needed.
+3. Supabase generates OTP → invokes Send SMS Hook (Edge Function `send-sms-hook`).
+4. Hook calls MSG91 API → SMS delivered.
+5. User enters OTP.
+6. App calls `supabase.auth.verifyOtp({ phone, token, type: 'sms' })`.
+7. Supabase issues JWT → stored via `react-native-keychain`.
+8. All subsequent calls use JWT; Postgres RLS enforces per-user access.
 
 ## Repository Layout
 
-This project is split across three repos (or one monorepo if preferred):
-
 ```
-[app-name]/
-├── mobile/                  # Flutter app (Phase 1 priority)
-├── supabase/                # Database, edge functions, migrations
-└── admin-dashboard/         # Web admin panel (Phase 2 timing)
+dangg/
+├── mobile/                  # React Native CLI app (this repo's focus)
+├── supabase/                # Backend (separate repo)
+└── admin-dashboard/         # Web admin panel (separate repo)
 ```
 
-Detailed folder structure: see [`PROJECT_STRUCTURE.md`](./PROJECT_STRUCTURE.md)
-
-API endpoints: see [`API_REFERENCE.md`](./API_REFERENCE.md)
-
-Screen specifications: see [`mobile_app_screen_spec.md`](./mobile_app_screen_spec.md)
+- Detailed folder structure: see [`PROJECT_STRUCTURE.md`](./PROJECT_STRUCTURE.md)
+- API endpoints: see [`API_REFERENCE.md`](./API_REFERENCE.md)
+- Screen specs: see [`mobile_app_screen_spec.md`](./mobile_app_screen_spec.md)
 
 ## Development Workflow Conventions
 
-- **Branch strategy:** `develop` is the integration branch, feature branches off `develop`, `main` is production-ready.
-- **Backend commits always go to `develop`** until release-cut to `main`.
+- **Branch strategy:** `develop` (integration), feature branches off `develop`, `main` (production).
 - **One issue at a time.** No broad sweeping changes.
-- **Analysis before implementation.** When asked to fix a bug, first analyze and report findings; await confirmation before writing code.
-- **Verification checkpoints.** When completing a task, produce a checklist of what was done and what was deliberately skipped.
-- **Migrations are immutable.** Once committed to `develop`, never edit a migration file. Add a new one to alter.
+- **Analysis before implementation.** Bugs: analyze and report first; await confirmation; then code.
+- **Verification checkpoints.** End-of-task: produce a checklist of done + skipped.
+- **TypeScript strict mode.** Zero `any` unless documented with `// @ts-expect-error: <reason>`.
+- **ESLint zero warnings.** Pre-commit hook enforces.
 
-## Environment Variables (for `.env`)
+## Environment Variables (`.env` — never commit)
 
 ```
 # Supabase
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=        # backend only, never in app
-SUPABASE_JWT_SECRET=
-
-# MSG91
-MSG91_AUTH_KEY=
-MSG91_SENDER_ID=
-MSG91_OTP_TEMPLATE_ID=
 
 # Cloudinary
 CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-CLOUDINARY_UPLOAD_PRESET=
 
 # Razorpay
 RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-RAZORPAY_WEBHOOK_SECRET=
 
 # FCM
-FCM_SERVER_KEY=
 FCM_PROJECT_ID=
+
+# App
+DEV_MODE=false                     # true bypasses real OTP during development
+APP_ENV=development                # development | staging | production
 ```
 
-Never commit `.env`. Use `.env.example` as the template.
+Backend-only secrets (service role, webhook secrets, MSG91 auth key, Razorpay key secret) live in the Supabase repo, never in the mobile app.
 
-## Open Design Decisions (track here)
+## Code Style (enforced)
 
-- [ ] Coin deduction model: per-minute vs per-message vs flat per-session
+- 2-space indentation
+- Single quotes (JSX attrs use double)
+- Semicolons required
+- Trailing commas (multi-line)
+- Line length soft cap 100 chars
+- No default exports except screens and React Navigation route configs
+- Components: `PascalCase.tsx` (e.g., `PrimaryButton.tsx`)
+- Hooks: `useCamelCase.ts` (e.g., `useDebounce.ts`)
+- Folders: `camelCase` (e.g., `chatRequests/`)
+- Constants: `UPPER_SNAKE_CASE` for module-level immutables
+
+## Open Design Decisions
+
+- [ ] Coin deduction model: per-minute vs per-message vs flat
 - [ ] Chat session duration cap
 - [ ] Hard vs soft delete on chat transcripts (admin)
-- [ ] Refund policy for failed/disconnected chats
+- [ ] Refund policy for disconnected chats
 - [ ] Female photo retake permissions after verification
 - [ ] Admin: shared login vs multi-admin with audit trail
-- [ ] Coin package final prices (₹100/₹250/₹500/₹1000/₹2000/₹5000 placeholders)
+- [ ] Coin package final prices
 
 ## Compliance Checklist (DPDP Act 2023)
 
 - [ ] Privacy Policy + Terms of Service drafted and linked in About App
 - [ ] Explicit consent at verification photo upload
 - [ ] Verification photos stored in `ap-south-1` (Mumbai)
-- [ ] Data retention policy documented (how long after account deletion)
+- [ ] Data retention policy documented
 - [ ] User-initiated data export endpoint
 - [ ] User-initiated data deletion endpoint
-- [ ] Audit log on admin actions (verification, payout, account suspension)
+- [ ] Audit log on admin actions

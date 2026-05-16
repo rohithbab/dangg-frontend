@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter --version)",
+      "Bash(dart --version)",
+      "Bash(flutter create *)",
+      "Bash(flutter pub *)",
+      "Bash(dart run *)",
+      "Bash(flutter analyze *)",
+      "Bash(flutter build *)",
+      "PowerShell($items = Get-ChildItem D:/Projects_folder/SparksAI_Projects/dangg-frontend/mobile -Force -ErrorAction SilentlyContinue; if \\($items\\) { $items | ForEach-Object { Write-Output $_.Name } } else { Write-Output \"\\(empty\\)\" })",
+      "Bash(npm --version)",
+      "Bash(npx --version)",
+      "Bash(npx --yes @react-native-community/cli@latest init mobile --version 0.76.5 --skip-install --skip-git-init)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npx eslint *)",
+      "Bash(npx prettier *)",
+      "Bash(npm run *)",
+      "Bash(./gradlew assembleDebug)",
+      "Bash(./gradlew clean *)",
+      "Bash(./gradlew assembleDebug --stacktrace)",
+      "Read(//c//**)",
+      "Bash(cmd //c \"if exist C:\\\\dangg-build \\(rmdir C:\\\\dangg-build\\) & mklink /J C:\\\\dangg-build D:\\\\Projects_folder\\\\SparksAI_Projects\\\\dangg-frontend\\\\mobile\")",
+      "PowerShell(New-Item *)",
+      "Bash(./gradlew assembleDebug --stacktrace --console=plain)",
+      "PowerShell(try { \\(Get-Item \"C:\\\\dangg-build\" -Force\\).Delete\\(\\); Write-Output \"junction removed\" } catch { Write-Output \"removal failed: $_\" })"
+    ]
+  }
+}

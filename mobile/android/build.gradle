@@ -1,0 +1,24 @@
+buildscript {
+    ext {
+        buildToolsVersion = "35.0.0"
+        // Hermes (bundled with RN 0.76.5) requires API 24+, so 23 is not
+        // reachable without disabling Hermes. 24 ≈ Android 7.0 (Aug 2016),
+        // <0.5% of in-use devices below this floor.
+        minSdkVersion = 24
+        compileSdkVersion = 35
+        targetSdkVersion = 35
+        ndkVersion = "26.1.10909125"
+        kotlinVersion = "1.9.24"
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle")
+        classpath("com.facebook.react:react-native-gradle-plugin")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+    }
+}
+
+apply plugin: "com.facebook.react.rootproject"
