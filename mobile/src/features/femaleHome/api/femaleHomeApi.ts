@@ -1,8 +1,9 @@
 /**
  * Female home dashboard data.
  *
- * DEV_MODE returns realistic mock data so the screen looks populated without
- * a backend. Production calls the females view + the recent_activity view.
+ * Production calls hit Supabase RPCs / tables. Until those are wired the
+ * methods return empty/zero values — the UI renders its loading and empty
+ * states correctly without any placeholder content.
  */
 import { Env } from '@core/config/env';
 import { mapSupabaseError } from '@core/network/apiErrorMapper';
@@ -38,78 +39,20 @@ export type RecentActivity = {
   occurredAt: Date;
 };
 
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-const MOCK_STATS: HomeStats = {
-  todayEarningsInr: 1234,
-  weekEarningsInr: 8750,
-  chatsToday: 23,
-  ratingAvg: 4.8,
-  ratingCount: 156,
-  todayTrend: { kind: 'up', label: '+12% vs yesterday' },
-  weekTrend: { kind: 'up', label: '+5%' },
+const EMPTY_STATS: HomeStats = {
+  todayEarningsInr: 0,
+  weekEarningsInr: 0,
+  chatsToday: 0,
+  ratingAvg: 0,
+  ratingCount: 0,
+  todayTrend: { kind: 'flat', label: '' },
+  weekTrend: { kind: 'flat', label: '' },
 };
-
-const MOCK_ACTIVITY: ReadonlyArray<RecentActivity> = [
-  {
-    id: 'a1',
-    kind: 'paymentReceived',
-    actorName: 'Rahul S.',
-    actorAvatarUrl: null,
-    description: 'Sent you 50 coins',
-    amountInr: 125,
-    ratingValue: null,
-    occurredAt: new Date(Date.now() - 1000 * 60 * 8),
-  },
-  {
-    id: 'a2',
-    kind: 'chatCompleted',
-    actorName: 'Vikram M.',
-    actorAvatarUrl: null,
-    description: 'Chat ended · 18 min',
-    amountInr: 90,
-    ratingValue: null,
-    occurredAt: new Date(Date.now() - 1000 * 60 * 47),
-  },
-  {
-    id: 'a3',
-    kind: 'ratingReceived',
-    actorName: 'Anonymous User',
-    actorAvatarUrl: null,
-    description: 'Rated your chat 5 stars',
-    amountInr: null,
-    ratingValue: 5,
-    occurredAt: new Date(Date.now() - 1000 * 60 * 120),
-  },
-  {
-    id: 'a4',
-    kind: 'paymentReceived',
-    actorName: 'Aryan K.',
-    actorAvatarUrl: null,
-    description: 'Sent you 30 coins',
-    amountInr: 75,
-    ratingValue: null,
-    occurredAt: new Date(Date.now() - 1000 * 60 * 180),
-  },
-  {
-    id: 'a5',
-    kind: 'chatCompleted',
-    actorName: 'Sahil R.',
-    actorAvatarUrl: null,
-    description: 'Chat ended · 6 min',
-    amountInr: 30,
-    ratingValue: null,
-    occurredAt: new Date(Date.now() - 1000 * 60 * 360),
-  },
-];
 
 /** Aggregated stats for the Home dashboard cards. */
 export async function getHomeStats(): Promise<HomeStats> {
   if (Env.devMode) {
-    await sleep(400);
-    return MOCK_STATS;
+    return EMPTY_STATS;
   }
   const { data, error } = await getSupabaseClient().rpc('female_home_stats');
   if (error) {
@@ -121,8 +64,7 @@ export async function getHomeStats(): Promise<HomeStats> {
 /** Current availability flag + when the user last toggled it. */
 export async function getAvailability(): Promise<Availability> {
   if (Env.devMode) {
-    await sleep(200);
-    return { online: false, lastToggledAt: new Date(Date.now() - 1000 * 60 * 5) };
+    return { online: false, lastToggledAt: new Date() };
   }
   const { data, error } = await getSupabaseClient()
     .from('females')
@@ -140,7 +82,6 @@ export async function getAvailability(): Promise<Availability> {
 /** Flip availability on or off. Optimistic UI updates the toggle immediately. */
 export async function setAvailability(online: boolean): Promise<void> {
   if (Env.devMode) {
-    await sleep(300);
     return;
   }
   const { error } = await getSupabaseClient()
@@ -155,8 +96,7 @@ export async function setAvailability(online: boolean): Promise<void> {
 /** Last ~5 user-facing events for the Recent Activity feed. */
 export async function getRecentActivity(): Promise<ReadonlyArray<RecentActivity>> {
   if (Env.devMode) {
-    await sleep(400);
-    return MOCK_ACTIVITY;
+    return [];
   }
   const { data, error } = await getSupabaseClient().rpc('female_recent_activity', { limit_: 5 });
   if (error) {
@@ -168,8 +108,7 @@ export async function getRecentActivity(): Promise<ReadonlyArray<RecentActivity>
 /** Unread-notification count for the bell badge. */
 export async function getUnreadNotificationCount(): Promise<number> {
   if (Env.devMode) {
-    await sleep(100);
-    return 3;
+    return 0;
   }
   const { count, error } = await getSupabaseClient()
     .from('notifications')

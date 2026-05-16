@@ -19,7 +19,6 @@ import { AppTypography } from '@theme/typography';
 import Avatar from '@core/components/Avatar';
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import SecondaryButton from '@core/components/SecondaryButton';
-import { Env } from '@core/config/env';
 import { duration as fmtDuration } from '@core/utils/formatters';
 import { logger } from '@core/utils/logger';
 
@@ -29,7 +28,6 @@ import {
   cancelSentRequest,
   getSentRequestStatus,
   type SentRequestStatus,
-  simulateSentOutcome,
 } from '../api/chatRequestApi';
 
 type Nav = NativeStackNavigationProp<MaleAppStackParamList, 'ChatRequestSent'>;
@@ -150,13 +148,6 @@ function ChatRequestSentScreen(): React.ReactElement {
     }
   }, [navigation, requestId]);
 
-  const handleSimulate = useCallback(
-    (outcome: Exclude<SentRequestStatus, 'pending'>): void => {
-      simulateSentOutcome(requestId, outcome);
-    },
-    [requestId],
-  );
-
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
@@ -193,13 +184,6 @@ function ChatRequestSentScreen(): React.ReactElement {
       </View>
 
       <View style={styles.footer}>
-        {Env.devMode ? (
-          <View style={styles.devRow}>
-            <DevBtn label="Simulate Accepted" onPress={() => handleSimulate('accepted')} />
-            <DevBtn label="Simulate Declined" onPress={() => handleSimulate('declined')} />
-            <DevBtn label="Simulate Timeout" onPress={() => handleSimulate('expired')} />
-          </View>
-        ) : null}
         <SecondaryButton label="Cancel Request" onPress={() => setCancelDialog(true)} />
       </View>
 
@@ -216,14 +200,6 @@ function ChatRequestSentScreen(): React.ReactElement {
         }}
       />
     </SafeAreaView>
-  );
-}
-
-function DevBtn({ label, onPress }: { label: string; onPress: () => void }): React.ReactElement {
-  return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={styles.devBtn}>
-      <Text style={styles.devBtnText}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -310,22 +286,6 @@ const styles = StyleSheet.create({
   footer: {
     padding: AppSpacing.md,
     gap: AppSpacing.sm,
-  },
-  devRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: AppSpacing.xs,
-    justifyContent: 'center',
-  },
-  devBtn: {
-    paddingHorizontal: AppSpacing.sm,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: AppColors.surfaceVariant,
-  },
-  devBtnText: {
-    ...AppTypography.labelSmall,
-    color: AppColors.primaryDark,
   },
 });
 

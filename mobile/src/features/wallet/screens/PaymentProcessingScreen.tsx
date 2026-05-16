@@ -1,15 +1,13 @@
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, BackHandler, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
-import { AppRadii } from '@theme/radii';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
-import { Env } from '@core/config/env';
 import { logger } from '@core/utils/logger';
 
 import { type MaleAppStackParamList } from '@navigation/types';
@@ -23,10 +21,10 @@ type Route = RouteProp<MaleAppStackParamList, 'PaymentProcessing'>;
 /**
  * Payment-in-flight screen.
  *
- * DEV_MODE: kicks off `processPayment(packageId, 'success')` automatically;
- * floating dev-tools buttons let the user force either outcome before the
- * default fires. Production: this is where Razorpay's checkout overlay
- * would be opened.
+ * Auto-runs the payment as soon as the screen mounts. In production this is
+ * where Razorpay's checkout overlay will open; here the API call returns
+ * success/failure based on the backend response and we route to the matching
+ * outcome screen.
  */
 function PaymentProcessingScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
@@ -41,50 +39,36 @@ function PaymentProcessingScreen(): React.ReactElement {
     return () => sub.remove();
   }, []);
 
-  const finalize = useCallback(
-    async (outcome: 'success' | 'failure'): Promise<void> => {
-      if (completedRef.current || running) {
-        return;
-      }
-      setRunning(true);
-      try {
-        const result = await processPayment(packageId, outcome);
-        completedRef.current = true;
-        if (result.ok) {
-          navigation.replace('PaymentSuccess', {
-            transactionId: result.transactionId,
-            coinsAdded: result.coinsAdded,
-            bonusCoins: result.bonusCoins,
-            amountInr: getPackageById(packageId)?.priceInr ?? 0,
-            newBalance: result.newBalance,
-          });
-        } else {
-          navigation.replace('PaymentFailed', { packageId, reason: result.reason });
-        }
-      } catch (e) {
-        logger.error('Payment finalize failed', e);
-        navigation.replace('PaymentFailed', {
-          packageId,
-          reason: 'Something went wrong, try again',
-        });
-      }
-    },
-    [navigation, packageId, running],
-  );
-
-  useEffect(() => {
-    if (!Env.devMode) {
-      // Production: trigger real Razorpay open here.
-      void finalize('success');
+  const finalize = useCallback(async (): Promise<void> => {
+    if (completedRef.current || running) {
       return;
     }
-    // DEV: auto-resolve success after 2s if user doesn't tap the dev buttons.
-    const timer = setTimeout(() => {
-      if (!completedRef.current) {
-        void finalize('success');
+    setRunning(true);
+    try {
+      const result = await processPayment(packageId);
+      completedRef.current = true;
+      if (result.ok) {
+        navigation.replace('PaymentSuccess', {
+          transactionId: result.transactionId,
+          coinsAdded: result.coinsAdded,
+          bonusCoins: result.bonusCoins,
+          amountInr: getPackageById(packageId)?.priceInr ?? 0,
+          newBalance: result.newBalance,
+        });
+      } else {
+        navigation.replace('PaymentFailed', { packageId, reason: result.reason });
       }
-    }, 2000);
-    return () => clearTimeout(timer);
+    } catch (e) {
+      logger.error('Payment finalize failed', e);
+      navigation.replace('PaymentFailed', {
+        packageId,
+        reason: 'Something went wrong, try again',
+      });
+    }
+  }, [navigation, packageId, running]);
+
+  useEffect(() => {
+    void finalize();
   }, [finalize]);
 
   const pkg = getPackageById(packageId);
@@ -102,42 +86,7 @@ function PaymentProcessingScreen(): React.ReactElement {
           <Text style={styles.amount}>{`₹${pkg.priceInr} for ${totalCoinsFor(pkg)} coins`}</Text>
         ) : null}
       </View>
-
-      {Env.devMode ? (
-        <View style={styles.devToolsRow}>
-          <DevBtn
-            label="Simulate Success"
-            onPress={() => {
-              void finalize('success');
-            }}
-            variant="success"
-          />
-          <DevBtn
-            label="Simulate Failure"
-            onPress={() => {
-              void finalize('failure');
-            }}
-            variant="error"
-          />
-        </View>
-      ) : null}
     </SafeAreaView>
-  );
-}
-
-type DevBtnProps = { label: string; onPress: () => void; variant: 'success' | 'error' };
-
-function DevBtn({ label, onPress, variant }: DevBtnProps): React.ReactElement {
-  const bg = variant === 'success' ? AppColors.successLight : AppColors.errorLight;
-  const fg = variant === 'success' ? AppColors.success : AppColors.error;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={[styles.devBtn, { backgroundColor: bg }]}
-    >
-      <Text style={[styles.devBtnText, { color: fg }]}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -170,22 +119,6 @@ const styles = StyleSheet.create({
     ...AppTypography.bodyLarge,
     color: AppColors.primaryDark,
     marginTop: AppSpacing.md,
-  },
-  devToolsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: AppSpacing.sm,
-    justifyContent: 'center',
-    padding: AppSpacing.md,
-  },
-  devBtn: {
-    paddingHorizontal: AppSpacing.md,
-    paddingVertical: AppSpacing.sm,
-    borderRadius: AppRadii.full,
-  },
-  devBtnText: {
-    ...AppTypography.labelLarge,
-    fontWeight: '700',
   },
 });
 

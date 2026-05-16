@@ -10,7 +10,6 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
@@ -19,7 +18,6 @@ import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import { APP_NAME } from '@core/config/constants';
-import { Env } from '@core/config/env';
 
 import { type AuthStackParamList } from '@navigation/types';
 
@@ -41,7 +39,6 @@ type SplashNav = NativeStackNavigationProp<AuthStackParamList, 'Splash'>;
  */
 function SplashScreen(): React.ReactElement {
   const navigation = useNavigation<SplashNav>();
-  const insets = useSafeAreaInsets();
   const naveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const logoTranslateY = useSharedValue(-200);
@@ -98,11 +95,6 @@ function SplashScreen(): React.ReactElement {
         backgroundColor={AppColors.gradientRoseStart}
         translucent={false}
       />
-      {Env.devMode ? (
-        <View style={[styles.devPill, { top: insets.top + AppSpacing.md }]}>
-          <Text style={styles.devPillText}>DEV</Text>
-        </View>
-      ) : null}
       <View style={styles.center}>
         <Animated.View style={[styles.logo, AppShadows.e2, logoStyle]}>
           <Text style={styles.logoLetter}>D</Text>
@@ -117,19 +109,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: AppColors.gradientRoseStart,
-  },
-  devPill: {
-    position: 'absolute',
-    right: AppSpacing.md,
-    backgroundColor: AppColors.surface,
-    opacity: 0.85,
-    paddingHorizontal: AppSpacing.sm,
-    paddingVertical: AppSpacing.xs,
-    borderRadius: AppRadii.full,
-  },
-  devPillText: {
-    ...AppTypography.labelSmall,
-    color: AppColors.primaryDark,
   },
   center: {
     flex: 1,

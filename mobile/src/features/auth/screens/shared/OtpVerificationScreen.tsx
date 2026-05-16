@@ -21,7 +21,6 @@ import Card from '@core/components/Card';
 import OtpInput, { type OtpInputHandle } from '@core/components/OtpInput';
 import TextButton from '@core/components/TextButton';
 import { OTP_LOCKOUT_S, OTP_MAX_ATTEMPTS, OTP_RESEND_COOLDOWN_S } from '@core/config/constants';
-import { Env } from '@core/config/env';
 import { AppException, InvalidOtpException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
 
@@ -247,8 +246,6 @@ function OtpVerificationScreen(): React.ReactElement {
               </View>
             ) : error ? (
               <Text style={styles.error}>{error}</Text>
-            ) : Env.devMode ? (
-              <Text style={styles.devHint}>DEV: use 123456</Text>
             ) : (
               <View style={styles.errorSpacer} />
             )}
@@ -297,11 +294,6 @@ const styles = StyleSheet.create({
     color: AppColors.error,
   },
   errorSpacer: { height: AppTypography.bodyMedium.lineHeight },
-  devHint: {
-    ...AppTypography.labelSmall,
-    color: AppColors.onSurfaceMuted,
-    fontStyle: 'italic',
-  },
   resendRow: { alignItems: 'center' },
   changeRow: { alignItems: 'center' },
   muted: {

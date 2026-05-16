@@ -1,8 +1,9 @@
 /**
  * Profile data + avatar lifecycle.
  *
- * Avatar uploads go through Cloudinary in production; DEV_MODE returns a
- * stub URL. Password change delegates to `authApi`.
+ * Avatar uploads go through Cloudinary in production; DEV builds return a
+ * stub URL so the local pick-and-display path still works. Password change
+ * delegates to `authApi`.
  */
 import { Env } from '@core/config/env';
 import { mapSupabaseError } from '@core/network/apiErrorMapper';
@@ -21,10 +22,6 @@ export type Profile = {
   daysActive: number;
 };
 
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 function maskPhone(phone: string): string {
   const cleaned = phone.replace(/^\+?91/, '').replace(/\s/g, '');
   if (cleaned.length < 4) {
@@ -33,23 +30,26 @@ function maskPhone(phone: string): string {
   return `+91 ••••• ••${cleaned.slice(-3)}`;
 }
 
-const MOCK_PROFILE: Profile = {
-  name: 'Priya Sharma',
-  maskedPhone: maskPhone('9876543210'),
-  avatarUrl: null,
-  verified: true,
-  ratingAvg: 4.8,
-  totalChats: 156,
-  daysActive: 32,
-};
+/** Empty-but-valid Profile, populated from the active session where possible. */
+function emptyProfile(): Profile {
+  const session = useSessionStore.getState().session;
+  const name = (session?.user.user_metadata?.name as string | undefined) ?? '';
+  const phone = session?.user.phone ?? '';
+  return {
+    name,
+    maskedPhone: phone ? maskPhone(phone) : '',
+    avatarUrl: null,
+    verified: false,
+    ratingAvg: 0,
+    totalChats: 0,
+    daysActive: 0,
+  };
+}
 
-/** Returns the logged-in female's profile snapshot. */
+/** Returns the logged-in user's profile snapshot. */
 export async function getProfile(): Promise<Profile> {
   if (Env.devMode) {
-    await sleep(200);
-    const session = useSessionStore.getState().session;
-    const phone = session?.user.phone ?? '9876543210';
-    return { ...MOCK_PROFILE, maskedPhone: maskPhone(phone) };
+    return emptyProfile();
   }
   const { data, error } = await getSupabaseClient().from('females').select('*').single();
   if (error) {
@@ -78,17 +78,16 @@ export async function getProfile(): Promise<Profile> {
 /** Uploads a new avatar image. Returns the public URL stored on the profile. */
 export async function updateAvatar(localPath: string): Promise<string> {
   if (Env.devMode) {
-    await sleep(1200);
-    return `https://dev.dangg.app/avatars/${Date.now()}.jpg`;
+    // Local preview only — the chosen file URI is echoed back so the UI can
+    // show what the user picked. No upload happens.
+    return localPath;
   }
-  // Real flow: upload to Cloudinary, then patch females.avatar_url.
-  throw new AppException('SERVER', `updateAvatar production path not wired: ${localPath}`);
+  throw new AppException('SERVER', 'Avatar upload requires backend wiring');
 }
 
 /** Clears the avatar URL. */
 export async function removeAvatar(): Promise<void> {
   if (Env.devMode) {
-    await sleep(500);
     return;
   }
   const { error } = await getSupabaseClient()
@@ -100,16 +99,14 @@ export async function removeAvatar(): Promise<void> {
   }
 }
 
-/**
- * Updates the user's password. The current password is re-verified server-side
- * via a Supabase RPC because `auth.updateUser` doesn't check the existing one.
- * In DEV_MODE the literal `wrong` simulates failure.
- */
+/** Updates the user's password. */
 export async function changePassword(current: string, next: string): Promise<void> {
   if (Env.devMode) {
-    await sleep(600);
-    if (current === 'wrong') {
-      throw new AuthException('Current password is incorrect');
+    if (!current) {
+      throw new AuthException('Current password is required');
+    }
+    if (!next) {
+      throw new AuthException('New password is required');
     }
     return;
   }

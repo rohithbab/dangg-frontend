@@ -13,7 +13,6 @@ import { AppTypography } from '@theme/typography';
 
 import Card from '@core/components/Card';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
-import { Env } from '@core/config/env';
 import { AppException } from '@core/network/apiException';
 import { inr } from '@core/utils/formatters';
 import { logger } from '@core/utils/logger';
@@ -22,7 +21,6 @@ import { type FemaleAppStackParamList } from '@navigation/types';
 
 import { useSessionStore } from '@store/sessionStore';
 
-import { simulateIncoming } from '../../chatRequests/api/chatRequestApi';
 import {
   type Availability,
   type HomeStats,
@@ -293,12 +291,6 @@ function FemaleHomeScreen(): React.ReactElement {
           />
         </View>
 
-        {Env.devMode ? (
-          <Pressable accessibilityRole="button" onPress={simulateIncoming} style={styles.devButton}>
-            <Text style={styles.devButtonText}>DEV · Simulate Incoming Request</Text>
-          </Pressable>
-        ) : null}
-
         <View style={styles.activityHeader}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
           <Pressable hitSlop={8} accessibilityRole="link" onPress={() => undefined}>
@@ -456,19 +448,6 @@ const styles = StyleSheet.create({
     ...AppTypography.labelSmall,
     color: AppColors.onSurfaceMuted,
     marginTop: 4,
-  },
-  devButton: {
-    marginHorizontal: AppSpacing.md,
-    marginTop: AppSpacing.md,
-    paddingVertical: AppSpacing.sm,
-    paddingHorizontal: AppSpacing.md,
-    borderRadius: AppRadii.full,
-    backgroundColor: AppColors.surfaceVariant,
-    alignItems: 'center',
-  },
-  devButtonText: {
-    ...AppTypography.labelSmall,
-    color: AppColors.primaryDark,
   },
   activityHeader: {
     flexDirection: 'row',
