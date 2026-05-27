@@ -23,6 +23,7 @@ import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import LoadingOverlay from '@core/components/LoadingOverlay';
 import PrimaryButton from '@core/components/PrimaryButton';
 import SecondaryButton from '@core/components/SecondaryButton';
+import { Env } from '@core/config/env';
 import { AppException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
 
@@ -65,6 +66,13 @@ function FaceCaptureScreen(): React.ReactElement {
   }, []);
 
   const handleCapture = useCallback(async (): Promise<void> => {
+    if (Env.devMode && !cameraRef.current) {
+      setCaptureError(null);
+      setPreviewPath(
+        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=600',
+      );
+      return;
+    }
     if (!cameraRef.current) {
       return;
     }

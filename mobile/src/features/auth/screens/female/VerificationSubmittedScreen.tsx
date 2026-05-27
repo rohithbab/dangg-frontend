@@ -36,7 +36,7 @@ function VerificationSubmittedScreen(): React.ReactElement {
   const handleContinue = useCallback((): void => {
     clearDraft();
     markOnboardingSeen();
-    navigation.reset({ index: 0, routes: [{ name: 'FemaleLoginPhone' }] });
+    navigation.reset({ index: 0, routes: [{ name: 'FemaleLogin' }] });
   }, [clearDraft, navigation]);
 
   return (

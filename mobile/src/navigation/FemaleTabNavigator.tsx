@@ -47,11 +47,7 @@ function PersonTabIcon({ color, size }: IconProps): React.ReactElement {
 /**
  * Female post-auth bottom tabs.
  *
- * Order declared as Earnings → Home → Profile so the centered "speed-breaker"
- * FAB rendered by `FloatingBottomNav` lands on Home. Initial route is Home.
- *
- * Tab icons and labels are wired via per-screen `options` so the bottom-nav
- * component itself stays role-agnostic.
+ * Order declared as Home → Earnings → Profile to match the new bottom-nav design.
  */
 function FemaleTabNavigator(): React.ReactElement {
   return (
@@ -61,14 +57,14 @@ function FemaleTabNavigator(): React.ReactElement {
       tabBar={props => <FloatingBottomNav {...props} />}
     >
       <Tab.Screen
-        name="Earnings"
-        component={EarningsDashboardScreen}
-        options={{ tabBarLabel: 'Earnings', tabBarIcon: WalletTabIcon }}
-      />
-      <Tab.Screen
         name="Home"
         component={FemaleHomeScreen}
         options={{ tabBarLabel: 'Home', tabBarIcon: HomeTabIcon }}
+      />
+      <Tab.Screen
+        name="Earnings"
+        component={EarningsDashboardScreen}
+        options={{ tabBarLabel: 'Earnings', tabBarIcon: WalletTabIcon }}
       />
       <Tab.Screen
         name="Profile"

@@ -11,6 +11,8 @@ import {
   type PermissionStatus as RNPermissionStatus,
 } from 'react-native-permissions';
 
+import { Env } from '../config/env';
+
 /** Outcome of a permission request — collapses platform variations into three states. */
 export enum AppPermissionStatus {
   Granted = 'granted',
@@ -51,10 +53,16 @@ function toAppStatus(status: RNPermissionStatus): AppPermissionStatus {
  */
 export const permissionService = {
   async requestCamera(): Promise<AppPermissionStatus> {
+    if (Env.devMode) {
+      return AppPermissionStatus.Granted;
+    }
     return toAppStatus(await request(cameraPermission()));
   },
 
   async requestGallery(): Promise<AppPermissionStatus> {
+    if (Env.devMode) {
+      return AppPermissionStatus.Granted;
+    }
     return toAppStatus(await request(galleryPermission()));
   },
 
@@ -64,21 +72,33 @@ export const permissionService = {
    * surface. The `alert`/`sound`/`badge` options match the splash defaults.
    */
   async requestNotifications(): Promise<AppPermissionStatus> {
+    if (Env.devMode) {
+      return AppPermissionStatus.Granted;
+    }
     const { status } = await requestNotifications(['alert', 'sound', 'badge']);
     return toAppStatus(status);
   },
 
   async checkNotifications(): Promise<AppPermissionStatus> {
+    if (Env.devMode) {
+      return AppPermissionStatus.Granted;
+    }
     const { status } = await checkNotifications();
     return toAppStatus(status);
   },
 
   async checkCamera(): Promise<AppPermissionStatus> {
+    if (Env.devMode) {
+      return AppPermissionStatus.Granted;
+    }
     return toAppStatus(await check(cameraPermission()));
   },
 
   /** Opens the system Settings app — call when permission is permanently denied. */
   async openAppSettings(): Promise<void> {
+    if (Env.devMode) {
+      return;
+    }
     await openSettings();
   },
 };

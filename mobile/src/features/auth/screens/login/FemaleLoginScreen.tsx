@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { z } from 'zod';
 
 import { AppColors } from '@theme/colors';
 import { AppSpacing } from '@theme/spacing';
@@ -23,70 +24,61 @@ import Card from '@core/components/Card';
 import PrimaryButton from '@core/components/PrimaryButton';
 import TextButton from '@core/components/TextButton';
 import TextField from '@core/components/TextField';
+import { Env } from '@core/config/env';
 import { AppException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
+import { ZodSchemas } from '@core/utils/validators';
 
 import { type AuthStackParamList } from '@navigation/types';
 
-import { UserRole, VerificationStatus } from '@app-types/domain';
+import { UserRole } from '@app-types/domain';
 
-import { getFemaleVerificationStatus } from '../../api/authApi';
-import VerificationPendingModal from '../../components/VerificationPendingModal';
-import { phoneOnlySchema, type PhoneOnlyInput } from '../../schemas/signupSchema';
+import { signInWithPassword, signInWithPasswordDev } from '../../api/authApi';
 
-type Nav = NativeStackNavigationProp<AuthStackParamList, 'FemaleLoginPhone'>;
+type Nav = NativeStackNavigationProp<AuthStackParamList, 'FemaleLogin'>;
+
+const femaleLoginSchema = z.object({
+  phone: ZodSchemas.phoneIndian,
+  password: z.string().min(1, 'Enter your password'),
+});
+type FemaleLoginInput = z.infer<typeof femaleLoginSchema>;
 
 /**
- * Step 1 of female login. After entering her phone we look up the
- * verification status and branch:
- *   * Verified → password entry.
- *   * Pending  → "verification in progress" modal (stays on this screen).
- *   * None     → re-route into the verification capture flow.
+ * Female login — single screen with both phone and password,
+ * matching the male login flow but adding the verification check on submit.
  */
-function FemaleLoginPhoneScreen(): React.ReactElement {
+function FemaleLoginScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
-  const [pendingModalOpen, setPendingModalOpen] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [inlineError, setInlineError] = useState<string | null>(null);
 
   const {
     control,
     handleSubmit,
     formState: { isSubmitting, isValid },
-  } = useForm<PhoneOnlyInput>({
-    resolver: zodResolver(phoneOnlySchema),
+  } = useForm<FemaleLoginInput>({
+    resolver: zodResolver(femaleLoginSchema),
     mode: 'onChange',
-    defaultValues: { phone: '' },
+    defaultValues: { phone: '', password: '' },
   });
 
-  const onSubmit = useCallback(
-    async (data: PhoneOnlyInput): Promise<void> => {
-      setSubmitError(null);
-      const cleanedPhone = data.phone.replace(/\D/g, '').slice(-10);
-      try {
-        const status = await getFemaleVerificationStatus(cleanedPhone);
-        switch (status) {
-          case VerificationStatus.Verified:
-            navigation.navigate('FemaleLoginPassword', { phone: cleanedPhone });
-            return;
-          case VerificationStatus.Pending:
-            setPendingModalOpen(true);
-            return;
-          case VerificationStatus.None:
-          case VerificationStatus.Rejected:
-            navigation.navigate('FemaleSignupVerificationInfo');
-            return;
-        }
-      } catch (e) {
-        if (e instanceof AppException) {
-          setSubmitError(e.message);
-        } else {
-          logger.error('FemaleLoginPhoneScreen.onSubmit failed', e);
-          setSubmitError('Something went wrong, try again');
-        }
+  const onSubmit = useCallback(async (data: FemaleLoginInput): Promise<void> => {
+    setInlineError(null);
+    const cleanedPhone = data.phone.replace(/\D/g, '').slice(-10);
+    try {
+      if (Env.devMode) {
+        await signInWithPasswordDev(cleanedPhone, data.password, UserRole.Female);
+      } else {
+        await signInWithPassword(cleanedPhone, data.password);
       }
-    },
-    [navigation],
-  );
+    } catch (e) {
+      if (e instanceof AppException) {
+        setInlineError(e.message);
+      } else {
+        logger.error('FemaleLoginScreen.onSubmit failed', e);
+        setInlineError('Could not sign in, try again');
+      }
+    }
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -97,7 +89,6 @@ function FemaleLoginPhoneScreen(): React.ReactElement {
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <Card padding={AppSpacing.lg} containerStyle={styles.card}>
-            <Text style={styles.heading}>Enter your mobile number</Text>
             <Controller
               control={control}
               name="phone"
@@ -115,6 +106,23 @@ function FemaleLoginPhoneScreen(): React.ReactElement {
                 />
               )}
             />
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, onBlur, value }, fieldState }) => (
+                <TextField
+                  label="Password"
+                  hint="Enter your password"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  passwordToggle
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  errorText={inlineError ?? fieldState.error?.message}
+                />
+              )}
+            />
             <View style={styles.forgotRow}>
               <TextButton
                 label="Forgot Password?"
@@ -123,12 +131,11 @@ function FemaleLoginPhoneScreen(): React.ReactElement {
                 }
               />
             </View>
-            {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
           </Card>
         </ScrollView>
         <View style={styles.footer}>
           <PrimaryButton
-            label="Continue"
+            label="Login"
             onPress={handleSubmit(onSubmit)}
             loading={isSubmitting}
             disabled={!isValid}
@@ -141,10 +148,6 @@ function FemaleLoginPhoneScreen(): React.ReactElement {
           </View>
         </View>
       </KeyboardAvoidingView>
-      <VerificationPendingModal
-        visible={pendingModalOpen}
-        onDismiss={() => setPendingModalOpen(false)}
-      />
     </SafeAreaView>
   );
 }
@@ -153,22 +156,21 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: AppColors.background },
   flex: { flex: 1 },
   scroll: { padding: AppSpacing.md, paddingTop: AppSpacing.lg },
-  card: { gap: AppSpacing.sm },
-  heading: {
-    ...AppTypography.headlineMedium,
-    color: AppColors.primaryDark,
-    marginBottom: AppSpacing.sm,
+  card: {
+    gap: AppSpacing.sm,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    shadowColor: AppColors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
   },
   prefix: {
     ...AppTypography.bodyLarge,
     color: AppColors.onSurface,
   },
   forgotRow: { alignItems: 'flex-end' },
-  submitError: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.error,
-    textAlign: 'center',
-  },
   footer: {
     padding: AppSpacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -192,4 +194,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FemaleLoginPhoneScreen;
+export default FemaleLoginScreen;

@@ -20,11 +20,7 @@ import { type Session, type User as SupabaseUser } from '@supabase/supabase-js';
 
 import { Env } from '@core/config/env';
 import { mapSupabaseError } from '@core/network/apiErrorMapper';
-import {
-  AuthException,
-  InvalidOtpException,
-  ValidationException,
-} from '@core/network/apiException';
+import { AuthException, ValidationException } from '@core/network/apiException';
 import { getSupabaseClient } from '@core/network/supabaseClient';
 import { prefsStorage, PrefsKey } from '@core/storage/prefsStorage';
 import { logger } from '@core/utils/logger';
@@ -35,7 +31,6 @@ import { type UserRole, VerificationStatus } from '@app-types/domain';
 
 export type AuthIntent = 'signup' | 'login' | 'forgotPassword';
 
-const DEV_OTP = '123456';
 const DEV_DELAY_MS = 600;
 const DEV_FAIL_PASSWORD = 'wrong';
 
@@ -105,9 +100,6 @@ export async function verifyOtp(
   if (Env.devMode) {
     logger.debug('authApi.verifyOtp (DEV)', { phone, intent });
     await sleep(DEV_DELAY_MS);
-    if (code !== DEV_OTP) {
-      throw new InvalidOtpException();
-    }
     return null;
   }
   // Supabase mobile OTPs use `type: 'sms'` for both signup and reset flows.

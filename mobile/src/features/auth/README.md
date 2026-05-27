@@ -13,11 +13,10 @@
 
 ### Female login (spec 1.7, 1.8, 1.10)
 
-- FemaleLoginPhoneScreen — calls verification-status RPC, branches:
-  - `verified` → push FemaleLoginPasswordScreen
-  - `pending` → show VerificationPendingModal (stays on phone)
-  - `none` → redirect to VerificationInfoScreen
-- FemaleLoginPasswordScreen
+- FemaleLoginScreen — single page (phone + password) gated by verification check on submit:
+  - `verified` → logs in
+  - `pending` → shows VerificationPendingModal
+  - `none` / `rejected` → redirects to VerificationInfoScreen
 - VerificationPendingModal (in `components/`)
 
 ### Male signup (spec 2.1 → 2.3)
@@ -46,7 +45,7 @@
   the app only triggers Supabase Auth.
 - Never auto-retry OTP send — wrap with `OTP_RESEND_COOLDOWN_S` cooldown
   inside the OTP screen.
-- Female login is a 2-step phone-then-password flow gated by a
+- Female login is a single-page phone + password flow gated by a
   `verification_status` check.
 - Face capture pushes raw JPEG to Supabase Storage's private
   `verification-photos` bucket (NOT Cloudinary).

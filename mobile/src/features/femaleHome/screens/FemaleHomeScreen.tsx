@@ -7,14 +7,13 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
-import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import Card from '@core/components/Card';
+import CoinIcon from '@core/components/CoinIcon';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
 import { AppException } from '@core/network/apiException';
-import { inr } from '@core/utils/formatters';
 import { logger } from '@core/utils/logger';
 
 import { type FemaleAppStackParamList } from '@navigation/types';
@@ -69,17 +68,6 @@ function trendColor(trend: Trend): string {
 
 type IconColor = string;
 
-function WalletIcon({ color }: { color: IconColor }): React.ReactElement {
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24">
-      <Path
-        d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8z"
-        fill={color}
-      />
-    </Svg>
-  );
-}
-
 function ChatIcon({ color }: { color: IconColor }): React.ReactElement {
   return (
     <Svg width={20} height={20} viewBox="0 0 24 24">
@@ -96,17 +84,6 @@ function StarIcon({ color }: { color: IconColor }): React.ReactElement {
     <Svg width={20} height={20} viewBox="0 0 24 24">
       <Path
         d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
-        fill={color}
-      />
-    </Svg>
-  );
-}
-
-function CalendarIcon({ color }: { color: IconColor }): React.ReactElement {
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24">
-      <Path
-        d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v16c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H5V8h14v13z"
         fill={color}
       />
     </Svg>
@@ -266,15 +243,15 @@ function FemaleHomeScreen(): React.ReactElement {
         <View style={styles.statsGrid}>
           <StatCell
             label="Today's Earnings"
-            value={stats ? inr(stats.todayEarningsInr) : '—'}
+            value={stats ? stats.todayEarningsInr.toLocaleString() : '—'}
             trend={stats?.todayTrend ?? null}
-            renderIcon={c => <WalletIcon color={c} />}
+            renderIcon={() => <CoinIcon size={20} />}
           />
           <StatCell
             label="This Week"
-            value={stats ? inr(stats.weekEarningsInr) : '—'}
+            value={stats ? stats.weekEarningsInr.toLocaleString() : '—'}
             trend={stats?.weekTrend ?? null}
-            renderIcon={c => <CalendarIcon color={c} />}
+            renderIcon={() => <CoinIcon size={20} />}
           />
           <StatCell
             label="Chats Today"
@@ -341,7 +318,7 @@ function StatCell({
   renderIcon,
 }: StatCellProps): React.ReactElement {
   return (
-    <View style={[styles.statCell, AppShadows.e1]}>
+    <View style={styles.statCell}>
       <View style={styles.statIcon}>{renderIcon(AppColors.primary)}</View>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
@@ -384,6 +361,13 @@ const styles = StyleSheet.create({
   availabilityCard: {
     marginHorizontal: AppSpacing.md,
     marginTop: AppSpacing.lg,
+    borderWidth: 1.5,
+    borderColor: AppColors.border,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
   },
   availabilityHeader: {
     flexDirection: 'row',
@@ -429,6 +413,13 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.surface,
     borderRadius: AppRadii.md,
     padding: AppSpacing.md,
+    borderWidth: 1.5,
+    borderColor: AppColors.border,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
   },
   statIcon: { marginBottom: AppSpacing.sm },
   statValue: {
@@ -468,6 +459,13 @@ const styles = StyleSheet.create({
   activityCard: {
     marginHorizontal: AppSpacing.md,
     overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: AppColors.border,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
   },
   activityRow: {
     borderBottomWidth: StyleSheet.hairlineWidth,

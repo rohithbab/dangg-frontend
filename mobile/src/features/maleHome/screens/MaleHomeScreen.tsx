@@ -3,8 +3,11 @@ import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  BackHandler,
   Dimensions,
   FlatList,
+  Modal,
+  PanResponder,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,16 +15,29 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+import FastImage from 'react-native-fast-image';
+import Animated, {
+  cancelAnimation,
+  Extrapolate,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import Avatar from '@core/components/Avatar';
+import CoinIcon from '@core/components/CoinIcon';
 import PaginationLoader from '@core/components/PaginationLoader';
+import PrimaryButton from '@core/components/PrimaryButton';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
 import { logger } from '@core/utils/logger';
 
@@ -29,8 +45,12 @@ import { type MaleAppStackParamList } from '@navigation/types';
 
 import { useSessionStore } from '@store/sessionStore';
 
+import { sendChatRequest } from '@features/chatRequests/api/chatRequestApi';
+import ChatRequestConfirmModal from '@features/chatRequests/components/ChatRequestConfirmModal';
+import InsufficientCoinsModal from '@features/chatRequests/components/InsufficientCoinsModal';
 import { fetchWalletSnapshot } from '@features/wallet/api/walletApi';
-import { useCoinBalance } from '@features/wallet/store/walletStore';
+import { COIN_PACKAGES } from '@features/wallet/constants';
+import { useCoinBalance, useWalletStore } from '@features/wallet/store/walletStore';
 
 import {
   type AvailableFemale,
@@ -45,7 +65,8 @@ import { type QuickFilter, useFemaleFiltersStore } from '../store/femaleFiltersS
 
 type Nav = NativeStackNavigationProp<MaleAppStackParamList>;
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const HERO_HEIGHT = Math.round(SCREEN_HEIGHT * 0.6);
 const GRID_HORIZONTAL_PADDING = AppSpacing.md;
 const GRID_GAP = AppSpacing.sm + 4;
 const CARD_WIDTH = (SCREEN_WIDTH - GRID_HORIZONTAL_PADDING * 2 - GRID_GAP) / 2;
@@ -58,18 +79,6 @@ const QUICK_FILTERS: ReadonlyArray<{ value: QuickFilter; label: string; showDot?
   { value: 'topRated', label: 'Highly Rated' },
   { value: 'favorites', label: 'Favorites' },
 ];
-
-function CoinIcon({ size, color }: { size: number; color: string }): React.ReactElement {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Circle cx={12} cy={12} r={9} fill={color} />
-      <Path
-        d="M14.5 9.5h-3v1.5h1.25c.55 0 1 .45 1 1s-.45 1-1 1H11v1.5h1.75c.55 0 1 .45 1 1s-.45 1-1 1H9.5v1.5h3v-1c.97-.18 1.75-.99 1.75-2 0-.74-.4-1.39-1-1.74.6-.35 1-1 1-1.74 0-1.1-.9-2-2-2H9.5V8h5v1.5z"
-        fill={AppColors.surface}
-      />
-    </Svg>
-  );
-}
 
 function BellIcon({ withDot }: { withDot: boolean }): React.ReactElement {
   return (
@@ -117,6 +126,82 @@ function initialsFromName(name: string): string {
   return (parts[0]?.[0] ?? '?').toUpperCase();
 }
 
+function ChevronLeft(): React.ReactElement {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24">
+      <Path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z" fill={AppColors.primaryDark} />
+    </Svg>
+  );
+}
+
+function PreviewHeartIcon({ filled }: { filled: boolean }): React.ReactElement {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24">
+      <Path
+        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+        fill={filled ? AppColors.primary : AppColors.transparent}
+        stroke={filled ? AppColors.transparent : AppColors.primaryDark}
+        strokeWidth={filled ? 0 : 2}
+      />
+    </Svg>
+  );
+}
+
+function PreviewStarIcon({ size, color }: { size: number; color: string }): React.ReactElement {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path
+        d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+function StatCol({ value, label }: { value: string; label: string }): React.ReactElement {
+  return (
+    <View style={styles.statCol}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+type FavoriteItemProps = {
+  item: AvailableFemale;
+  onPress: (
+    item: AvailableFemale,
+    pageX: number,
+    pageY: number,
+    width: number,
+    height: number,
+  ) => void;
+};
+
+function FavoriteItem({ item, onPress }: FavoriteItemProps): React.ReactElement {
+  const itemRef = React.useRef<View>(null);
+
+  const handlePress = useCallback(() => {
+    if (itemRef.current) {
+      itemRef.current.measure((_x, _y, width, height, pageX, pageY) => {
+        onPress(item, pageX, pageY, width, height);
+      });
+    }
+  }, [item, onPress]);
+
+  return (
+    <Pressable accessibilityRole="button" onPress={handlePress} style={styles.favItem}>
+      <View ref={itemRef} collapsable={false} style={styles.favAvatarRing}>
+        <Avatar uri={item.imageUrl} size={72} initials={initialsFromName(item.name)} />
+      </View>
+      {item.isOnline ? <View style={styles.favStatusDot} /> : null}
+      <Text style={styles.favName} numberOfLines={1}>
+        {item.name}
+      </Text>
+    </Pressable>
+  );
+}
+
 /**
  * Male Home — the browse-females surface. 2-column FlashList grid, header
  * with greeting + coin pill + bell, quick filter chip row, favorites
@@ -126,6 +211,7 @@ function MaleHomeScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const sessionName = useSessionStore(s => s.session?.user.user_metadata?.name);
   const firstName = firstNameFromSession(sessionName);
+  const { top: topInset } = useSafeAreaInsets();
 
   const coinBalance = useCoinBalance();
   const filters = useFemaleFiltersStore();
@@ -139,6 +225,190 @@ function MaleHomeScreen(): React.ReactElement {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [initialLoaded, setInitialLoaded] = useState(false);
+
+  // Genie Shared Element Transition states
+  const [selectedFavorite, setSelectedFavorite] = useState<AvailableFemale | null>(null);
+  const [genieCoords, setGenieCoords] = useState({ x: 0, y: 0, w: 72, h: 72 });
+  const [isGenieActive, setIsGenieActive] = useState(false);
+  const genieProgress = useSharedValue(0);
+
+  const walletCoins = useWalletStore(s => s.coinBalance);
+  const spend = useWalletStore(s => s.spend);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [insufficientOpen, setInsufficientOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleFavoritePress = useCallback(
+    (item: AvailableFemale, pageX: number, pageY: number, width: number, height: number) => {
+      // Cancel any in-flight close animation and reset immediately so reopen is always clean
+      cancelAnimation(genieProgress);
+      genieProgress.value = 0;
+      setGenieCoords({
+        x: pageX || SCREEN_WIDTH / 2 - 36,
+        y: pageY || 180,
+        w: width || 72,
+        h: height || 72,
+      });
+      setSelectedFavorite(item);
+      setIsGenieActive(true);
+      genieProgress.value = withTiming(1, { duration: 280 });
+    },
+    [genieProgress],
+  );
+
+  const handleCloseGenie = useCallback(() => {
+    // Always clear state — even if animation is interrupted — to prevent stale genie state
+    genieProgress.value = withTiming(0, { duration: 250 }, () => {
+      runOnJS(setIsGenieActive)(false);
+      runOnJS(setSelectedFavorite)(null);
+    });
+  }, [genieProgress]);
+
+  // Pan-to-close: drag down maps directly to genieProgress so the modal
+  // visually shrinks toward the avatar in sync with the finger.
+  //
+  // Uses the *Capture* variants so the outer View intercepts the touch
+  // before the inner ScrollView claims it. Without capture, the ScrollView
+  // always wins vertical drags.
+  const panResponder = React.useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponderCapture: () => false,
+      onMoveShouldSetPanResponder: (_evt, gestureState) =>
+        gestureState.dy > 6 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
+      onMoveShouldSetPanResponderCapture: (_evt, gestureState) =>
+        gestureState.dy > 6 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => {
+        cancelAnimation(genieProgress);
+      },
+      onPanResponderMove: (_evt, gestureState) => {
+        if (gestureState.dy > 0) {
+          // Map drag distance to progress: 0..halfScreen -> 1..0
+          const progress = Math.max(0, 1 - gestureState.dy / (SCREEN_HEIGHT * 0.5));
+          genieProgress.value = progress;
+        } else {
+          genieProgress.value = 1;
+        }
+      },
+      onPanResponderRelease: (_evt, gestureState) => {
+        const shouldClose = gestureState.dy > SCREEN_HEIGHT * 0.18 || gestureState.vy > 0.8;
+        if (shouldClose) {
+          genieProgress.value = withTiming(0, { duration: 220 }, finished => {
+            if (finished) {
+              runOnJS(setIsGenieActive)(false);
+              runOnJS(setSelectedFavorite)(null);
+            }
+          });
+        } else {
+          genieProgress.value = withTiming(1, { duration: 220 });
+        }
+      },
+      onPanResponderTerminate: () => {
+        genieProgress.value = withTiming(1, { duration: 220 });
+      },
+    }),
+  ).current;
+
+  useEffect(() => {
+    if (!isGenieActive) {
+      return;
+    }
+    const onBackPress = () => {
+      handleCloseGenie();
+      return true;
+    };
+    BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+  }, [isGenieActive, handleCloseGenie]);
+
+  const handleSendPress = useCallback((): void => {
+    if (!selectedFavorite) {
+      return;
+    }
+    if (walletCoins < selectedFavorite.coinPrice) {
+      setInsufficientOpen(true);
+      return;
+    }
+    setConfirmOpen(true);
+  }, [walletCoins, selectedFavorite]);
+
+  const handleConfirm = useCallback(async (): Promise<void> => {
+    if (!selectedFavorite || submitting) {
+      return;
+    }
+    setSubmitting(true);
+    try {
+      spend(selectedFavorite.coinPrice);
+      const { requestId } = await sendChatRequest({
+        femaleId: selectedFavorite.id,
+        coinCost: selectedFavorite.coinPrice,
+      });
+      setConfirmOpen(false);
+      handleCloseGenie();
+      navigation.navigate('ChatRequestSent', { requestId });
+    } catch (e) {
+      logger.warn('sendChatRequest failed', e);
+      useWalletStore.getState().credit(selectedFavorite.coinPrice);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [selectedFavorite, navigation, spend, submitting, handleCloseGenie]);
+
+  // ─── Genie circle animation ─────────────────────────────────────────────
+  // Strategy: the overlay literally starts AS the avatar circle (same position
+  // and size) and expands to fill the screen. `overflow: 'hidden'` clips it
+  // to a circle shape via borderRadius. No opacity tricks — the circle is
+  // always visible so the user sees it grow in real-time.
+
+  const animatedOverlayStyle = useAnimatedStyle(() => {
+    const p = genieProgress.value;
+    const { x, y, w, h } = genieCoords;
+    const diameter = Math.max(w, h);
+    return {
+      left: interpolate(p, [0, 1], [x, 0]),
+      top: interpolate(p, [0, 1], [y, 0]),
+      width: interpolate(p, [0, 1], [diameter, SCREEN_WIDTH]),
+      height: interpolate(p, [0, 1], [diameter, SCREEN_HEIGHT]),
+      borderRadius: interpolate(p, [0, 1], [diameter / 2, 0]),
+    };
+  });
+
+  // Profile content: always full-screen sized, offset so it appears at the
+  // correct screen coordinates regardless of the overlay's current position.
+  const profileContentStyle = useAnimatedStyle(() => {
+    const p = genieProgress.value;
+    const { x, y } = genieCoords;
+    return {
+      position: 'absolute' as const,
+      left: interpolate(p, [0, 1], [-x, 0]),
+      top: interpolate(p, [0, 1], [-y, 0]),
+      width: SCREEN_WIDTH,
+      height: SCREEN_HEIGHT,
+      opacity: interpolate(p, [0.25, 0.75], [0, 1], Extrapolate.CLAMP),
+    };
+  });
+
+  // Avatar photo fills the expanding circle until content fades in.
+  const circleHeroStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(genieProgress.value, [0, 0.45], [1, 0], Extrapolate.CLAMP),
+  }));
+
+  // Buttons sit OUTSIDE the clipping overlay so they are never cropped.
+  // They fade in once the overlay is large enough.
+  const genieButtonsAnimStyle = useAnimatedStyle(() => ({
+    top: topInset + 8,
+    opacity: interpolate(genieProgress.value, [0.55, 1], [0, 1], Extrapolate.CLAMP),
+  }));
+
+  const renderFavoriteItem = useCallback(
+    ({ item }: { item: AvailableFemale }) => (
+      <FavoriteItem item={item} onPress={handleFavoritePress} />
+    ),
+    [handleFavoritePress],
+  );
 
   const filtersSnapshot = useMemo(
     () => ({
@@ -171,6 +441,7 @@ function MaleHomeScreen(): React.ReactElement {
       setItems(page);
       setHasMore(more);
       setTotalOnline(online);
+      setInitialLoaded(true);
     } catch (e) {
       logger.warn('browseFemales failed', e);
     }
@@ -244,19 +515,31 @@ function MaleHomeScreen(): React.ReactElement {
     [loadFavorites],
   );
 
+  const handleToggleFavoriteInsideGenie = useCallback(async (): Promise<void> => {
+    if (!selectedFavorite) {
+      return;
+    }
+    const targetId = selectedFavorite.id;
+    setSelectedFavorite(prev => (prev ? { ...prev, isFavorited: !prev.isFavorited } : null));
+    await handleToggleFavorite(targetId);
+  }, [selectedFavorite, handleToggleFavorite]);
+
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<AvailableFemale>): React.ReactElement => (
-      <View style={styles.cardWrap}>
-        <AvailableFemaleCard
-          female={item}
-          width={CARD_WIDTH}
-          onPress={() => navigation.navigate('FemaleProfilePreview', { femaleId: item.id })}
-          onToggleFavorite={() => {
-            void handleToggleFavorite(item.id);
-          }}
-        />
-      </View>
-    ),
+    ({ item, index }: ListRenderItemInfo<AvailableFemale>): React.ReactElement => {
+      const isLeftColumn = index % 2 === 0;
+      return (
+        <View style={isLeftColumn ? styles.cardWrapLeft : styles.cardWrapRight}>
+          <AvailableFemaleCard
+            female={item}
+            width={CARD_WIDTH}
+            onPress={() => navigation.navigate('FemaleProfilePreview', { femaleId: item.id })}
+            onToggleFavorite={() => {
+              void handleToggleFavorite(item.id);
+            }}
+          />
+        </View>
+      );
+    },
     [handleToggleFavorite, navigation],
   );
 
@@ -275,7 +558,7 @@ function MaleHomeScreen(): React.ReactElement {
             onPress={() => navigation.navigate('MaleTabs', { screen: 'Wallet' })}
             style={styles.coinPill}
           >
-            <CoinIcon size={16} color={AppColors.primary} />
+            <CoinIcon size={18} />
             <Text style={styles.coinPillText}>{String(coinBalance)}</Text>
           </Pressable>
           <Pressable
@@ -359,27 +642,7 @@ function MaleHomeScreen(): React.ReactElement {
                   data={favorites}
                   keyExtractor={f => f.id}
                   contentContainerStyle={styles.favListContent}
-                  renderItem={({ item }) => (
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() =>
-                        navigation.navigate('FemaleProfilePreview', { femaleId: item.id })
-                      }
-                      style={styles.favItem}
-                    >
-                      <View style={styles.favAvatarRing}>
-                        <Avatar
-                          uri={item.imageUrl}
-                          size={72}
-                          initials={initialsFromName(item.name)}
-                        />
-                      </View>
-                      {item.isOnline ? <View style={styles.favStatusDot} /> : null}
-                      <Text style={styles.favName} numberOfLines={1}>
-                        {item.name}
-                      </Text>
-                    </Pressable>
-                  )}
+                  renderItem={renderFavoriteItem}
                 />
               </View>
             ) : null}
@@ -391,13 +654,15 @@ function MaleHomeScreen(): React.ReactElement {
           </>
         }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <View style={styles.emptyIcon}>
-              <SearchOffIcon />
+          initialLoaded ? (
+            <View style={styles.empty}>
+              <View style={styles.emptyIcon}>
+                <SearchOffIcon />
+              </View>
+              <Text style={styles.emptyTitle}>No one available right now</Text>
+              <Text style={styles.emptyBody}>Check back in a few minutes</Text>
             </View>
-            <Text style={styles.emptyTitle}>No one available right now</Text>
-            <Text style={styles.emptyBody}>Check back in a few minutes</Text>
-          </View>
+          ) : null
         }
         ListFooterComponent={
           items.length > 0 ? <PaginationLoader isLoading={loadingMore} hasMore={hasMore} /> : null
@@ -408,6 +673,207 @@ function MaleHomeScreen(): React.ReactElement {
         visible={filterSheetOpen}
         onClose={() => setFilterSheetOpen(false)}
       />
+
+      <Modal
+        visible={isGenieActive}
+        transparent
+        animationType="none"
+        onRequestClose={handleCloseGenie}
+      >
+        <View style={StyleSheet.absoluteFill} pointerEvents="auto" {...panResponder.panHandlers}>
+          {selectedFavorite && (
+            <>
+              {/*
+               * Expanding circle overlay.
+               * Starts at avatar position as a circle; grows to fill the screen.
+               * overflow:'hidden' + borderRadius creates the live circle clip.
+               */}
+              <Animated.View style={[styles.genieOverlay, animatedOverlayStyle]}>
+                {/* Phase 1 — avatar photo fills the expanding circle */}
+                <Animated.View
+                  style={[StyleSheet.absoluteFill, circleHeroStyle]}
+                  pointerEvents="none"
+                >
+                  <FastImage
+                    source={{ uri: selectedFavorite.imageUrl }}
+                    style={StyleSheet.absoluteFill}
+                    resizeMode="cover"
+                  />
+                </Animated.View>
+
+                {/* Phase 2 — full profile content, offset so it sits at correct screen coords */}
+                <Animated.View style={profileContentStyle}>
+                  <ScrollView contentContainerStyle={styles.genieScroll}>
+                    <View style={[styles.genieHero, { height: HERO_HEIGHT }]}>
+                      <FastImage
+                        source={{ uri: selectedFavorite.imageUrl }}
+                        style={StyleSheet.absoluteFill}
+                        resizeMode="cover"
+                      />
+                      <Svg
+                        style={styles.genieHeroGradient}
+                        width="100%"
+                        height={Math.round(HERO_HEIGHT * 0.4)}
+                        preserveAspectRatio="none"
+                      >
+                        <Defs>
+                          <LinearGradient id="genieHeroFade" x1="0" y1="0" x2="0" y2="1">
+                            <Stop offset="0%" stopColor={AppColors.scrim} stopOpacity="0" />
+                            <Stop offset="100%" stopColor={AppColors.scrim} stopOpacity="0.85" />
+                          </LinearGradient>
+                        </Defs>
+                        <Rect width="100%" height="100%" fill="url(#genieHeroFade)" />
+                      </Svg>
+
+                      <View style={styles.genieHeroBottom}>
+                        <Text
+                          style={styles.genieHeroName}
+                        >{`${selectedFavorite.name}, ${selectedFavorite.age}`}</Text>
+                        <View style={styles.genieHeroMetaRow}>
+                          <View style={styles.genieHeroMetaLeft}>
+                            <View
+                              style={[
+                                styles.genieHeroDot,
+                                {
+                                  backgroundColor: selectedFavorite.isOnline
+                                    ? AppColors.onlineGreen
+                                    : AppColors.offlineGray,
+                                },
+                              ]}
+                            />
+                            <Text style={styles.genieHeroMetaText}>
+                              {selectedFavorite.isOnline ? 'Online now' : 'Offline'}
+                            </Text>
+                          </View>
+                          <View style={styles.genieHeroMetaRight}>
+                            <PreviewStarIcon size={16} color={AppColors.surface} />
+                            <Text style={styles.genieHeroMetaText}>
+                              {`${selectedFavorite.rating.toFixed(1)} (${selectedFavorite.totalChats ?? 12} chats)`}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={styles.genieBodyBlock}>
+                      <View style={styles.genieActionRow}>
+                        <View style={styles.geniePricePill}>
+                          <Text
+                            style={styles.geniePricePillText}
+                          >{`${selectedFavorite.coinPrice} coins per chat`}</Text>
+                        </View>
+                        <Text style={styles.genieResponseText}>
+                          {`Responds in ${selectedFavorite.averageResponseMinutes ?? 5} min`}
+                        </Text>
+                      </View>
+
+                      <Text style={styles.genieSectionTitle}>About</Text>
+                      <Text style={styles.genieBioText}>
+                        {selectedFavorite.bio || 'Available for chats and matches.'}
+                      </Text>
+
+                      <View style={[styles.genieStatsCard, AppShadows.e1]}>
+                        <StatCol value={String(selectedFavorite.totalChats ?? 12)} label="Chats" />
+                        <View style={styles.genieStatDivider} />
+                        <StatCol
+                          value={(selectedFavorite.rating ?? 4.8).toFixed(1)}
+                          label="Rating"
+                        />
+                        <View style={styles.genieStatDivider} />
+                        <StatCol
+                          value={`${selectedFavorite.averageResponseMinutes ?? 5}m`}
+                          label="Response"
+                        />
+                      </View>
+                    </View>
+                  </ScrollView>
+
+                  <View style={styles.genieCtaWrap} pointerEvents="auto">
+                    <PrimaryButton
+                      label={`Send Chat Request — ${selectedFavorite.coinPrice} coins`}
+                      onPress={handleSendPress}
+                    />
+                    <Text
+                      style={styles.genieBalanceHint}
+                    >{`Your balance: ${walletCoins} coins`}</Text>
+                  </View>
+                </Animated.View>
+              </Animated.View>
+
+              {/*
+               * Back + Heart buttons live OUTSIDE the expanding overlay so they
+               * are never clipped. They fade in once the overlay is large enough.
+               */}
+              <Animated.View
+                style={[styles.genieButtonsRow, genieButtonsAnimStyle]}
+                pointerEvents="auto"
+              >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Back"
+                  onPress={handleCloseGenie}
+                  hitSlop={12}
+                  style={styles.genieIconBtn}
+                >
+                  <ChevronLeft />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    selectedFavorite.isFavorited ? 'Unfavorite' : 'Add to favorites'
+                  }
+                  onPress={() => {
+                    void handleToggleFavoriteInsideGenie();
+                  }}
+                  hitSlop={12}
+                  style={styles.genieIconBtn}
+                >
+                  <PreviewHeartIcon filled={selectedFavorite.isFavorited} />
+                </Pressable>
+              </Animated.View>
+            </>
+          )}
+        </View>
+      </Modal>
+
+      {selectedFavorite && (
+        <>
+          <ChatRequestConfirmModal
+            visible={confirmOpen}
+            femaleName={selectedFavorite.name}
+            femaleAvatarUrl={selectedFavorite.imageUrl}
+            coinCost={selectedFavorite.coinPrice}
+            currentBalance={walletCoins}
+            submitting={submitting}
+            onCancel={() => setConfirmOpen(false)}
+            onConfirm={() => {
+              void handleConfirm();
+            }}
+          />
+
+          <InsufficientCoinsModal
+            visible={insufficientOpen}
+            femaleName={selectedFavorite.name}
+            coinCost={selectedFavorite.coinPrice}
+            currentBalance={walletCoins}
+            topUpCoins={COIN_PACKAGES[0]?.baseCoins ?? 100}
+            topUpInr={COIN_PACKAGES[0]?.priceInr ?? 99}
+            onCancel={() => setInsufficientOpen(false)}
+            onTopUp={() => {
+              setInsufficientOpen(false);
+              handleCloseGenie();
+              navigation.navigate('PaymentProcessing', {
+                packageId: COIN_PACKAGES[0]?.id ?? 'pkg-100',
+              });
+            }}
+            onGoToWallet={() => {
+              setInsufficientOpen(false);
+              handleCloseGenie();
+              navigation.navigate('MaleTabs', { screen: 'Wallet' });
+            }}
+          />
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -427,6 +893,7 @@ const styles = StyleSheet.create({
   greeting: {
     ...AppTypography.titleMedium,
     color: AppColors.primaryDark,
+    marginLeft: 1,
   },
   subgreeting: {
     ...AppTypography.bodyMedium,
@@ -454,6 +921,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingRight: AppSpacing.md,
     marginTop: AppSpacing.sm,
+    marginBottom: AppSpacing.md,
   },
   chipScroll: { paddingHorizontal: AppSpacing.md, gap: AppSpacing.xs, alignItems: 'center' },
   filterIconWrap: {
@@ -490,7 +958,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: AppSpacing.md,
+    paddingHorizontal: 0,
   },
   favTitle: {
     ...AppTypography.titleMedium,
@@ -501,7 +969,7 @@ const styles = StyleSheet.create({
     color: AppColors.primary,
   },
   favListContent: {
-    paddingHorizontal: AppSpacing.md,
+    paddingHorizontal: 0,
     gap: AppSpacing.sm,
     paddingTop: AppSpacing.sm,
   },
@@ -532,7 +1000,7 @@ const styles = StyleSheet.create({
   availableHeader: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    paddingHorizontal: AppSpacing.md,
+    paddingHorizontal: 0,
     marginTop: AppSpacing.lg,
     marginBottom: AppSpacing.sm,
     gap: 6,
@@ -546,10 +1014,15 @@ const styles = StyleSheet.create({
     color: AppColors.onSurfaceMuted,
   },
   gridContent: { paddingHorizontal: GRID_HORIZONTAL_PADDING, paddingBottom: BOTTOM_CLEAR },
-  cardWrap: {
+  cardWrapLeft: {
     marginBottom: GRID_GAP,
+    marginLeft: 0,
     marginRight: GRID_GAP / 2,
+  },
+  cardWrapRight: {
+    marginBottom: GRID_GAP,
     marginLeft: GRID_GAP / 2,
+    marginRight: 0,
   },
   empty: {
     alignItems: 'center',
@@ -571,6 +1044,137 @@ const styles = StyleSheet.create({
   },
   emptyBody: {
     ...AppTypography.bodyMedium,
+    color: AppColors.onSurfaceMuted,
+    textAlign: 'center',
+    marginTop: AppSpacing.xs,
+  },
+  genieOverlay: {
+    position: 'absolute',
+    backgroundColor: AppColors.background,
+    zIndex: 9999,
+    overflow: 'hidden',
+  },
+  genieScroll: { paddingBottom: 160 },
+  genieHero: { width: '100%', backgroundColor: AppColors.primarySubtle, position: 'relative' },
+  genieHeroGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  genieButtonsRow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: AppSpacing.md,
+    zIndex: 10000,
+  },
+  genieIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: AppColors.surface,
+    opacity: 0.92,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  genieHeroBottom: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: AppSpacing.md,
+    paddingBottom: AppSpacing.md,
+  },
+  genieHeroName: {
+    ...AppTypography.headlineLarge,
+    color: AppColors.surface,
+    fontWeight: '700',
+  },
+  genieHeroMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  genieHeroMetaLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  genieHeroMetaRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  genieHeroDot: { width: 10, height: 10, borderRadius: 5 },
+  genieHeroMetaText: {
+    ...AppTypography.bodyMedium,
+    color: AppColors.surface,
+    opacity: 0.95,
+  },
+  genieBodyBlock: { paddingHorizontal: AppSpacing.md, paddingTop: AppSpacing.md },
+  genieActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: AppSpacing.sm,
+  },
+  geniePricePill: {
+    backgroundColor: AppColors.primarySubtle,
+    borderRadius: AppRadii.full,
+    paddingHorizontal: AppSpacing.md,
+    paddingVertical: 6,
+  },
+  geniePricePillText: {
+    ...AppTypography.labelLarge,
+    color: AppColors.primaryDark,
+    fontWeight: '700',
+  },
+  genieResponseText: {
+    ...AppTypography.bodyMedium,
+    color: AppColors.onSurfaceMuted,
+  },
+  genieSectionTitle: {
+    ...AppTypography.titleMedium,
+    color: AppColors.primaryDark,
+    marginTop: AppSpacing.lg,
+  },
+  genieBioText: {
+    ...AppTypography.bodyLarge,
+    color: AppColors.onSurface,
+    marginTop: 4,
+  },
+  genieStatsCard: {
+    flexDirection: 'row',
+    backgroundColor: AppColors.surface,
+    borderRadius: AppRadii.lg,
+    padding: AppSpacing.md,
+    marginTop: AppSpacing.lg,
+  },
+  statCol: { flex: 1, alignItems: 'center' },
+  statValue: {
+    ...AppTypography.titleLarge,
+    color: AppColors.primaryDark,
+  },
+  statLabel: {
+    ...AppTypography.bodySmall,
+    color: AppColors.onSurfaceMuted,
+    marginTop: 2,
+  },
+  genieStatDivider: {
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: AppColors.divider,
+    marginVertical: 4,
+  },
+  genieCtaWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: AppSpacing.md,
+    paddingTop: AppSpacing.sm,
+    paddingBottom: AppSpacing.md,
+    backgroundColor: AppColors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: AppColors.divider,
+  },
+  genieBalanceHint: {
+    ...AppTypography.bodySmall,
     color: AppColors.onSurfaceMuted,
     textAlign: 'center',
     marginTop: AppSpacing.xs,

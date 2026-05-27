@@ -3,7 +3,7 @@ import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
@@ -11,9 +11,10 @@ import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
+import CoinIcon from '@core/components/CoinIcon';
 import PrimaryButton from '@core/components/PrimaryButton';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
-import { inr } from '@core/utils/formatters';
+import { compactNumber, inr } from '@core/utils/formatters';
 import { logger } from '@core/utils/logger';
 
 import { type MaleAppStackParamList } from '@navigation/types';
@@ -29,11 +30,13 @@ import {
 import CoinPackageCard from '../components/CoinPackageCard';
 import CoinPurchaseConfirmModal from '../components/CoinPurchaseConfirmModal';
 import SliderTabs from '../components/SliderTabs';
+import TransactionRow from '../components/TransactionRow';
 import { COIN_PACKAGES, type CoinPackage, totalCoinsFor } from '../constants';
-import { useCoinBalance } from '../store/walletStore';
+import { useCoinBalance, useWalletStore } from '../store/walletStore';
 
 type Nav = NativeStackNavigationProp<MaleAppStackParamList>;
 type WalletTab = 'wallet' | 'transaction';
+type DayBucket = 'today' | 'yesterday' | 'thisWeek' | 'older';
 
 const TX_FILTERS: ReadonlyArray<{ value: WalletTransactionFilter; label: string }> = [
   { value: 'all', label: 'All' },
@@ -41,6 +44,13 @@ const TX_FILTERS: ReadonlyArray<{ value: WalletTransactionFilter; label: string 
   { value: 'chat', label: 'Chats' },
   { value: 'refund', label: 'Refunds' },
 ];
+
+const BUCKET_LABEL: Record<DayBucket, string> = {
+  today: 'Today',
+  yesterday: 'Yesterday',
+  thisWeek: 'This Week',
+  older: 'Earlier',
+};
 
 function BellIcon({ withDot }: { withDot: boolean }): React.ReactElement {
   return (
@@ -54,29 +64,43 @@ function BellIcon({ withDot }: { withDot: boolean }): React.ReactElement {
   );
 }
 
-function CoinIconLg({ color }: { color: string }): React.ReactElement {
+function ChevronRightIcon(): React.ReactElement {
   return (
-    <Svg width={32} height={32} viewBox="0 0 24 24">
-      <Circle cx={12} cy={12} r={10} fill={color} />
-      <Path
-        d="M14.5 9.5h-3v1.5h1.25c.55 0 1 .45 1 1s-.45 1-1 1H11v1.5h1.75c.55 0 1 .45 1 1s-.45 1-1 1H9.5v1.5h3v-1c.97-.18 1.75-.99 1.75-2 0-.74-.4-1.39-1-1.74.6-.35 1-1 1-1.74 0-1.1-.9-2-2-2H9.5V8h5v1.5z"
-        fill={AppColors.primary}
-      />
+    <Svg width={16} height={16} viewBox="0 0 24 24">
+      <Path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z" fill={AppColors.primary} />
     </Svg>
   );
+}
+
+function bucketFor(date: Date, now: Date): DayBucket {
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const today = startOfDay(now);
+  const occurred = startOfDay(date);
+  const diffDays = Math.round((today - occurred) / (24 * 60 * 60 * 1000));
+  if (diffDays <= 0) {
+    return 'today';
+  }
+  if (diffDays === 1) {
+    return 'yesterday';
+  }
+  if (diffDays <= 7) {
+    return 'thisWeek';
+  }
+  return 'older';
 }
 
 /**
  * Male Wallet tab with header slider between two sub-views.
  *
- *   * Wallet view — rose gradient balance hero + 6-package grid + sticky buy button.
- *   * Transaction view — filter chips + transaction list.
- *
- * The slider is animated via `SliderTabs` (Reanimated spring on the indicator).
+ *   * Wallet view — premium gold-coin hero + 6-package grid + recent activity
+ *     teaser + sticky buy button.
+ *   * Transaction view — filter chips + grouped transaction list with type icons.
  */
 function WalletScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const coinBalance = useCoinBalance();
+  const totalCoinsPurchased = useWalletStore(s => s.totalCoinsPurchased);
+  const chatsStarted = useWalletStore(s => s.chatsStarted);
 
   const [activeTab, setActiveTab] = useState<WalletTab>('wallet');
   const [selectedPkg, setSelectedPkg] = useState<CoinPackage | null>(null);
@@ -84,14 +108,21 @@ function WalletScreen(): React.ReactElement {
 
   const [txFilter, setTxFilter] = useState<WalletTransactionFilter>('all');
   const [transactions, setTransactions] = useState<ReadonlyArray<WalletTransaction>>([]);
+  const [recentTxs, setRecentTxs] = useState<ReadonlyArray<WalletTransaction>>([]);
 
   useEffect(() => {
     fetchWalletSnapshot().catch(e => logger.warn('Wallet snapshot failed', e));
+    listTransactions('all')
+      .then(txs => setRecentTxs(txs.slice(0, 3)))
+      .catch(e => logger.warn('Recent tx load failed', e));
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       fetchWalletSnapshot().catch(e => logger.warn('Wallet snapshot failed', e));
+      listTransactions('all')
+        .then(txs => setRecentTxs(txs.slice(0, 3)))
+        .catch(e => logger.warn('Recent tx load failed', e));
     }, []),
   );
 
@@ -141,15 +172,20 @@ function WalletScreen(): React.ReactElement {
       {activeTab === 'wallet' ? (
         <WalletView
           coinBalance={coinBalance}
+          totalCoinsPurchased={totalCoinsPurchased}
+          chatsStarted={chatsStarted}
           selectedPkg={selectedPkg}
           onSelectPkg={setSelectedPkg}
           onBuy={() => setConfirmOpen(true)}
+          recentTxs={recentTxs}
+          onSeeAllActivity={() => setActiveTab('transaction')}
         />
       ) : (
         <TransactionView
           filter={txFilter}
           onFilterChange={setTxFilter}
           transactions={transactions}
+          onGoToPackages={() => setActiveTab('wallet')}
         />
       )}
 
@@ -163,39 +199,53 @@ function WalletScreen(): React.ReactElement {
   );
 }
 
+type StatCardProps = { label: string; value: string };
+function StatCard({ label, value }: StatCardProps): React.ReactElement {
+  return (
+    <View style={[styles.statCard, AppShadows.e1]}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
 type WalletViewProps = {
   coinBalance: number;
+  totalCoinsPurchased: number;
+  chatsStarted: number;
   selectedPkg: CoinPackage | null;
   onSelectPkg: (pkg: CoinPackage) => void;
   onBuy: () => void;
+  recentTxs: ReadonlyArray<WalletTransaction>;
+  onSeeAllActivity: () => void;
 };
 
 function WalletView({
   coinBalance,
+  totalCoinsPurchased,
+  chatsStarted,
   selectedPkg,
   onSelectPkg,
   onBuy,
+  recentTxs,
+  onSeeAllActivity,
 }: WalletViewProps): React.ReactElement {
   return (
     <>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={[styles.heroCard, AppShadows.e2]}>
-          <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-            <Defs>
-              <LinearGradient id="walletHero" x1="0%" y1="0%" x2="100%" y2="100%">
-                <Stop offset="0%" stopColor={AppColors.gradientRoseStart} stopOpacity="1" />
-                <Stop offset="100%" stopColor={AppColors.gradientRoseEnd} stopOpacity="1" />
-              </LinearGradient>
-            </Defs>
-            <Rect width="100%" height="100%" fill="url(#walletHero)" />
-          </Svg>
-          <View style={styles.heroTopRow}>
-            <CoinIconLg color={AppColors.surface} />
-            <Text style={styles.heroLabel}>Current Balance</Text>
+          <Text style={styles.heroLabel}>Current Balance</Text>
+          <View style={styles.heroBalanceRow}>
+            <CoinIcon size={40} />
+            <Text style={styles.heroBalance}>{coinBalance.toLocaleString()}</Text>
           </View>
-          <Text style={styles.heroBalance}>{`${coinBalance} coins`}</Text>
           <Text style={styles.heroEquivalent}>{`≈ ${inr(coinBalance)}`}</Text>
-          <Text style={styles.heroHelper}>Buy more to keep chatting</Text>
+        </View>
+
+        <View style={styles.statsRow}>
+          <StatCard label="Purchased" value={compactNumber(totalCoinsPurchased)} />
+          <StatCard label="Chats" value={String(chatsStarted)} />
+          <StatCard label="Spent" value={inr(totalCoinsPurchased - coinBalance)} />
         </View>
 
         <Text style={styles.sectionTitle}>Choose a Package</Text>
@@ -210,6 +260,31 @@ function WalletView({
             />
           ))}
         </View>
+
+        {recentTxs.length > 0 ? (
+          <View style={styles.activityWrap}>
+            <View style={styles.activityHeader}>
+              <Text style={styles.sectionTitleInline}>Recent Activity</Text>
+              <Pressable
+                accessibilityRole="link"
+                hitSlop={8}
+                onPress={onSeeAllActivity}
+                style={styles.seeAllPress}
+              >
+                <Text style={styles.seeAllText}>See all</Text>
+                <ChevronRightIcon />
+              </Pressable>
+            </View>
+            <View style={[styles.activityCard, AppShadows.e1]}>
+              {recentTxs.map((tx, idx) => (
+                <View key={tx.id}>
+                  {idx > 0 ? <View style={styles.activityDivider} /> : null}
+                  <TransactionRow item={tx} />
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
       </ScrollView>
 
       {selectedPkg ? (
@@ -228,13 +303,31 @@ type TransactionViewProps = {
   filter: WalletTransactionFilter;
   onFilterChange: (f: WalletTransactionFilter) => void;
   transactions: ReadonlyArray<WalletTransaction>;
+  onGoToPackages: () => void;
 };
 
 function TransactionView({
   filter,
   onFilterChange,
   transactions,
+  onGoToPackages,
 }: TransactionViewProps): React.ReactElement {
+  const grouped = useMemo(() => {
+    const now = new Date();
+    const buckets: Record<DayBucket, WalletTransaction[]> = {
+      today: [],
+      yesterday: [],
+      thisWeek: [],
+      older: [],
+    };
+    for (const tx of transactions) {
+      buckets[bucketFor(tx.occurredAt, now)].push(tx);
+    }
+    return (['today', 'yesterday', 'thisWeek', 'older'] as const)
+      .map(b => ({ bucket: b, items: buckets[b] }))
+      .filter(g => g.items.length > 0);
+  }, [transactions]);
+
   return (
     <View style={styles.txWrap}>
       <View style={styles.chipRow}>
@@ -250,40 +343,34 @@ function TransactionView({
 
       {transactions.length === 0 ? (
         <View style={styles.empty}>
+          <View style={styles.emptyIcon}>
+            <CoinIcon size={64} />
+          </View>
           <Text style={styles.emptyTitle}>No transactions yet</Text>
-          <Text style={styles.emptyBody}>Your purchases and chats will appear here.</Text>
+          <Text style={styles.emptyBody}>
+            Buy your first coin pack to start chatting. Your activity will show up here.
+          </Text>
+          <View style={styles.emptyCta}>
+            <PrimaryButton label="Browse Packages" onPress={onGoToPackages} />
+          </View>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.txList}>
-          {transactions.map(t => (
-            <TxRow key={t.id} item={t} />
+          {grouped.map(group => (
+            <View key={group.bucket} style={styles.txGroup}>
+              <Text style={styles.txGroupHeader}>{BUCKET_LABEL[group.bucket]}</Text>
+              <View style={[styles.txGroupCard, AppShadows.e1]}>
+                {group.items.map((tx, idx) => (
+                  <View key={tx.id}>
+                    {idx > 0 ? <View style={styles.activityDivider} /> : null}
+                    <TransactionRow item={tx} />
+                  </View>
+                ))}
+              </View>
+            </View>
           ))}
         </ScrollView>
       )}
-    </View>
-  );
-}
-
-function TxRow({ item }: { item: WalletTransaction }): React.ReactElement {
-  const positive = item.coinDelta > 0;
-  const color = useMemo(() => {
-    if (item.kind === 'purchase' || item.kind === 'refund') {
-      return AppColors.success;
-    }
-    return AppColors.onSurface;
-  }, [item.kind]);
-  const sign = positive ? '+' : '';
-  return (
-    <View style={styles.txRow}>
-      <View style={styles.txMiddle}>
-        <Text style={styles.txTitle} numberOfLines={1}>
-          {item.title}
-        </Text>
-        <Text style={styles.txSubtitle} numberOfLines={1}>
-          {item.subtitle}
-        </Text>
-      </View>
-      <Text style={[styles.txAmount, { color }]}>{`${sign}${item.coinDelta} 🪙`}</Text>
     </View>
   );
 }
@@ -306,35 +393,69 @@ const styles = StyleSheet.create({
   bellWrap: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   sliderWrap: { paddingHorizontal: AppSpacing.md, marginTop: AppSpacing.sm },
   scroll: { paddingBottom: BOTTOM_CLEAR + 80 },
+
   heroCard: {
     marginHorizontal: AppSpacing.md,
     marginTop: AppSpacing.md,
-    borderRadius: AppRadii.lg,
-    padding: AppSpacing.lg,
-    overflow: 'hidden',
+    borderRadius: AppRadii.xl,
+    paddingHorizontal: AppSpacing.lg,
+    paddingVertical: AppSpacing.lg + 4,
+    backgroundColor: AppColors.primaryLight,
   },
-  heroTopRow: { flexDirection: 'row', alignItems: 'center', gap: AppSpacing.sm },
   heroLabel: {
     ...AppTypography.labelLarge,
-    color: AppColors.onPrimary,
-    opacity: 0.85,
+    color: AppColors.primaryDark,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    fontSize: 12,
+  },
+  heroBalanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: AppSpacing.sm + 4,
+    marginTop: AppSpacing.sm,
   },
   heroBalance: {
     ...AppTypography.displayLarge,
-    color: AppColors.onPrimary,
-    marginTop: 4,
+    color: AppColors.primaryDark,
+    fontWeight: '800',
+    lineHeight: 56,
   },
   heroEquivalent: {
     ...AppTypography.bodyMedium,
-    color: AppColors.onPrimary,
-    opacity: 0.7,
+    color: AppColors.onSurfaceMuted,
+    marginTop: AppSpacing.xs,
   },
-  heroHelper: {
-    ...AppTypography.bodySmall,
-    color: AppColors.onPrimary,
-    opacity: 0.8,
+
+  // Stat cards row below the hero — clean white surface cards
+  statsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: AppSpacing.md,
     marginTop: AppSpacing.md,
+    gap: AppSpacing.sm,
   },
+  statCard: {
+    flex: 1,
+    backgroundColor: AppColors.surface,
+    borderRadius: AppRadii.md,
+    paddingVertical: AppSpacing.md,
+    paddingHorizontal: AppSpacing.sm,
+    alignItems: 'center',
+  },
+  statValue: {
+    ...AppTypography.titleMedium,
+    color: AppColors.primaryDark,
+    fontWeight: '800',
+  },
+  statLabel: {
+    ...AppTypography.labelSmall,
+    color: AppColors.onSurfaceMuted,
+    marginTop: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+
+  // Package grid
   sectionTitle: {
     ...AppTypography.titleLarge,
     color: AppColors.primaryDark,
@@ -342,19 +463,59 @@ const styles = StyleSheet.create({
     marginTop: AppSpacing.lg,
     marginBottom: AppSpacing.sm,
   },
+  sectionTitleInline: {
+    ...AppTypography.titleLarge,
+    color: AppColors.primaryDark,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     paddingHorizontal: AppSpacing.md,
-    rowGap: AppSpacing.sm,
+    rowGap: AppSpacing.sm + 4,
   },
+
+  // Recent activity teaser
+  activityWrap: {
+    marginTop: AppSpacing.lg,
+    paddingHorizontal: AppSpacing.md,
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: AppSpacing.sm,
+  },
+  seeAllPress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  seeAllText: {
+    ...AppTypography.labelLarge,
+    color: AppColors.primary,
+    fontWeight: '700',
+  },
+  activityCard: {
+    backgroundColor: AppColors.surface,
+    borderRadius: AppRadii.lg,
+    overflow: 'hidden',
+  },
+  activityDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: AppColors.divider,
+    marginLeft: 60,
+  },
+
+  // Sticky buy
   stickyBuy: {
     position: 'absolute',
     left: AppSpacing.md,
     right: AppSpacing.md,
     bottom: BOTTOM_CLEAR,
   },
+
+  // Transaction view
   txWrap: { flex: 1 },
   chipRow: {
     flexDirection: 'row',
@@ -365,45 +526,55 @@ const styles = StyleSheet.create({
   },
   txList: {
     paddingBottom: BOTTOM_CLEAR,
-    backgroundColor: AppColors.surface,
-    marginTop: AppSpacing.sm,
-  },
-  txRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: AppSpacing.md,
-    paddingVertical: AppSpacing.sm + 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: AppColors.divider,
+    paddingTop: AppSpacing.md,
   },
-  txMiddle: { flex: 1 },
-  txTitle: {
-    ...AppTypography.bodyLarge,
-    color: AppColors.onSurface,
-  },
-  txSubtitle: {
-    ...AppTypography.bodySmall,
-    color: AppColors.onSurfaceMuted,
-    marginTop: 2,
-  },
-  txAmount: {
-    ...AppTypography.bodyLarge,
+  txGroup: { marginBottom: AppSpacing.md },
+  txGroupHeader: {
+    ...AppTypography.labelLarge,
+    color: AppColors.primaryDark,
     fontWeight: '700',
+    marginBottom: AppSpacing.xs,
+    marginLeft: AppSpacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
+  txGroupCard: {
+    backgroundColor: AppColors.surface,
+    borderRadius: AppRadii.lg,
+    overflow: 'hidden',
+  },
+
+  // Empty state
   empty: {
     alignItems: 'center',
-    padding: AppSpacing.xl,
+    paddingHorizontal: AppSpacing.xl,
+    paddingTop: AppSpacing.xxl,
+  },
+  emptyIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: AppColors.primarySubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: AppSpacing.md,
   },
   emptyTitle: {
-    ...AppTypography.titleMedium,
+    ...AppTypography.titleLarge,
     color: AppColors.primaryDark,
-    marginTop: AppSpacing.md,
+    fontWeight: '700',
   },
   emptyBody: {
     ...AppTypography.bodyMedium,
     color: AppColors.onSurfaceMuted,
     textAlign: 'center',
     marginTop: AppSpacing.xs,
+    paddingHorizontal: AppSpacing.md,
+  },
+  emptyCta: {
+    marginTop: AppSpacing.lg,
+    alignSelf: 'stretch',
   },
 });
 

@@ -76,6 +76,22 @@ export async function sendChatRequest(payload: {
 /** Polled by the Sent (waiting) screen. */
 export async function getSentRequestStatus(requestId: string): Promise<SentRequestStatus> {
   if (Env.devMode) {
+    const timestampStr = requestId.replace('local-', '');
+    const timestamp = parseInt(timestampStr, 10);
+    if (!isNaN(timestamp)) {
+      const elapsed = Date.now() - timestamp;
+      // After 6 seconds, cycle outcomes based on timestamp
+      if (elapsed > 6000) {
+        const choice = timestamp % 3;
+        if (choice === 0) {
+          return 'accepted';
+        }
+        if (choice === 1) {
+          return 'declined';
+        }
+        return 'expired';
+      }
+    }
     return 'pending';
   }
   const { data, error } = await getSupabaseClient()

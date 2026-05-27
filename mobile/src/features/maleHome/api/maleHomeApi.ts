@@ -27,6 +27,155 @@ export type AvailableFemale = {
   isFavorited: boolean;
 };
 
+const MOCK_FEMALES: AvailableFemale[] = [
+  {
+    id: 'female-1',
+    name: 'Aanya',
+    age: 22,
+    rating: 4.9,
+    totalChats: 120,
+    imageUrl:
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+    isOnline: true,
+    isNew: false,
+    isVerified: true,
+    coinPrice: 80,
+    averageResponseMinutes: 2,
+    bio: "Hey, I'm Aanya. Let's talk about books, movies, and anything you want! I love sharing travel stories.",
+    isFavorited: false,
+  },
+  {
+    id: 'female-2',
+    name: 'Priya',
+    age: 24,
+    rating: 4.8,
+    totalChats: 95,
+    imageUrl:
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&auto=format&fit=crop&q=80',
+    isOnline: true,
+    isNew: true,
+    isVerified: true,
+    coinPrice: 50,
+    averageResponseMinutes: 4,
+    bio: 'Music is my life. Tell me your favorite song! Outgoing, friendly, and always up for late night vibes.',
+    isFavorited: false,
+  },
+  {
+    id: 'female-3',
+    name: 'Riya',
+    age: 21,
+    rating: 4.7,
+    totalChats: 140,
+    imageUrl:
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80',
+    isOnline: true,
+    isNew: false,
+    isVerified: true,
+    coinPrice: 120,
+    averageResponseMinutes: 1,
+    bio: "Always up for a good laugh and friendly conversations. Let's keep it light and fun!",
+    isFavorited: false,
+  },
+  {
+    id: 'female-4',
+    name: 'Ananya',
+    age: 23,
+    rating: 4.6,
+    totalChats: 60,
+    imageUrl:
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&auto=format&fit=crop&q=80',
+    isOnline: false,
+    isNew: true,
+    isVerified: true,
+    coinPrice: 45,
+    averageResponseMinutes: 5,
+    bio: "Friendly and talkative. Let's get to know each other! I love pets and coffee.",
+    isFavorited: false,
+  },
+  {
+    id: 'female-5',
+    name: 'Diya',
+    age: 20,
+    rating: 4.9,
+    totalChats: 80,
+    imageUrl:
+      'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=300&auto=format&fit=crop&q=80',
+    isOnline: true,
+    isNew: false,
+    isVerified: true,
+    coinPrice: 100,
+    averageResponseMinutes: 2,
+    bio: "Love traveling and nature. Let's talk about our dream destinations!",
+    isFavorited: false,
+  },
+  {
+    id: 'female-6',
+    name: 'Sneha',
+    age: 25,
+    rating: 4.5,
+    totalChats: 200,
+    imageUrl:
+      'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=300&auto=format&fit=crop&q=80',
+    isOnline: true,
+    isNew: false,
+    isVerified: false,
+    coinPrice: 60,
+    averageResponseMinutes: 3,
+    bio: 'Outgoing and energetic. I respond instantly and love deep talks about philosophy.',
+    isFavorited: false,
+  },
+  {
+    id: 'female-7',
+    name: 'Kiara',
+    age: 22,
+    rating: 4.8,
+    totalChats: 35,
+    imageUrl:
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=80',
+    isOnline: false,
+    isNew: true,
+    isVerified: true,
+    coinPrice: 75,
+    averageResponseMinutes: 8,
+    bio: 'Into fitness and healthy lifestyles. Hit me up if you want some motivation or just a good chat!',
+    isFavorited: false,
+  },
+  {
+    id: 'female-8',
+    name: 'Ishita',
+    age: 24,
+    rating: 4.4,
+    totalChats: 150,
+    imageUrl:
+      'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=300&auto=format&fit=crop&q=80',
+    isOnline: true,
+    isNew: false,
+    isVerified: true,
+    coinPrice: 40,
+    averageResponseMinutes: 6,
+    bio: "Let's keep it simple and sweet. I enjoy talking about gaming and tech.",
+    isFavorited: false,
+  },
+  {
+    id: 'female-9',
+    name: 'Tanvi',
+    age: 23,
+    rating: 4.7,
+    totalChats: 110,
+    imageUrl:
+      'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=300&auto=format&fit=crop&q=80',
+    isOnline: true,
+    isNew: false,
+    isVerified: true,
+    coinPrice: 90,
+    averageResponseMinutes: 2,
+    bio: 'Creative mind and free spirit. Artist, dancer, and coffee lover.',
+    isFavorited: false,
+  },
+];
+
+const devFavorites = new Set<string>(['female-1', 'female-3']);
+
 /** Paginated browse list, applying the current Zustand filter snapshot. */
 export async function browseFemales(
   filters: FemaleFilters,
@@ -34,7 +183,66 @@ export async function browseFemales(
   offset = 0,
 ): Promise<{ items: ReadonlyArray<AvailableFemale>; hasMore: boolean; totalOnline: number }> {
   if (Env.devMode) {
-    return { items: [], hasMore: false, totalOnline: 0 };
+    let filtered = MOCK_FEMALES.map(f => ({
+      ...f,
+      isFavorited: devFavorites.has(f.id),
+    }));
+
+    // Filter by quick filter
+    if (filters.quick === 'online') {
+      filtered = filtered.filter(f => f.isOnline);
+    } else if (filters.quick === 'new') {
+      filtered = filtered.filter(f => f.isNew);
+    } else if (filters.quick === 'topRated') {
+      filtered = filtered.filter(f => f.rating >= 4.7);
+    } else if (filters.quick === 'favorites') {
+      filtered = filtered.filter(f => devFavorites.has(f.id));
+    }
+
+    // Filter by onlineOnly
+    if (filters.onlineOnly) {
+      filtered = filtered.filter(f => f.isOnline);
+    }
+
+    // Filter by age
+    filtered = filtered.filter(f => f.age >= filters.ageMin && f.age <= filters.ageMax);
+
+    // Filter by rating
+    if (filters.rating === '3plus') {
+      filtered = filtered.filter(f => f.rating >= 3.0);
+    } else if (filters.rating === '4plus') {
+      filtered = filtered.filter(f => f.rating >= 4.0);
+    } else if (filters.rating === '4_5plus') {
+      filtered = filtered.filter(f => f.rating >= 4.5);
+    }
+
+    // Filter by price
+    if (filters.price === 'le50') {
+      filtered = filtered.filter(f => f.coinPrice <= 50);
+    } else if (filters.price === '51to100') {
+      filtered = filtered.filter(f => f.coinPrice > 50 && f.coinPrice <= 100);
+    } else if (filters.price === '100plus') {
+      filtered = filtered.filter(f => f.coinPrice > 100);
+    }
+
+    // Sort
+    if (filters.sortBy === 'rating') {
+      filtered.sort((a, b) => b.rating - a.rating);
+    } else if (filters.sortBy === 'price') {
+      filtered.sort((a, b) => a.coinPrice - b.coinPrice);
+    } else if (filters.sortBy === 'active') {
+      filtered.sort((a, b) => b.totalChats - a.totalChats);
+    }
+
+    const totalOnline = filtered.filter(f => f.isOnline).length;
+    const paginated = filtered.slice(offset, offset + pageSize);
+    const hasMore = offset + pageSize < filtered.length;
+
+    return {
+      items: paginated,
+      hasMore,
+      totalOnline,
+    };
   }
   const { data, error } = await getSupabaseClient().rpc('browse_females', {
     p_filters: filters,
@@ -50,7 +258,10 @@ export async function browseFemales(
 /** Returns the male's favorited females for the horizontal carousel on Home. */
 export async function listFavorites(): Promise<ReadonlyArray<AvailableFemale>> {
   if (Env.devMode) {
-    return [];
+    return MOCK_FEMALES.filter(f => devFavorites.has(f.id)).map(f => ({
+      ...f,
+      isFavorited: true,
+    }));
   }
   const { data, error } = await getSupabaseClient().rpc('male_favorites');
   if (error) {
@@ -62,7 +273,13 @@ export async function listFavorites(): Promise<ReadonlyArray<AvailableFemale>> {
 /** Toggle a female in/out of the male's favorites. Optimistic by caller. */
 export async function toggleFavorite(femaleId: string): Promise<boolean> {
   if (Env.devMode) {
-    return false;
+    if (devFavorites.has(femaleId)) {
+      devFavorites.delete(femaleId);
+      return false;
+    } else {
+      devFavorites.add(femaleId);
+      return true;
+    }
   }
   const { data, error } = await getSupabaseClient().rpc('toggle_favorite', {
     p_female_id: femaleId,
@@ -76,6 +293,13 @@ export async function toggleFavorite(femaleId: string): Promise<boolean> {
 /** Fetches a single female profile by id (for Female Profile Preview screen). */
 export async function getFemaleById(femaleId: string): Promise<AvailableFemale | null> {
   if (Env.devMode) {
+    const found = MOCK_FEMALES.find(f => f.id === femaleId);
+    if (found) {
+      return {
+        ...found,
+        isFavorited: devFavorites.has(found.id),
+      };
+    }
     return null;
   }
   const { data, error } = await getSupabaseClient()

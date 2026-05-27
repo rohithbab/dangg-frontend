@@ -39,20 +39,69 @@ export type RecentActivity = {
   occurredAt: Date;
 };
 
-const EMPTY_STATS: HomeStats = {
-  todayEarningsInr: 0,
-  weekEarningsInr: 0,
-  chatsToday: 0,
-  ratingAvg: 0,
-  ratingCount: 0,
-  todayTrend: { kind: 'flat', label: '' },
-  weekTrend: { kind: 'flat', label: '' },
+let devOnline = true;
+let devLastToggledAt = new Date();
+
+const MOCK_STATS: HomeStats = {
+  todayEarningsInr: 2400,
+  weekEarningsInr: 15800,
+  chatsToday: 12,
+  ratingAvg: 4.85,
+  ratingCount: 34,
+  todayTrend: { kind: 'up', label: '+20% vs yesterday' },
+  weekTrend: { kind: 'up', label: '+15% vs last week' },
 };
+
+const MOCK_ACTIVITIES = (): RecentActivity[] => [
+  {
+    id: 'activity-1',
+    kind: 'chatCompleted',
+    actorName: 'Rahul',
+    actorAvatarUrl:
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    description: 'Chat completed (25 mins)',
+    amountInr: 300,
+    ratingValue: null,
+    occurredAt: new Date(Date.now() - 15 * 60 * 1000), // 15 mins ago
+  },
+  {
+    id: 'activity-2',
+    kind: 'ratingReceived',
+    actorName: 'Amit',
+    actorAvatarUrl:
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    description: 'Rated you 5 stars',
+    amountInr: null,
+    ratingValue: 5,
+    occurredAt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
+  },
+  {
+    id: 'activity-3',
+    kind: 'paymentReceived',
+    actorName: 'System',
+    actorAvatarUrl: null,
+    description: 'Weekly payout processed',
+    amountInr: 4200,
+    ratingValue: null,
+    occurredAt: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
+  },
+  {
+    id: 'activity-4',
+    kind: 'chatCompleted',
+    actorName: 'Vikram',
+    actorAvatarUrl:
+      'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80',
+    description: 'Chat completed (10 mins)',
+    amountInr: 120,
+    ratingValue: null,
+    occurredAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+  },
+];
 
 /** Aggregated stats for the Home dashboard cards. */
 export async function getHomeStats(): Promise<HomeStats> {
   if (Env.devMode) {
-    return EMPTY_STATS;
+    return MOCK_STATS;
   }
   const { data, error } = await getSupabaseClient().rpc('female_home_stats');
   if (error) {
@@ -64,7 +113,7 @@ export async function getHomeStats(): Promise<HomeStats> {
 /** Current availability flag + when the user last toggled it. */
 export async function getAvailability(): Promise<Availability> {
   if (Env.devMode) {
-    return { online: false, lastToggledAt: new Date() };
+    return { online: devOnline, lastToggledAt: devLastToggledAt };
   }
   const { data, error } = await getSupabaseClient()
     .from('females')
@@ -82,6 +131,8 @@ export async function getAvailability(): Promise<Availability> {
 /** Flip availability on or off. Optimistic UI updates the toggle immediately. */
 export async function setAvailability(online: boolean): Promise<void> {
   if (Env.devMode) {
+    devOnline = online;
+    devLastToggledAt = new Date();
     return;
   }
   const { error } = await getSupabaseClient()
@@ -96,7 +147,7 @@ export async function setAvailability(online: boolean): Promise<void> {
 /** Last ~5 user-facing events for the Recent Activity feed. */
 export async function getRecentActivity(): Promise<ReadonlyArray<RecentActivity>> {
   if (Env.devMode) {
-    return [];
+    return MOCK_ACTIVITIES();
   }
   const { data, error } = await getSupabaseClient().rpc('female_recent_activity', { limit_: 5 });
   if (error) {
@@ -108,7 +159,7 @@ export async function getRecentActivity(): Promise<ReadonlyArray<RecentActivity>
 /** Unread-notification count for the bell badge. */
 export async function getUnreadNotificationCount(): Promise<number> {
   if (Env.devMode) {
-    return 0;
+    return 3;
   }
   const { count, error } = await getSupabaseClient()
     .from('notifications')

@@ -47,11 +47,18 @@ export const AppColors = {
   offlineGray: '#9E9E9E',
   availableYellow: '#FFB300',
 
+  // Coin / gold palette — used everywhere coins are shown so the brand
+  // currency reads consistently across home, wallet, modals, etc.
+  coinGold: '#F2B705',
+  coinGoldLight: '#FFD54F',
+  coinGoldDark: '#8C5A00',
+
   // Gradient anchors (splash, account-type cards, hero areas)
   gradientRoseStart: '#FF4081',
   gradientRoseEnd: '#D81B60',
   gradientRoseSubtleStart: '#FFE4EC',
   gradientRoseSubtleEnd: '#FFF5F8',
+  splashBackground: '#FF66C4',
 
   // Utility
   scrim: 'rgba(26,14,17,0.6)',

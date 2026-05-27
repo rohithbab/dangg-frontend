@@ -86,12 +86,54 @@ export async function processPayment(packageId: string): Promise<PaymentOutcome>
   throw new Error('processPayment production path not yet wired');
 }
 
-/** Transaction history, optionally filtered. */
+const MOCK_WALLET_TXS = (): WalletTransaction[] => [
+  {
+    id: 'wtx-1',
+    kind: 'purchase',
+    title: 'Coins Purchased',
+    subtitle: '500 Coins Package',
+    coinDelta: 500,
+    status: 'completed',
+    occurredAt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
+  },
+  {
+    id: 'wtx-2',
+    kind: 'chat',
+    title: 'Chat with Priya',
+    subtitle: 'Chat request accepted',
+    coinDelta: -50,
+    status: 'completed',
+    occurredAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+  },
+  {
+    id: 'wtx-3',
+    kind: 'refund',
+    title: 'Refunded Coins',
+    subtitle: 'Expired request (Kiara)',
+    coinDelta: 75,
+    status: 'completed',
+    occurredAt: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
+  },
+  {
+    id: 'wtx-4',
+    kind: 'purchase',
+    title: 'Coins Purchased',
+    subtitle: '500 Coins Package',
+    coinDelta: 500,
+    status: 'completed',
+    occurredAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+  },
+];
+
 export async function listTransactions(
   filter: WalletTransactionFilter = 'all',
 ): Promise<ReadonlyArray<WalletTransaction>> {
   if (Env.devMode) {
-    return [];
+    const txs = MOCK_WALLET_TXS();
+    if (filter === 'all') {
+      return txs;
+    }
+    return txs.filter(t => t.kind === filter);
   }
   let query = getSupabaseClient()
     .from('male_transactions')

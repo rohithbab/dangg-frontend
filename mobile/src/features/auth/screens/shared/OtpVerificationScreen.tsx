@@ -21,6 +21,7 @@ import Card from '@core/components/Card';
 import OtpInput, { type OtpInputHandle } from '@core/components/OtpInput';
 import TextButton from '@core/components/TextButton';
 import { OTP_LOCKOUT_S, OTP_MAX_ATTEMPTS, OTP_RESEND_COOLDOWN_S } from '@core/config/constants';
+import { Env } from '@core/config/env';
 import { AppException, InvalidOtpException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
 
@@ -191,6 +192,15 @@ function OtpVerificationScreen(): React.ReactElement {
       verifying,
     ],
   );
+
+  useEffect(() => {
+    if (Env.devMode) {
+      const timer = setTimeout(() => {
+        handleCompleted('123456');
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [handleCompleted]);
 
   const handleResend = useCallback(async (): Promise<void> => {
     if (resendIn > 0 || lockoutIn > 0) {

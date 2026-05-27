@@ -3,10 +3,11 @@ import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
+import { AppRadii } from '@theme/radii';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
-import { inr } from '@core/utils/formatters';
+import CoinIcon from '@core/components/CoinIcon';
 
 import { type Transaction } from '../api/earningsApi';
 
@@ -108,13 +109,37 @@ function TransactionItem({ item }: TransactionItemProps): React.ReactElement {
         <Text style={styles.title} numberOfLines={1}>
           {item.title}
         </Text>
-        <Text style={styles.subtitle} numberOfLines={1}>
-          {`${item.subtitle} · ${time}`}
-        </Text>
+        <View style={styles.subtitleRow}>
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {`${item.subtitle} · ${time}`}
+          </Text>
+          {item.status !== 'completed' && (
+            <View
+              style={[
+                styles.statusBadge,
+                item.status === 'processing' ? styles.statusProcessing : styles.statusFailed,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusBadgeText,
+                  item.status === 'processing'
+                    ? styles.statusTextProcessing
+                    : styles.statusTextFailed,
+                ]}
+              >
+                {item.status === 'processing' ? 'In Review' : 'Failed'}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
-      <Text style={[styles.amount, { color: visual.amountColor }]}>
-        {`${visual.amountPrefix}${inr(item.amountInr)}`}
-      </Text>
+      <View style={styles.amountWrap}>
+        <Text style={[styles.amount, { color: visual.amountColor }]}>
+          {`${visual.amountPrefix}${item.amountInr.toLocaleString()}`}
+        </Text>
+        <CoinIcon size={14} />
+      </View>
     </View>
   );
 }
@@ -141,14 +166,52 @@ const styles = StyleSheet.create({
     ...AppTypography.bodyLarge,
     color: AppColors.onSurface,
   },
+  subtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: AppSpacing.xs,
+    marginTop: 2,
+  },
   subtitle: {
     ...AppTypography.bodySmall,
     color: AppColors.onSurfaceMuted,
-    marginTop: 2,
+    flexShrink: 1,
+  },
+  statusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: AppRadii.sm,
+    borderWidth: 1,
+  },
+  statusProcessing: {
+    backgroundColor: AppColors.warningLight,
+    borderColor: AppColors.warning,
+  },
+  statusFailed: {
+    backgroundColor: AppColors.errorLight,
+    borderColor: AppColors.error,
+  },
+  statusBadgeText: {
+    ...AppTypography.labelSmall,
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.2,
+  },
+  statusTextProcessing: {
+    color: AppColors.warning,
+  },
+  statusTextFailed: {
+    color: AppColors.error,
+  },
+  amountWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   amount: {
     ...AppTypography.bodyLarge,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
 

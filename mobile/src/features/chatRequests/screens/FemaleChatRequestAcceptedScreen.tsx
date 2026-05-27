@@ -18,9 +18,9 @@ import { AppColors } from '@theme/colors';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
-import { type MaleAppStackParamList } from '@navigation/types';
+import { type FemaleAppStackParamList } from '@navigation/types';
 
-type Nav = NativeStackNavigationProp<MaleAppStackParamList, 'ChatRequestAccepted'>;
+type Nav = NativeStackNavigationProp<FemaleAppStackParamList, 'ChatRequestAccepted'>;
 
 // Approximate length of the checkmark path "M14 27 l8 8 16-16"
 // segment 1: 8√2 ≈ 11.31   segment 2: 16√2 ≈ 22.63   total ≈ 33.94
@@ -34,10 +34,8 @@ function AnimatedCheckmark(): React.ReactElement {
   const checkOpacity = useSharedValue(0);
 
   useEffect(() => {
-    // 1. Circle pops in with a spring bounce
     circleScale.value = withSpring(1, { damping: 10, stiffness: 220, mass: 0.8 });
 
-    // 2. After circle settles, draw the checkmark stroke
     const t = setTimeout(() => {
       checkOpacity.value = withTiming(1, { duration: 50 });
       checkProgress.value = withTiming(1, {
@@ -82,11 +80,16 @@ function AnimatedCheckmark(): React.ReactElement {
   );
 }
 
-function ChatRequestAcceptedScreen(): React.ReactElement {
+/**
+ * Female-side mirror of the male `ChatRequestAcceptedScreen`. Bridge from
+ * the incoming-request modal into the chat session — same spring-in circle
+ * + draw-on tick + delayed fade-up text. After 2.2 s, `replace`s into
+ * `ChatSession` so the back stack stays clean.
+ */
+function FemaleChatRequestAcceptedScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
-  const route = useRoute<RouteProp<MaleAppStackParamList, 'ChatRequestAccepted'>>();
+  const route = useRoute<RouteProp<FemaleAppStackParamList, 'ChatRequestAccepted'>>();
 
-  // Content entrance — staggered after the checkmark
   const contentOpacity = useSharedValue(0);
   const contentY = useSharedValue(16);
 
@@ -120,9 +123,9 @@ function ChatRequestAcceptedScreen(): React.ReactElement {
         <AnimatedCheckmark />
 
         <Animated.View style={[styles.textBlock, contentStyle]}>
-          <Text style={styles.title}>Request Accepted!</Text>
-          <Text style={styles.subtitle}>She's ready to chat</Text>
-          <Text style={styles.hint}>Starting chat…</Text>
+          <Text style={styles.title}>Connected!</Text>
+          <Text style={styles.subtitle}>You're now chatting</Text>
+          <Text style={styles.hint}>Opening chat…</Text>
         </Animated.View>
       </View>
     </SafeAreaView>
@@ -163,4 +166,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ChatRequestAcceptedScreen;
+export default FemaleChatRequestAcceptedScreen;

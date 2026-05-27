@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Circle, Defs, Line, LinearGradient, Stop } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppSpacing } from '@theme/spacing';
@@ -43,10 +44,88 @@ export type BasicInfoFormProps = {
 const GENDER_LABEL = { [UserRole.Female]: 'Female', [UserRole.Male]: 'Male' } as const;
 const ROLE_SUBTITLE = { [UserRole.Female]: 'Female', [UserRole.Male]: 'Male' } as const;
 
+function FemaleHeaderIcon(): React.ReactElement {
+  return (
+    <Svg width={48} height={48} viewBox="0 0 48 48">
+      <Defs>
+        <LinearGradient id="femaleHeaderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <Stop offset="0%" stopColor={AppColors.splashBackground} />
+          <Stop offset="100%" stopColor={AppColors.primary} />
+        </LinearGradient>
+      </Defs>
+      <Circle cx={24} cy={24} r={24} fill="url(#femaleHeaderGrad)" />
+      <Circle cx={24} cy={18} r={7} stroke="white" strokeWidth={2.5} fill="none" />
+      <Line
+        x1={24}
+        y1={25}
+        x2={24}
+        y2={37}
+        stroke="white"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+      />
+      <Line
+        x1={19}
+        y1={31}
+        x2={29}
+        y2={31}
+        stroke="white"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+function MaleHeaderIcon(): React.ReactElement {
+  return (
+    <Svg width={48} height={48} viewBox="0 0 48 48">
+      <Defs>
+        <LinearGradient id="maleHeaderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <Stop offset="0%" stopColor={AppColors.primaryDark} />
+          <Stop offset="100%" stopColor={AppColors.primary} />
+        </LinearGradient>
+      </Defs>
+      <Circle cx={24} cy={24} r={24} fill="url(#maleHeaderGrad)" />
+      <Circle cx={19} cy={29} r={7} stroke="white" strokeWidth={2.5} fill="none" />
+      <Line
+        x1={24}
+        y1={24}
+        x2={35}
+        y2={13}
+        stroke="white"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+      />
+      <Line
+        x1={28}
+        y1={13}
+        x2={35}
+        y2={13}
+        stroke="white"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+      />
+      <Line
+        x1={35}
+        y1={13}
+        x2={35}
+        y2={20}
+        stroke="white"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 /**
  * Shared basic-info form for female + male signup. Validates with Zod,
  * stores the result in the signup-draft Zustand store, then requests an
  * OTP and hands off to the role-specific OTP screen via `onOtpRequested`.
+ *
+ * Upgraded with premium glowing role-specific shadows, clean borders,
+ * custom gender indicator backgrounds, and enhanced footer login links.
  */
 function BasicInfoForm({
   role,
@@ -97,6 +176,15 @@ function BasicInfoForm({
     [onOtpRequested, role, setBasicInfo],
   );
 
+  const isFemale = role === UserRole.Female;
+  const cardBorderColor = isFemale ? AppColors.gradientRoseSubtleStart : '#EAD5DA';
+  const shadowColor = isFemale ? AppColors.primary : AppColors.primaryDark;
+  const shadowOpacity = isFemale ? 0.16 : 0.14;
+
+  const disabledBg = isFemale ? AppColors.primarySubtle : '#F9EBEE';
+  const disabledBorder = isFemale ? AppColors.border : '#EAD5DA';
+  const disabledTextColor = isFemale ? AppColors.primary : AppColors.primaryDark;
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <AppBar title="Create Account" subtitle={ROLE_SUBTITLE[role]} />
@@ -104,8 +192,35 @@ function BasicInfoForm({
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <Card padding={AppSpacing.lg} containerStyle={styles.card}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+          alwaysBounceVertical={false}
+        >
+          <Card
+            padding={20}
+            containerStyle={StyleSheet.flatten([
+              styles.card,
+              {
+                borderColor: cardBorderColor,
+                shadowColor: shadowColor,
+                shadowOpacity: shadowOpacity,
+              },
+            ])}
+          >
+            <View style={styles.headerBlock}>
+              <View style={styles.badgeContainer}>
+                {isFemale ? <FemaleHeaderIcon /> : <MaleHeaderIcon />}
+              </View>
+              <Text style={styles.headerTitle}>Personal Details</Text>
+              <Text style={styles.headerSubtitle}>
+                {isFemale
+                  ? 'Complete your profile to start earning'
+                  : 'Set up your profile to start chatting'}
+              </Text>
+            </View>
+
             <Controller
               control={control}
               name="name"
@@ -122,28 +237,43 @@ function BasicInfoForm({
                 />
               )}
             />
-            <Controller
-              control={control}
-              name="age"
-              render={({ field: { onChange, onBlur, value }, fieldState }) => (
-                <TextField
-                  label="Age"
-                  hint="18 or older"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  keyboardType="number-pad"
-                  maxLength={3}
-                  errorText={fieldState.error?.message}
+
+            <View style={styles.rowFieldContainer}>
+              <View style={styles.halfWidth}>
+                <Controller
+                  control={control}
+                  name="age"
+                  render={({ field: { onChange, onBlur, value }, fieldState }) => (
+                    <TextField
+                      label="Age"
+                      hint="18 or older"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      keyboardType="number-pad"
+                      maxLength={3}
+                      errorText={fieldState.error?.message}
+                    />
+                  )}
                 />
-              )}
-            />
-            <View>
-              <Text style={styles.disabledLabel}>Gender</Text>
-              <View style={styles.disabledField}>
-                <Text style={styles.disabledText}>{GENDER_LABEL[role]}</Text>
+              </View>
+              <View style={styles.halfWidth}>
+                <View>
+                  <Text style={styles.disabledLabel}>Gender</Text>
+                  <View
+                    style={[
+                      styles.disabledField,
+                      { backgroundColor: disabledBg, borderColor: disabledBorder },
+                    ]}
+                  >
+                    <Text style={[styles.disabledText, { color: disabledTextColor }]}>
+                      {GENDER_LABEL[role]}
+                    </Text>
+                  </View>
+                </View>
               </View>
             </View>
+
             <Controller
               control={control}
               name="password"
@@ -160,7 +290,7 @@ function BasicInfoForm({
                     autoCorrect={false}
                     errorText={fieldState.error?.message}
                   />
-                  <PasswordStrengthMeter password={passwordValue} />
+                  {passwordValue ? <PasswordStrengthMeter password={passwordValue} /> : null}
                 </View>
               )}
             />
@@ -233,8 +363,49 @@ function BasicInfoForm({
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: AppColors.background },
   flex: { flex: 1 },
-  scroll: { padding: AppSpacing.md, paddingBottom: AppSpacing.xl, flexGrow: 1 },
-  card: { gap: AppSpacing.sm },
+  scroll: {
+    paddingHorizontal: AppSpacing.md,
+    paddingVertical: AppSpacing.md,
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  card: {
+    gap: AppSpacing.sm,
+    borderWidth: 1,
+    borderRadius: 24,
+    backgroundColor: AppColors.surface,
+    // Soft premium shadow
+    shadowOffset: { width: 0, height: 12 },
+    shadowRadius: 24,
+    elevation: 6,
+  },
+  headerBlock: {
+    alignItems: 'center',
+    marginBottom: AppSpacing.md,
+  },
+  badgeContainer: {
+    marginBottom: AppSpacing.sm,
+  },
+  headerTitle: {
+    ...AppTypography.titleLarge,
+    color: AppColors.onSurface,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  headerSubtitle: {
+    ...AppTypography.bodyMedium,
+    color: AppColors.onSurfaceMuted,
+    textAlign: 'center',
+    marginTop: AppSpacing.xs,
+  },
+  rowFieldContainer: {
+    flexDirection: 'row',
+    gap: AppSpacing.md,
+    alignItems: 'flex-start',
+  },
+  halfWidth: {
+    flex: 1,
+  },
   disabledLabel: {
     ...AppTypography.labelLarge,
     color: AppColors.onSurfaceMuted,
@@ -244,14 +415,12 @@ const styles = StyleSheet.create({
     minHeight: 52,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: AppColors.border,
-    backgroundColor: AppColors.primarySubtle,
     paddingHorizontal: AppSpacing.md,
     justifyContent: 'center',
   },
   disabledText: {
     ...AppTypography.bodyLarge,
-    color: AppColors.onSurfaceMuted,
+    fontWeight: '600',
   },
   prefix: {
     ...AppTypography.bodyLarge,
@@ -267,16 +436,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: AppSpacing.sm,
+    marginTop: AppSpacing.md,
   },
   footerText: {
-    ...AppTypography.bodyMedium,
+    ...AppTypography.bodyLarge,
     color: AppColors.onSurfaceMuted,
   },
   footerLink: {
-    ...AppTypography.bodyMedium,
+    ...AppTypography.bodyLarge,
     color: AppColors.primary,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
 

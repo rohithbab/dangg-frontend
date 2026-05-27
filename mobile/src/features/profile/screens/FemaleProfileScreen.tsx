@@ -218,7 +218,7 @@ function FemaleProfileScreen(): React.ReactElement {
           ) : null}
         </View>
 
-        <View style={[styles.statsCard, AppShadows.e1]}>
+        <View style={[styles.statsCard, AppShadows.e2]}>
           <StatCol value={profile?.ratingAvg.toFixed(1) ?? '—'} label="Rating" />
           <View style={styles.statDivider} />
           <StatCol value={profile ? String(profile.totalChats) : '—'} label="Chats" />
@@ -227,62 +227,68 @@ function FemaleProfileScreen(): React.ReactElement {
         </View>
 
         <Text style={styles.groupLabel}>Account</Text>
-        <View style={[styles.menuCard, AppShadows.e1]}>
-          <MenuRow
-            title="Change Password"
-            renderIcon={LockIcon}
-            onPress={() => navigation.navigate('ChangePassword')}
-          />
-          <MenuRow
-            title="Bank/UPI Details"
-            subtitle={bankSubtitle}
-            renderIcon={BankIcon}
-            onPress={() => navigation.navigate('BankUpiUpdate')}
-          />
-          <MenuRow
-            title="Notification Preferences"
-            renderIcon={BellMenuIcon}
-            onPress={() => navigation.navigate('Settings')}
-            last
-          />
+        <View style={[styles.menuCardShadow, AppShadows.e2]}>
+          <View style={styles.menuCardContainer}>
+            <MenuRow
+              title="Change Password"
+              renderIcon={LockIcon}
+              onPress={() => navigation.navigate('ChangePassword')}
+            />
+            <MenuRow
+              title="Bank/UPI Details"
+              subtitle={bankSubtitle}
+              renderIcon={BankIcon}
+              onPress={() => navigation.navigate('BankUpiUpdate')}
+            />
+            <MenuRow
+              title="Notification Preferences"
+              renderIcon={BellMenuIcon}
+              onPress={() => navigation.navigate('Settings')}
+              last
+            />
+          </View>
         </View>
 
         <Text style={styles.groupLabel}>Support</Text>
-        <View style={[styles.menuCard, AppShadows.e1]}>
-          <MenuRow
-            title="Help & Support"
-            renderIcon={HelpIcon}
-            onPress={() => navigation.navigate('HelpSupport')}
-          />
-          <MenuRow
-            title="Report an Issue"
-            renderIcon={ReportIcon}
-            onPress={() => navigation.navigate('ReportIssue')}
-          />
-          <MenuRow
-            title="About App"
-            renderIcon={InfoIcon}
-            onPress={() => navigation.navigate('AboutApp')}
-            last
-          />
+        <View style={[styles.menuCardShadow, AppShadows.e2]}>
+          <View style={styles.menuCardContainer}>
+            <MenuRow
+              title="Help & Support"
+              renderIcon={HelpIcon}
+              onPress={() => navigation.navigate('HelpSupport')}
+            />
+            <MenuRow
+              title="Report an Issue"
+              renderIcon={ReportIcon}
+              onPress={() => navigation.navigate('ReportIssue')}
+            />
+            <MenuRow
+              title="About App"
+              renderIcon={InfoIcon}
+              onPress={() => navigation.navigate('AboutApp')}
+              last
+            />
+          </View>
         </View>
 
         <Text style={styles.groupLabel}>Session</Text>
-        <View style={[styles.menuCard, AppShadows.e1]}>
-          <MenuRow
-            title="Logout"
-            destructive
-            renderIcon={LogoutIcon}
-            hideChevron
-            onPress={() => setLogoutDialog(true)}
-          />
-          <MenuRow
-            title="Delete Account"
-            destructive
-            renderIcon={DeleteForeverIcon}
-            onPress={() => navigation.navigate('DeleteAccount')}
-            last
-          />
+        <View style={[styles.menuCardShadow, AppShadows.e2]}>
+          <View style={styles.menuCardContainer}>
+            <MenuRow
+              title="Logout"
+              destructive
+              renderIcon={LogoutIcon}
+              hideChevron
+              onPress={() => setLogoutDialog(true)}
+            />
+            <MenuRow
+              title="Delete Account"
+              destructive
+              renderIcon={DeleteForeverIcon}
+              onPress={() => navigation.navigate('DeleteAccount')}
+              last
+            />
+          </View>
         </View>
 
         <Text style={styles.footer}>Version 1.0.0 (1)</Text>
@@ -336,6 +342,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 3,
     borderColor: AppColors.primary,
+    backgroundColor: AppColors.surface,
+    shadowColor: AppColors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 4,
   },
   editBadge: {
     position: 'absolute',
@@ -349,6 +361,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: AppColors.background,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   name: {
     ...AppTypography.headlineMedium,
@@ -402,10 +419,13 @@ const styles = StyleSheet.create({
     marginTop: AppSpacing.lg,
     marginBottom: AppSpacing.sm,
   },
-  menuCard: {
+  menuCardShadow: {
+    marginHorizontal: AppSpacing.md,
+    borderRadius: AppRadii.lg,
+  },
+  menuCardContainer: {
     backgroundColor: AppColors.surface,
     borderRadius: AppRadii.lg,
-    marginHorizontal: AppSpacing.md,
     overflow: 'hidden',
   },
   footer: {

@@ -1,9 +1,9 @@
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
@@ -12,6 +12,7 @@ import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import BottomSheet from '@core/components/BottomSheet';
+import CoinIcon from '@core/components/CoinIcon';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION, MIN_PAYOUT_AMOUNT_INR } from '@core/config/constants';
 import { inr } from '@core/utils/formatters';
 import { logger } from '@core/utils/logger';
@@ -53,7 +54,7 @@ function ClockIcon(): React.ReactElement {
     <Svg width={16} height={16} viewBox="0 0 24 24">
       <Path
         d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"
-        fill={AppColors.onPrimary}
+        fill={AppColors.primaryDark}
         fillOpacity={0.85}
       />
     </Svg>
@@ -84,9 +85,15 @@ function EarningsDashboardScreen(): React.ReactElement {
     }
   }, []);
 
-  useEffect(() => {
-    void loadAll(filter);
-  }, [filter, loadAll]);
+  // useFocusEffect handles both first mount and re-focus, so the dashboard
+  // refreshes after a payout is submitted on PayoutRequestScreen and the
+  // user is navigation-reset back here. Without this the cached `balance`
+  // still has `pendingPayoutInr === null` and the CTA stays enabled.
+  useFocusEffect(
+    useCallback(() => {
+      void loadAll(filter);
+    }, [filter, loadAll]),
+  );
 
   const handleRefresh = useCallback(async (): Promise<void> => {
     setRefreshing(true);
@@ -130,59 +137,58 @@ function EarningsDashboardScreen(): React.ReactElement {
         </View>
 
         <View style={[styles.heroCard, AppShadows.e2]}>
-          <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-            <Defs>
-              <LinearGradient id="roseHero" x1="0%" y1="0%" x2="100%" y2="100%">
-                <Stop offset="0%" stopColor={AppColors.gradientRoseStart} stopOpacity="1" />
-                <Stop offset="100%" stopColor={AppColors.gradientRoseEnd} stopOpacity="1" />
-              </LinearGradient>
-            </Defs>
-            <Rect width="100%" height="100%" fill="url(#roseHero)" />
-          </Svg>
           <Text style={styles.heroLabel}>Available to withdraw</Text>
-          <Text style={styles.heroAmount}>{balance ? inr(balance.availableInr) : '—'}</Text>
-          {balance?.pendingPayoutInr !== null && balance?.pendingPayoutInr !== undefined ? (
+          <View style={styles.heroBalanceRow}>
+            <CoinIcon size={40} />
+            <Text style={styles.heroBalance}>
+              {balance ? balance.availableInr.toLocaleString() : '—'}
+            </Text>
+          </View>
+          <Text style={styles.heroEquivalent}>
+            {balance ? `≈ ${inr(balance.availableInr)}` : '—'}
+          </Text>
+          {balance?.pendingPayoutInr != null ? (
             <View style={styles.pendingRow}>
               <ClockIcon />
               <Text style={styles.pendingText}>
-                {`Pending: ${inr(balance.pendingPayoutInr)} (in review)`}
+                ₹{balance.pendingPayoutInr.toLocaleString()} payout in review
               </Text>
             </View>
-          ) : null}
-          <Pressable
-            accessibilityRole="button"
-            disabled={payoutBlocked}
-            onPress={() => navigation.navigate('PayoutRequest')}
-            style={({ pressed }) => [
-              styles.payoutBtn,
-              pressed && styles.payoutBtnPressed,
-              payoutBlocked && styles.payoutBtnDisabled,
-            ]}
-          >
-            <Text style={styles.payoutBtnLabel}>Request Payout</Text>
-          </Pressable>
-          {payoutBlocked ? (
-            <Text style={styles.payoutHelper}>
-              {balance?.pendingPayoutInr !== null && balance?.pendingPayoutInr !== undefined
-                ? 'Payout in review'
-                : `Min ${inr(MIN_PAYOUT_AMOUNT_INR)} required`}
-            </Text>
-          ) : null}
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              disabled={payoutBlocked}
+              onPress={() => navigation.navigate('PayoutRequest')}
+              style={({ pressed }) => [
+                styles.payoutBtn,
+                pressed && styles.payoutBtnPressed,
+                payoutBlocked && styles.payoutBtnDisabled,
+              ]}
+            >
+              <Text style={styles.payoutBtnLabel}>Request Payout</Text>
+            </Pressable>
+          )}
         </View>
 
         <View style={styles.quickStats}>
           <View style={[styles.quickStat, AppShadows.e1]}>
             <Text style={styles.quickStatLabel}>This Month</Text>
-            <Text style={styles.quickStatValue}>
-              {balance ? inr(balance.monthEarningsInr) : '—'}
-            </Text>
+            <View style={styles.statCoinRow}>
+              <Text style={styles.quickStatValue}>
+                {balance ? balance.monthEarningsInr.toLocaleString() : '—'}
+              </Text>
+              <CoinIcon size={16} />
+            </View>
             {balance ? <Text style={styles.quickStatTrend}>{balance.monthTrend.label}</Text> : null}
           </View>
           <View style={[styles.quickStat, AppShadows.e1]}>
             <Text style={styles.quickStatLabel}>Lifetime</Text>
-            <Text style={styles.quickStatValue}>
-              {balance ? inr(balance.lifetimeEarningsInr) : '—'}
-            </Text>
+            <View style={styles.statCoinRow}>
+              <Text style={styles.quickStatValue}>
+                {balance ? balance.lifetimeEarningsInr.toLocaleString() : '—'}
+              </Text>
+              <CoinIcon size={16} />
+            </View>
             <Text style={styles.quickStatTrend}>since joining</Text>
           </View>
         </View>
@@ -267,19 +273,34 @@ const styles = StyleSheet.create({
   heroCard: {
     marginHorizontal: AppSpacing.md,
     marginTop: AppSpacing.lg,
-    borderRadius: AppRadii.lg,
-    padding: AppSpacing.lg,
-    overflow: 'hidden',
+    borderRadius: AppRadii.xl,
+    paddingHorizontal: AppSpacing.lg,
+    paddingVertical: AppSpacing.lg + 4,
+    backgroundColor: AppColors.primaryLight,
   },
   heroLabel: {
     ...AppTypography.labelLarge,
-    color: AppColors.onPrimary,
-    opacity: 0.85,
+    color: AppColors.primaryDark,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    fontSize: 12,
   },
-  heroAmount: {
+  heroBalanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: AppSpacing.sm + 4,
+    marginTop: AppSpacing.sm,
+  },
+  heroBalance: {
     ...AppTypography.displayLarge,
-    color: AppColors.onPrimary,
-    marginTop: 4,
+    color: AppColors.primaryDark,
+    fontWeight: '800',
+    lineHeight: 56,
+  },
+  heroEquivalent: {
+    ...AppTypography.bodyMedium,
+    color: AppColors.onSurfaceMuted,
+    marginTop: AppSpacing.xs,
   },
   pendingRow: {
     flexDirection: 'row',
@@ -289,7 +310,7 @@ const styles = StyleSheet.create({
   },
   pendingText: {
     ...AppTypography.bodyMedium,
-    color: AppColors.onPrimary,
+    color: AppColors.primaryDark,
     opacity: 0.85,
   },
   payoutBtn: {
@@ -305,13 +326,6 @@ const styles = StyleSheet.create({
     ...AppTypography.labelLarge,
     color: AppColors.primaryDark,
     fontWeight: '700',
-  },
-  payoutHelper: {
-    ...AppTypography.labelSmall,
-    color: AppColors.onPrimary,
-    opacity: 0.85,
-    textAlign: 'center',
-    marginTop: AppSpacing.xs,
   },
   quickStats: {
     flexDirection: 'row',
@@ -332,6 +346,12 @@ const styles = StyleSheet.create({
   quickStatValue: {
     ...AppTypography.titleLarge,
     color: AppColors.primaryDark,
+    marginTop: 0,
+  },
+  statCoinRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     marginTop: 4,
   },
   quickStatTrend: {

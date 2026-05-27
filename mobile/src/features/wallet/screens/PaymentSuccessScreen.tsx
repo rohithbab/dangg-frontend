@@ -3,7 +3,6 @@ import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useEffect } from 'react';
 import { BackHandler, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
@@ -12,7 +11,7 @@ import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import PrimaryButton from '@core/components/PrimaryButton';
-import TextButton from '@core/components/TextButton';
+import SecondaryButton from '@core/components/SecondaryButton';
 import { inr } from '@core/utils/formatters';
 
 import { type MaleAppStackParamList } from '@navigation/types';
@@ -20,15 +19,7 @@ import { type MaleAppStackParamList } from '@navigation/types';
 type Nav = NativeStackNavigationProp<MaleAppStackParamList, 'PaymentSuccess'>;
 type Route = RouteProp<MaleAppStackParamList, 'PaymentSuccess'>;
 
-function CheckIcon(): React.ReactElement {
-  return (
-    <Svg width={80} height={80} viewBox="0 0 24 24">
-      <Path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill={AppColors.success} />
-    </Svg>
-  );
-}
-
-/** Payment success confirmation with new balance + receipt. */
+/** Receipt screen shown after the animated tick on PaymentProcessingScreen. */
 function PaymentSuccessScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -42,9 +33,6 @@ function PaymentSuccessScreen(): React.ReactElement {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.body}>
-        <View style={styles.iconCircle}>
-          <CheckIcon />
-        </View>
         <Text style={styles.title}>Payment Successful!</Text>
 
         <View style={[styles.receiptCard, AppShadows.e1]}>
@@ -63,10 +51,10 @@ function PaymentSuccessScreen(): React.ReactElement {
           </View>
         </View>
 
-        <Text style={styles.balance}>
-          {'New balance: '}
-          <Text style={styles.balanceBold}>{`${newBalance} coins`}</Text>
-        </Text>
+        <View style={styles.balanceCard}>
+          <Text style={styles.balanceLabel}>Current balance</Text>
+          <Text style={styles.balanceValue}>{`${newBalance} coins`}</Text>
+        </View>
       </View>
 
       <View style={styles.footer}>
@@ -74,7 +62,7 @@ function PaymentSuccessScreen(): React.ReactElement {
           label="Continue Browsing"
           onPress={() => navigation.replace('MaleTabs', { screen: 'Home' })}
         />
-        <TextButton
+        <SecondaryButton
           label="View Wallet"
           onPress={() => navigation.replace('MaleTabs', { screen: 'Wallet' })}
         />
@@ -91,17 +79,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: AppSpacing.lg,
   },
-  iconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: AppColors.successLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   title: {
     ...AppTypography.headlineLarge,
     color: AppColors.primaryDark,
+    textAlign: 'center',
     marginTop: AppSpacing.lg,
   },
   receiptCard: {
@@ -149,12 +130,30 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     marginLeft: AppSpacing.sm,
   },
-  balance: {
-    ...AppTypography.bodyLarge,
-    color: AppColors.onSurface,
-    marginTop: AppSpacing.lg,
+  balanceCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: AppColors.surface,
+    borderRadius: AppRadii.md,
+    padding: AppSpacing.md,
+    marginTop: AppSpacing.md,
+    alignItems: 'center',
+    gap: 4,
+    shadowColor: AppColors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 8,
   },
-  balanceBold: { fontWeight: '700', color: AppColors.primaryDark },
+  balanceLabel: {
+    ...AppTypography.bodySmall,
+    color: AppColors.onSurfaceMuted,
+  },
+  balanceValue: {
+    ...AppTypography.titleLarge,
+    color: AppColors.primaryDark,
+    fontWeight: '700',
+  },
   footer: {
     padding: AppSpacing.md,
     gap: AppSpacing.xs,

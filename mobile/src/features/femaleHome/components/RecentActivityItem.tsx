@@ -6,7 +6,7 @@ import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import Avatar from '@core/components/Avatar';
-import { inr } from '@core/utils/formatters';
+import CoinIcon from '@core/components/CoinIcon';
 
 import { type RecentActivity } from '../api/femaleHomeApi';
 
@@ -58,7 +58,10 @@ function RecentActivityItem({ item }: RecentActivityItemProps): React.ReactEleme
       </View>
       <View style={styles.right}>
         {item.amountInr !== null ? (
-          <Text style={styles.amount}>{`+${inr(item.amountInr)}`}</Text>
+          <View style={styles.amountWrap}>
+            <Text style={styles.amount}>{`+${item.amountInr.toLocaleString()}`}</Text>
+            <CoinIcon size={14} />
+          </View>
         ) : null}
         <Text style={styles.time}>{time}</Text>
       </View>
@@ -85,6 +88,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   right: { alignItems: 'flex-end' },
+  amountWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   amount: {
     ...AppTypography.bodyMedium,
     color: AppColors.success,

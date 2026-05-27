@@ -8,8 +8,7 @@ import VerificationInfoScreen from '@features/auth/screens/female/VerificationIn
 import VerificationSubmittedScreen from '@features/auth/screens/female/VerificationSubmittedScreen';
 import ForgotPasswordNewScreen from '@features/auth/screens/forgotPassword/ForgotPasswordNewScreen';
 import ForgotPasswordPhoneScreen from '@features/auth/screens/forgotPassword/ForgotPasswordPhoneScreen';
-import FemaleLoginPasswordScreen from '@features/auth/screens/login/FemaleLoginPasswordScreen';
-import FemaleLoginPhoneScreen from '@features/auth/screens/login/FemaleLoginPhoneScreen';
+import FemaleLoginScreen from '@features/auth/screens/login/FemaleLoginScreen';
 import MaleLoginScreen from '@features/auth/screens/login/MaleLoginScreen';
 import MaleSignupBasicInfoScreen from '@features/auth/screens/male/MaleSignupBasicInfoScreen';
 import OtpVerificationScreen from '@features/auth/screens/shared/OtpVerificationScreen';
@@ -61,8 +60,7 @@ function AuthNavigator(): React.ReactElement {
       <Stack.Screen name="MaleSignupBasicInfo" component={MaleSignupBasicInfoScreen} />
       <Stack.Screen name="MaleSignupOtp" component={OtpVerificationScreen} />
 
-      <Stack.Screen name="FemaleLoginPhone" component={FemaleLoginPhoneScreen} />
-      <Stack.Screen name="FemaleLoginPassword" component={FemaleLoginPasswordScreen} />
+      <Stack.Screen name="FemaleLogin" component={FemaleLoginScreen} />
       <Stack.Screen name="MaleLogin" component={MaleLoginScreen} />
 
       <Stack.Screen name="ForgotPasswordPhone" component={ForgotPasswordPhoneScreen} />

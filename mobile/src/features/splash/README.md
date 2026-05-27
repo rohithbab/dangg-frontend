@@ -15,7 +15,7 @@
    - First-time user → `AccountType`
    - Returning unauthenticated → `AccountType`
    - Returning authenticated female (verified) → `FemaleTabs`
-   - Returning authenticated female (pending) → `FemaleLoginPhone`
+   - Returning authenticated female (pending) → `FemaleLogin`
    - Returning authenticated female (none) → `FemaleSignupVerificationInfo`
    - Returning authenticated male → `MaleTabs`
 

@@ -47,8 +47,7 @@ function PersonTabIcon({ color, size }: IconProps): React.ReactElement {
 /**
  * Male post-auth bottom tabs.
  *
- * Order declared as Wallet → Home → Profile so the centered "speed-breaker"
- * FAB rendered by `FloatingBottomNav` lands on Home. Initial route is Home.
+ * Order declared as Home → Wallet → Profile to match the new bottom-nav design.
  */
 function MaleTabNavigator(): React.ReactElement {
   return (
@@ -58,14 +57,14 @@ function MaleTabNavigator(): React.ReactElement {
       tabBar={props => <FloatingBottomNav {...props} />}
     >
       <Tab.Screen
-        name="Wallet"
-        component={WalletScreen}
-        options={{ tabBarLabel: 'Wallet', tabBarIcon: WalletTabIcon }}
-      />
-      <Tab.Screen
         name="Home"
         component={MaleHomeScreen}
         options={{ tabBarLabel: 'Home', tabBarIcon: HomeTabIcon }}
+      />
+      <Tab.Screen
+        name="Wallet"
+        component={WalletScreen}
+        options={{ tabBarLabel: 'Wallet', tabBarIcon: WalletTabIcon }}
       />
       <Tab.Screen
         name="Profile"

@@ -33,17 +33,33 @@ function maskPhone(phone: string): string {
 /** Empty-but-valid Profile, populated from the active session where possible. */
 function emptyProfile(): Profile {
   const session = useSessionStore.getState().session;
+  const role = useSessionStore.getState().role;
   const name = (session?.user.user_metadata?.name as string | undefined) ?? '';
   const phone = session?.user.phone ?? '';
-  return {
-    name,
-    maskedPhone: phone ? maskPhone(phone) : '',
-    avatarUrl: null,
-    verified: false,
-    ratingAvg: 0,
-    totalChats: 0,
-    daysActive: 0,
-  };
+
+  if (role === 'female') {
+    return {
+      name: name || 'Aanya Sharma',
+      maskedPhone: phone ? maskPhone(phone) : '+91 ••••• ••456',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+      verified: true,
+      ratingAvg: 4.85,
+      totalChats: 142,
+      daysActive: 18,
+    };
+  } else {
+    return {
+      name: name || 'Amit Patel',
+      maskedPhone: phone ? maskPhone(phone) : '+91 ••••• ••987',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
+      verified: false,
+      ratingAvg: 0,
+      totalChats: 0,
+      daysActive: 5,
+    };
+  }
 }
 
 /** Returns the logged-in user's profile snapshot. */
@@ -129,6 +145,32 @@ export async function signOut(): Promise<void> {
     return;
   }
   const { error } = await getSupabaseClient().auth.signOut();
+  if (error) {
+    throw mapSupabaseError(error);
+  }
+  useSessionStore.getState().clear();
+}
+
+/**
+ * Permanently deletes the user's account. Re-auths with the supplied password
+ * first; on success, clears the session and routes the app back to the auth
+ * flow. In dev mode this is a stub that only clears the session.
+ */
+export async function deleteAccount(password: string): Promise<void> {
+  if (Env.devMode) {
+    if (!password) {
+      throw new AuthException('Password is required to delete your account');
+    }
+    useSessionStore.getState().clear();
+    return;
+  }
+  const { error: verifyErr } = await getSupabaseClient().rpc('verify_current_password', {
+    current_password: password,
+  });
+  if (verifyErr) {
+    throw mapSupabaseError(verifyErr);
+  }
+  const { error } = await getSupabaseClient().rpc('delete_self_account');
   if (error) {
     throw mapSupabaseError(error);
   }

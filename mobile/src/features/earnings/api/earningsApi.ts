@@ -34,18 +34,69 @@ export type Transaction = {
 
 export type TransactionFilter = 'all' | 'earning' | 'payout' | 'refund';
 
-const EMPTY_BALANCE: EarningsBalance = {
-  availableInr: 0,
-  pendingPayoutInr: null,
-  monthEarningsInr: 0,
-  monthTrend: { kind: 'flat', label: '' },
-  lifetimeEarningsInr: 0,
-};
+let mockAvailableBalance = 4250;
+let mockPendingPayout: number | null = null;
+const mockMonthEarnings = 18500;
+const mockLifetimeEarnings = 45000;
+
+const mockTransactionsList: Transaction[] = [
+  {
+    id: 'etx-1',
+    kind: 'earning',
+    title: 'Chat Earnings',
+    subtitle: 'Chat with Raj (25 mins)',
+    amountInr: 300,
+    status: 'completed',
+    occurredAt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
+  },
+  {
+    id: 'etx-2',
+    kind: 'payout',
+    title: 'UPI Payout',
+    subtitle: 'Transferred to aanya@okaxis',
+    amountInr: 4200,
+    status: 'completed',
+    occurredAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+  },
+  {
+    id: 'etx-3',
+    kind: 'earning',
+    title: 'Chat Earnings',
+    subtitle: 'Chat with Vikram (10 mins)',
+    amountInr: 120,
+    status: 'completed',
+    occurredAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+  },
+  {
+    id: 'etx-4',
+    kind: 'refund',
+    title: 'Refunded Earning',
+    subtitle: 'User dispute resolution',
+    amountInr: -60,
+    status: 'completed',
+    occurredAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
+  },
+  {
+    id: 'etx-5',
+    kind: 'payout',
+    title: 'UPI Payout',
+    subtitle: 'Transferred to aanya@okaxis',
+    amountInr: 3500,
+    status: 'completed',
+    occurredAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000), // 8 days ago
+  },
+];
 
 /** Available + pending balances and trend stats for the Earnings hero. */
 export async function getEarningsBalance(): Promise<EarningsBalance> {
   if (Env.devMode) {
-    return EMPTY_BALANCE;
+    return {
+      availableInr: mockAvailableBalance,
+      pendingPayoutInr: mockPendingPayout,
+      monthEarningsInr: mockMonthEarnings,
+      monthTrend: { kind: 'up', label: '+12% vs last month' },
+      lifetimeEarningsInr: mockLifetimeEarnings,
+    };
   }
   const { data, error } = await getSupabaseClient().rpc('female_earnings_balance');
   if (error) {
@@ -59,7 +110,10 @@ export async function listTransactions(
   filter: TransactionFilter = 'all',
 ): Promise<ReadonlyArray<Transaction>> {
   if (Env.devMode) {
-    return [];
+    if (filter === 'all') {
+      return mockTransactionsList;
+    }
+    return mockTransactionsList.filter(t => t.kind === filter);
   }
   let query = getSupabaseClient()
     .from('transactions')
@@ -78,7 +132,30 @@ export async function listTransactions(
 /** Submits a payout request. Returns the new payout id. */
 export async function requestPayout(amountInr: number): Promise<string> {
   if (Env.devMode) {
-    throw new AppException('SERVER', 'Payouts will be available once the backend is connected');
+    const payoutId = `payout-${Date.now()}`;
+    mockAvailableBalance -= amountInr;
+    mockPendingPayout = amountInr;
+
+    // Fetch details to know if UPI or Bank
+    const details = await getPayoutDetails();
+    const dest = details
+      ? details.kind === 'upi'
+        ? `Withdrawal to ${details.upiId}`
+        : `Withdrawal to A/C ending in ${details.accountNumberMasked}`
+      : 'Withdrawal request';
+
+    // Insert at the beginning of the list
+    mockTransactionsList.unshift({
+      id: payoutId,
+      kind: 'payout',
+      title: 'Payout Request',
+      subtitle: dest,
+      amountInr: amountInr,
+      status: 'processing',
+      occurredAt: new Date(),
+    });
+
+    return payoutId;
   }
   const { data, error } = await getSupabaseClient()
     .from('payouts')
@@ -119,7 +196,7 @@ export async function getPayoutDetails(): Promise<
   | null
 > {
   if (Env.devMode) {
-    return null;
+    return { kind: 'upi', upiId: 'aanya@okaxis' };
   }
   const { data, error } = await getSupabaseClient()
     .from('female_payout_details')

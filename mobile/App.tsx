@@ -26,11 +26,13 @@ import { fcmService } from '@core/services/fcmService';
 import { logger } from '@core/utils/logger';
 
 import { linking } from '@navigation/linking';
+import { navigationRef } from '@navigation/navigationRef';
 import RootNavigator from '@navigation/RootNavigator';
 
 import { useConnectivityStore } from '@store/connectivityStore';
 import { subscribeSupabaseAuth } from '@store/sessionStore';
 
+import DevSimulateChatFab from '@features/chatRequests/components/DevSimulateChatFab';
 import IncomingChatRequestModal from '@features/chatRequests/components/IncomingChatRequestModal';
 import OfflineOverlay from '@features/common/OfflineOverlay';
 
@@ -99,11 +101,12 @@ function App(): React.JSX.Element {
           translucent={false}
         />
         <OfflineOverlay>
-          <NavigationContainer linking={linking}>
+          <NavigationContainer ref={navigationRef} linking={linking}>
             <RootNavigator />
+            <IncomingChatRequestModal />
+            <DevSimulateChatFab />
           </NavigationContainer>
         </OfflineOverlay>
-        <IncomingChatRequestModal />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
