@@ -1,6 +1,11 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
+import ChatRequestAcceptedScreen from '@features/chatRequests/screens/ChatRequestAcceptedScreen';
+import ChatRequestDeclinedScreen from '@features/chatRequests/screens/ChatRequestDeclinedScreen';
+import ChatRequestSentScreen from '@features/chatRequests/screens/ChatRequestSentScreen';
+import ChatRequestTimeoutScreen from '@features/chatRequests/screens/ChatRequestTimeoutScreen';
+
 import PlaceholderScreen from './PlaceholderScreen';
 import { type ChatStackParamList } from './types';
 
@@ -16,10 +21,10 @@ function ChatNavigator(): React.ReactElement {
       initialRouteName="ChatRequestSent"
       screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
     >
-      <Stack.Screen name="ChatRequestSent" component={PlaceholderScreen} />
-      <Stack.Screen name="ChatRequestAccepted" component={PlaceholderScreen} />
-      <Stack.Screen name="ChatRequestDeclined" component={PlaceholderScreen} />
-      <Stack.Screen name="ChatRequestTimeout" component={PlaceholderScreen} />
+      <Stack.Screen name="ChatRequestSent" component={ChatRequestSentScreen} />
+      <Stack.Screen name="ChatRequestAccepted" component={ChatRequestAcceptedScreen} />
+      <Stack.Screen name="ChatRequestDeclined" component={ChatRequestDeclinedScreen} />
+      <Stack.Screen name="ChatRequestTimeout" component={ChatRequestTimeoutScreen} />
       <Stack.Screen name="QueuePosition" component={PlaceholderScreen} />
       <Stack.Screen name="LikeDislikeRating" component={PlaceholderScreen} />
     </Stack.Navigator>

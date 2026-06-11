@@ -96,14 +96,16 @@ function TextFieldInner(
           <View style={styles.iconRight}>{rightIcon}</View>
         ) : null}
       </View>
-      <View style={styles.metaRow}>
-        <Text style={[styles.meta, isError && styles.metaError]} numberOfLines={1}>
-          {errorText ?? helperText ?? ' '}
-        </Text>
-        {showCounter && maxLength ? (
-          <Text style={styles.counter}>{`${length}/${maxLength}`}</Text>
-        ) : null}
-      </View>
+      {isError || helperText || (showCounter && maxLength) ? (
+        <View style={styles.metaRow}>
+          <Text style={[styles.meta, isError && styles.metaError]} numberOfLines={1}>
+            {errorText ?? helperText ?? ''}
+          </Text>
+          {showCounter && maxLength ? (
+            <Text style={styles.counter}>{`${length}/${maxLength}`}</Text>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -130,8 +132,11 @@ const styles = StyleSheet.create({
   iconRight: { marginLeft: AppSpacing.sm },
   input: {
     ...AppTypography.bodyLarge,
+    lineHeight: undefined,
     flex: 1,
-    paddingVertical: AppSpacing.sm,
+    alignSelf: 'stretch',
+    paddingVertical: 0,
+    textAlignVertical: 'center',
     color: AppColors.onSurface,
   },
   toggleText: {

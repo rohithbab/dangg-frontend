@@ -17,7 +17,7 @@ import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import PrimaryButton from '@core/components/PrimaryButton';
-import { Env } from '@core/config/env';
+import { USE_MOCK_DATA } from '@core/config/env';
 import { AppException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
 
@@ -84,7 +84,7 @@ function MaleOnboardingCarousel(): React.ReactElement {
     setCompleteError(null);
     try {
       const { phone, password, clear } = useSignupDraftStore.getState();
-      if (Env.devMode) {
+      if (USE_MOCK_DATA) {
         await signInWithPasswordDev(phone, password, UserRole.Male);
       } else {
         await setInitialPassword(password);

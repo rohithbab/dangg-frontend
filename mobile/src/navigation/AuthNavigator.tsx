@@ -1,6 +1,8 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
+import { useIsAuthenticated, useSessionRole, useVerificationStatus } from '@store/sessionStore';
+
 import BankUpiDetailsScreen from '@features/auth/screens/female/BankUpiDetailsScreen';
 import FaceCaptureScreen from '@features/auth/screens/female/FaceCaptureScreen';
 import FemaleSignupBasicInfoScreen from '@features/auth/screens/female/FemaleSignupBasicInfoScreen';
@@ -8,14 +10,15 @@ import VerificationInfoScreen from '@features/auth/screens/female/VerificationIn
 import VerificationSubmittedScreen from '@features/auth/screens/female/VerificationSubmittedScreen';
 import ForgotPasswordNewScreen from '@features/auth/screens/forgotPassword/ForgotPasswordNewScreen';
 import ForgotPasswordPhoneScreen from '@features/auth/screens/forgotPassword/ForgotPasswordPhoneScreen';
-import FemaleLoginPasswordScreen from '@features/auth/screens/login/FemaleLoginPasswordScreen';
-import FemaleLoginPhoneScreen from '@features/auth/screens/login/FemaleLoginPhoneScreen';
+import FemaleLoginScreen from '@features/auth/screens/login/FemaleLoginScreen';
 import MaleLoginScreen from '@features/auth/screens/login/MaleLoginScreen';
 import MaleSignupBasicInfoScreen from '@features/auth/screens/male/MaleSignupBasicInfoScreen';
 import OtpVerificationScreen from '@features/auth/screens/shared/OtpVerificationScreen';
 import AccountTypeScreen from '@features/onboarding/screens/AccountTypeScreen';
 import MaleOnboardingCarousel from '@features/onboarding/screens/MaleOnboardingCarousel';
 import SplashScreen from '@features/splash/screens/SplashScreen';
+
+import { UserRole, VerificationStatus } from '@app-types/domain';
 
 import { type AuthStackParamList } from './types';
 
@@ -30,9 +33,25 @@ const Stack = createNativeStackNavigator<AuthStackParamList>();
  *     hide the back affordance so users can't slip back into prior steps.
  */
 function AuthNavigator(): React.ReactElement {
+  const authed = useIsAuthenticated();
+  const role = useSessionRole();
+  const verificationStatus = useVerificationStatus();
+
+  let initialRoute: keyof AuthStackParamList = 'Splash';
+  if (authed && role === UserRole.Female) {
+    if (verificationStatus === VerificationStatus.Pending) {
+      initialRoute = 'FemaleSignupVerificationSubmitted';
+    } else if (
+      verificationStatus === VerificationStatus.None ||
+      verificationStatus === VerificationStatus.Rejected
+    ) {
+      initialRoute = 'FemaleSignupVerificationInfo';
+    }
+  }
+
   return (
     <Stack.Navigator
-      initialRouteName="Splash"
+      initialRouteName={initialRoute}
       screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
     >
       <Stack.Screen
@@ -61,8 +80,7 @@ function AuthNavigator(): React.ReactElement {
       <Stack.Screen name="MaleSignupBasicInfo" component={MaleSignupBasicInfoScreen} />
       <Stack.Screen name="MaleSignupOtp" component={OtpVerificationScreen} />
 
-      <Stack.Screen name="FemaleLoginPhone" component={FemaleLoginPhoneScreen} />
-      <Stack.Screen name="FemaleLoginPassword" component={FemaleLoginPasswordScreen} />
+      <Stack.Screen name="FemaleLogin" component={FemaleLoginScreen} />
       <Stack.Screen name="MaleLogin" component={MaleLoginScreen} />
 
       <Stack.Screen name="ForgotPasswordPhone" component={ForgotPasswordPhoneScreen} />

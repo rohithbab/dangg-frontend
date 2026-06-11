@@ -10,13 +10,13 @@
  *  5. Lock orientation to portrait.
  *  6. Render the navigation root, wrapped in OfflineOverlay.
  */
-import { NavigationContainer } from '@react-navigation/native';
+import { DefaultTheme, DarkTheme, NavigationContainer } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { StatusBar, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { AppColors } from '@theme/colors';
+import { AppColors, setThemeScheme } from '@theme/colors';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -26,19 +26,46 @@ import { fcmService } from '@core/services/fcmService';
 import { logger } from '@core/utils/logger';
 
 import { linking } from '@navigation/linking';
+import { navigationRef } from '@navigation/navigationRef';
 import RootNavigator from '@navigation/RootNavigator';
 
 import { useConnectivityStore } from '@store/connectivityStore';
 import { subscribeSupabaseAuth } from '@store/sessionStore';
 
+import DevSimulateChatFab from '@features/chatRequests/components/DevSimulateChatFab';
+import IncomingChatRequestListener from '@features/chatRequests/components/IncomingChatRequestListener';
 import IncomingChatRequestModal from '@features/chatRequests/components/IncomingChatRequestModal';
 import OfflineOverlay from '@features/common/OfflineOverlay';
+import DevVerificationFab from '@features/femaleHome/components/DevVerificationFab';
+
+const MyLightTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: AppColors.primary,
+    background: AppColors.background,
+    card: AppColors.surface,
+    text: AppColors.onSurface,
+    border: AppColors.border,
+  },
+};
+
+const MyDarkTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: AppColors.primary,
+    background: '#121212',
+    card: '#1E1E1E',
+    text: '#F3F4F6',
+    border: '#2D2D2D',
+  },
+};
 
 function App(): React.JSX.Element {
   const colorScheme = useColorScheme();
-  // colorScheme is read so a future dark-mode toggle can react — unused
-  // explicitly for now; eslint is satisfied by the destructuring.
-  void colorScheme;
+  const isDark = colorScheme === 'dark';
+  setThemeScheme(isDark ? 'dark' : 'light');
 
   const [bootError, setBootError] = useState<string | null>(null);
 
@@ -80,7 +107,10 @@ function App(): React.JSX.Element {
     return (
       <GestureHandlerRootView style={styles.root}>
         <SafeAreaProvider>
-          <StatusBar barStyle="dark-content" backgroundColor={AppColors.background} />
+          <StatusBar
+            barStyle={isDark ? 'light-content' : 'dark-content'}
+            backgroundColor={isDark ? '#121212' : AppColors.background}
+          />
           <View style={styles.error}>
             <Text style={styles.errorTitle}>Dangg failed to start</Text>
             <Text style={styles.errorBody}>{bootError}</Text>
@@ -94,16 +124,23 @@ function App(): React.JSX.Element {
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <StatusBar
-          barStyle="dark-content"
-          backgroundColor={AppColors.background}
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+          backgroundColor={isDark ? '#121212' : AppColors.background}
           translucent={false}
         />
         <OfflineOverlay>
-          <NavigationContainer linking={linking}>
+          <NavigationContainer
+            ref={navigationRef}
+            linking={linking}
+            theme={isDark ? MyDarkTheme : MyLightTheme}
+          >
             <RootNavigator />
+            <IncomingChatRequestListener />
+            <IncomingChatRequestModal />
+            <DevSimulateChatFab />
+            <DevVerificationFab />
           </NavigationContainer>
         </OfflineOverlay>
-        <IncomingChatRequestModal />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

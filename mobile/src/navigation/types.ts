@@ -17,8 +17,7 @@ export type AuthStackParamList = {
   MaleSignupBasicInfo: undefined;
   MaleSignupOtp: { phone: string };
 
-  FemaleLoginPhone: undefined;
-  FemaleLoginPassword: { phone: string };
+  FemaleLogin: undefined;
   MaleLogin: undefined;
 
   ForgotPasswordPhone: { role: 'female' | 'male' };
@@ -36,6 +35,7 @@ export type FemaleTabParamList = {
 /** Female app stack — tabs as root + push-able secondary screens. */
 export type FemaleAppStackParamList = {
   FemaleTabs: NavigatorScreenParams<FemaleTabParamList>;
+  ChatsInbox: undefined;
   Notifications: undefined;
   ChangePassword: undefined;
   BankUpiUpdate: undefined;
@@ -45,8 +45,12 @@ export type FemaleAppStackParamList = {
   Settings: undefined;
   /** Placeholder for the payout flow shipped in a later prompt. */
   PayoutRequest: undefined;
-  /** Placeholder for the delete-account flow shipped in a later prompt. */
+  PayoutInReview: { amount: number; payoutMethod: string };
   DeleteAccount: undefined;
+  DeleteAccountConfirm: undefined;
+  NotificationPermission: undefined;
+  ChatRequestAccepted: { requestId: string };
+  ChatSession: { requestId: string };
 };
 
 /** Male bottom-tabs — order in nav is Wallet | Home (FAB) | Profile. */
@@ -59,11 +63,13 @@ export type MaleTabParamList = {
 /** Male app stack — tabs as root + push-able secondary screens. */
 export type MaleAppStackParamList = {
   MaleTabs: NavigatorScreenParams<MaleTabParamList>;
+  ChatsInbox: undefined;
   FemaleProfilePreview: { femaleId: string };
   ChatRequestSent: { requestId: string };
   ChatRequestAccepted: { requestId: string };
   ChatRequestDeclined: { requestId: string };
   ChatRequestTimeout: { requestId: string };
+  ChatSession: { requestId: string };
   PaymentProcessing: { packageId: string };
   PaymentSuccess: {
     transactionId: string;
@@ -79,6 +85,10 @@ export type MaleAppStackParamList = {
   ReportIssue: undefined;
   AboutApp: undefined;
   Settings: undefined;
+  DeleteAccount: undefined;
+  DeleteAccountConfirm: undefined;
+  NotificationPermission: undefined;
+  LikeDislikeRating: { femaleId: string; requestId: string };
 };
 
 /** Chat-request flow (Phase 1 only). Placeholder for the Phase 2 chat screen. */

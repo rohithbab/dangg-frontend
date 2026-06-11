@@ -4,7 +4,7 @@
  * All methods are async and return typed results — UI layers never touch
  * the Supabase client directly.
  *
- * DEV_MODE shortcuts (active when `Env.devMode === true`):
+ * DEV_MODE shortcuts (active when `USE_MOCK_DATA === true`):
  *   * sendOtp / submitVerificationPhoto: simulated success after a short
  *     delay; no network call.
  *   * verifyOtp: only the literal code `123456` is accepted. On success a
@@ -18,29 +18,61 @@
  */
 import { type Session, type User as SupabaseUser } from '@supabase/supabase-js';
 
-import { Env } from '@core/config/env';
+import { USE_MOCK_DATA } from '@core/config/env';
 import { mapSupabaseError } from '@core/network/apiErrorMapper';
-import {
-  AuthException,
-  InvalidOtpException,
-  ValidationException,
-} from '@core/network/apiException';
+import { AuthException, ValidationException } from '@core/network/apiException';
 import { getSupabaseClient } from '@core/network/supabaseClient';
 import { prefsStorage, PrefsKey } from '@core/storage/prefsStorage';
 import { logger } from '@core/utils/logger';
 
 import { useSessionStore } from '@store/sessionStore';
 
-import { type UserRole, VerificationStatus } from '@app-types/domain';
+import { UserRole, VerificationStatus } from '@app-types/domain';
+
+import { type PayoutDetails, useSignupDraftStore } from '../store/signupDraftStore';
 
 export type AuthIntent = 'signup' | 'login' | 'forgotPassword';
 
-const DEV_OTP = '123456';
 const DEV_DELAY_MS = 600;
 const DEV_FAIL_PASSWORD = 'wrong';
 
+// ─── DEMO BUILD CREDENTIAL (frontend-only mock login) ────────────────────────
+// Shared/offline DEV_MODE build: the ONE phone + password that signs in without
+// a backend. Works for both male and female login. To restore the original
+// "any non-empty password" dev behaviour, re-comment the gate in
+// signInWithPasswordDev below.
+const DEMO_PHONE = '9876543210';
+const DEMO_PASSWORD = 'Qwerty@123';
+
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Normalises a phone number to E.164. Supabase Auth and the backend store
+ * phones as `+91…`; the signup/login forms collect a bare 10-digit number
+ * (the `+91` is only a UI prefix). Assumes India when no country code is
+ * present. Already-E.164 input is returned digits-only after the `+`.
+ */
+function toE164(phone: string): string {
+  const trimmed = phone.trim();
+  if (trimmed.startsWith('+')) {
+    return '+' + trimmed.slice(1).replace(/\D/g, '');
+  }
+  return `+91${trimmed.replace(/\D/g, '').slice(-10)}`;
+}
+
+/**
+ * Pulls the in-progress signup details from the draft store for the
+ * `signInWithOtp` metadata. The backend `handle_new_user` trigger REQUIRES
+ * name/age/role in `raw_user_meta_data` and aborts signup without them.
+ */
+function buildSignupMetadata(): { name: string; age: number; role: UserRole } {
+  const { name, age, role } = useSignupDraftStore.getState();
+  if (!name || age == null || !role) {
+    throw new ValidationException('Missing signup details. Please restart signup.');
+  }
+  return { name, age, role };
 }
 
 /** Builds a stub session shaped like a real Supabase response, for DEV_MODE only. */
@@ -69,14 +101,24 @@ function buildStubSession(role: UserRole, phone: string): Session {
   };
 }
 
-/** Sends a 6-digit OTP to the given mobile number. */
+/**
+ * Sends a 6-digit OTP to the given mobile number.
+ *
+ * OTP delivery is ALWAYS real — it is NOT mocked by DEV_MODE. It runs through
+ * Supabase Auth, so in local dev the code is delivered to the edge-runtime
+ * docker logs (MSG91 is unset locally → `send-sms-hook` logs the code), and in
+ * staging/production MSG91 sends the real SMS. DEV_MODE still mocks the other
+ * (non-auth) feature APIs.
+ */
 export async function sendOtp(phone: string, intent: AuthIntent): Promise<void> {
-  if (Env.devMode) {
-    logger.debug('authApi.sendOtp (DEV)', { phone, intent });
-    await sleep(DEV_DELAY_MS);
-    return;
-  }
-  const { error } = await getSupabaseClient().auth.signInWithOtp({ phone });
+  // Signup must carry name/age/role so the backend trigger can provision the
+  // public.users + role-specific row. Login/forgot-password target an
+  // existing user, so no metadata is sent.
+  const options = intent === 'signup' ? { data: buildSignupMetadata() } : undefined;
+  const { error } = await getSupabaseClient().auth.signInWithOtp({
+    phone: toE164(phone),
+    options,
+  });
   if (error) {
     throw mapSupabaseError(error);
   }
@@ -94,26 +136,21 @@ export async function sendOtp(phone: string, intent: AuthIntent): Promise<void> 
  *     production to call `auth.updateUser`. We return that session so the
  *     forgot-password new-password screen can use it without re-prompting.
  *
- * In DEV_MODE no real session ever exists — callers wire stub sessions
- * via `signInWithPasswordDev` at end-of-flow.
+ * OTP verification is ALWAYS real — it is NOT mocked by DEV_MODE (the code
+ * comes from the docker logs in dev, MSG91 in prod). The password-based login
+ * path is what stays mocked under DEV_MODE via `signInWithPasswordDev`.
  */
 export async function verifyOtp(
   phone: string,
   code: string,
-  intent: AuthIntent,
+  // Kept for call-site symmetry with sendOtp; the real verify uses type:'sms'
+  // for every intent, so it is not branched on here.
+  _intent: AuthIntent,
 ): Promise<Session | null> {
-  if (Env.devMode) {
-    logger.debug('authApi.verifyOtp (DEV)', { phone, intent });
-    await sleep(DEV_DELAY_MS);
-    if (code !== DEV_OTP) {
-      throw new InvalidOtpException();
-    }
-    return null;
-  }
   // Supabase mobile OTPs use `type: 'sms'` for both signup and reset flows.
   // The reset semantics come from the subsequent `auth.updateUser` call.
   const { data, error } = await getSupabaseClient().auth.verifyOtp({
-    phone,
+    phone: toE164(phone),
     token: code,
     type: 'sms',
   });
@@ -136,7 +173,7 @@ export async function verifyOtp(
  *   * `None`     → re-route into the verification capture screens
  */
 export async function getFemaleVerificationStatus(phone: string): Promise<VerificationStatus> {
-  if (Env.devMode) {
+  if (USE_MOCK_DATA) {
     await sleep(DEV_DELAY_MS / 2);
     const last = phone.charAt(phone.length - 1);
     if (last === '1') {
@@ -152,8 +189,8 @@ export async function getFemaleVerificationStatus(phone: string): Promise<Verifi
   }
   const { data, error } = await getSupabaseClient()
     .from('females')
-    .select('verification_status')
-    .eq('phone', phone)
+    .select('verification_status, users!inner(phone)')
+    .eq('users.phone', toE164(phone))
     .maybeSingle();
   if (error) {
     throw mapSupabaseError(error);
@@ -178,7 +215,7 @@ function parseVerificationStatus(raw: unknown): VerificationStatus {
 
 /** Sign in with phone + password. Returns the Session. */
 export async function signInWithPassword(phone: string, password: string): Promise<Session> {
-  if (Env.devMode) {
+  if (USE_MOCK_DATA) {
     await sleep(DEV_DELAY_MS);
     if (!password) {
       throw new ValidationException('Enter your password', 'password');
@@ -193,7 +230,10 @@ export async function signInWithPassword(phone: string, password: string): Promi
     // a separate helper instead.
     throw new Error('signInWithPassword in DEV_MODE: call signInWithPasswordDev(role) instead.');
   }
-  const { data, error } = await getSupabaseClient().auth.signInWithPassword({ phone, password });
+  const { data, error } = await getSupabaseClient().auth.signInWithPassword({
+    phone: toE164(phone),
+    password,
+  });
   if (error) {
     throw mapSupabaseError(error);
   }
@@ -214,29 +254,58 @@ export async function signInWithPasswordDev(
   password: string,
   role: UserRole,
 ): Promise<Session> {
-  if (!Env.devMode) {
+  if (!USE_MOCK_DATA) {
     throw new Error('signInWithPasswordDev called outside DEV_MODE');
   }
   await sleep(DEV_DELAY_MS);
   if (!password) {
     throw new ValidationException('Enter your password', 'password');
   }
-  if (password === DEV_FAIL_PASSWORD) {
-    throw new AuthException('Incorrect password');
+
+  // ─── DEMO BUILD GATE ───────────────────────────────────────────────────────
+  // Only the single demo credential signs in. `phone` arrives already cleaned to
+  // the last 10 digits by the login screens.
+  const cleanedPhone = phone.replace(/\D/g, '').slice(-10);
+  if (cleanedPhone !== DEMO_PHONE || password !== DEMO_PASSWORD) {
+    throw new AuthException('Incorrect phone number or password');
   }
+  // ─── Original dev behaviour (any non-empty password except `wrong`) ──────────
+  // Re-enable by uncommenting this block and commenting out the gate above.
+  // if (password === DEV_FAIL_PASSWORD) {
+  //   throw new AuthException('Incorrect password');
+  // }
+
   const session = buildStubSession(role, phone);
   useSessionStore.getState().setSession(session);
+  // A demo female should land verified so the full female experience is usable
+  // offline (the availability toggle is gated on verification status).
+  if (role === UserRole.Female) {
+    useSessionStore.getState().setVerificationStatus(VerificationStatus.Verified);
+  }
   return session;
 }
 
-/** Updates the current user's password. Used at end-of-signup and from Settings. */
+/**
+ * Sets the account password on the current session (created by verifyOtp).
+ *
+ * IDEMPOTENT: if the password already equals the desired value, Supabase
+ * returns `same_password` (because `secure_password_change=true`). That means
+ * the goal state is already met — we treat it as success, NOT an error. This
+ * is why entering a valid OTP never surfaces "New password should be different
+ * from the old password": re-running signup, or any duplicate set, is a no-op.
+ */
 export async function setInitialPassword(password: string): Promise<void> {
-  if (Env.devMode) {
+  if (USE_MOCK_DATA) {
     await sleep(DEV_DELAY_MS);
     return;
   }
   const { error } = await getSupabaseClient().auth.updateUser({ password });
   if (error) {
+    const code = (error as { code?: string }).code;
+    if (code === 'same_password' || /different from the old password/i.test(error.message)) {
+      logger.debug('authApi.setInitialPassword: password already set (idempotent no-op)');
+      return;
+    }
     throw mapSupabaseError(error);
   }
 }
@@ -249,7 +318,7 @@ export async function setInitialPassword(password: string): Promise<void> {
  * after which `auth.updateUser({ password })` works.
  */
 export async function resetPassword(phone: string, newPassword: string): Promise<void> {
-  if (Env.devMode) {
+  if (USE_MOCK_DATA) {
     logger.debug('authApi.resetPassword (DEV)', { phone });
     await sleep(DEV_DELAY_MS);
     return;
@@ -261,22 +330,96 @@ export async function resetPassword(phone: string, newPassword: string): Promise
 }
 
 /**
- * Uploads a verification selfie. Returns the storage path the admin
- * dashboard will read.
+ * Uploads a verification selfie to the private `verification-photos` Storage
+ * bucket (under the caller's own `{uid}/…` folder, enforced by storage RLS),
+ * then calls the `verification-photo-submit` Edge Function which flips the
+ * female's `verification_status` to `pending`. Returns the storage object
+ * path. Requires an active session (signup leaves one after OTP verify).
  *
- * In production the file is uploaded to the private `verification-photos`
- * bucket in Supabase Storage (ap-south-1) and the row's
- * `verification_status` is flipped to `pending`. Here we just simulate it.
+ * NOTE: gated on `USE_MOCK_DATA` ONLY — never `__DEV__`. A debug build
+ * (`npm run ios`) has `__DEV__ === true`, so gating on it would mock the
+ * upload even when pointed at a real backend.
  */
 export async function submitVerificationPhoto(localPath: string): Promise<string> {
-  if (Env.devMode) {
+  if (USE_MOCK_DATA) {
     logger.debug('authApi.submitVerificationPhoto (DEV)', { localPath });
     await sleep(1500);
     return `dev://verification/${Date.now()}.jpg`;
   }
-  // Real upload happens via Supabase Storage REST + a row update — wired in
-  // the next prompt when the verification feature lands end-to-end.
-  throw new Error('submitVerificationPhoto: production path not yet wired');
+
+  const client = getSupabaseClient();
+  const { data: userData, error: userErr } = await client.auth.getUser();
+  if (userErr || !userData.user) {
+    throw new AuthException('You must be signed in to submit verification.');
+  }
+  const objectPath = `${userData.user.id}/selfie.jpg`;
+
+  // RN-safe file read: fetch the URI as an ArrayBuffer. Blob upload is
+  // unreliable on React Native; ArrayBuffer is the documented path. Pass
+  // through file:// (real device capture) and http(s):// (the simulator's
+  // sample-image fallback, since the iOS Simulator has no camera) as-is;
+  // only a bare filesystem path needs the file:// prefix.
+  const fileUri = /^(file|https?):\/\//.test(localPath) ? localPath : `file://${localPath}`;
+  const arrayBuffer = await fetch(fileUri).then(res => res.arrayBuffer());
+
+  const { error: uploadErr } = await client.storage
+    .from('verification-photos')
+    .upload(objectPath, arrayBuffer, { contentType: 'image/jpeg', upsert: true });
+  if (uploadErr) {
+    throw mapSupabaseError(uploadErr);
+  }
+
+  const { error: submitErr } = await client.functions.invoke('verification-photo-submit', {
+    body: { objectPath },
+  });
+  if (submitErr) {
+    throw mapSupabaseError(submitErr);
+  }
+
+  logger.info('authApi.submitVerificationPhoto uploaded', { objectPath });
+  return objectPath;
+}
+
+/**
+ * Persists the female's payout method to `payout_details` during signup.
+ * RLS allows a female to write only her own row. Upsert on `female_id` so a
+ * re-entry (e.g. corrected details) updates rather than duplicates. Requires
+ * an active session (signup leaves one after OTP verify).
+ */
+export async function savePayoutDetails(payout: PayoutDetails): Promise<void> {
+  if (USE_MOCK_DATA) {
+    logger.debug('authApi.savePayoutDetails (DEV)', { kind: payout.kind });
+    await sleep(DEV_DELAY_MS);
+    return;
+  }
+
+  const client = getSupabaseClient();
+  const { data: userData, error: userErr } = await client.auth.getUser();
+  if (userErr || !userData.user) {
+    throw new AuthException('You must be signed in to save payout details.');
+  }
+
+  const row =
+    payout.kind === 'bank'
+      ? {
+          female_id: userData.user.id,
+          method: 'bank',
+          account_holder_name: payout.bank.holderName,
+          account_number: payout.bank.accountNumber,
+          ifsc_code: payout.bank.ifsc.toUpperCase(),
+        }
+      : {
+          female_id: userData.user.id,
+          method: 'upi',
+          upi_id: payout.upiId,
+        };
+
+  const { error } = await client.from('payout_details').upsert(row, { onConflict: 'female_id' });
+  if (error) {
+    throw mapSupabaseError(error);
+  }
+
+  logger.info('authApi.savePayoutDetails saved', { kind: payout.kind });
 }
 
 /** Has the user passed the first-launch account-type selection? */

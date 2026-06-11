@@ -57,7 +57,7 @@ function ForgotPasswordNewScreen(): React.ReactElement {
       setSubmitError(null);
       try {
         await resetPassword(phone, data.newPassword);
-        const loginRoute = role === UserRole.Female ? 'FemaleLoginPhone' : 'MaleLogin';
+        const loginRoute = role === UserRole.Female ? 'FemaleLogin' : 'MaleLogin';
         navigation.reset({ index: 0, routes: [{ name: loginRoute }] });
       } catch (e) {
         if (e instanceof AppException) {

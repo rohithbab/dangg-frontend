@@ -24,7 +24,7 @@ import Card from '@core/components/Card';
 import PrimaryButton from '@core/components/PrimaryButton';
 import TextButton from '@core/components/TextButton';
 import TextField from '@core/components/TextField';
-import { Env } from '@core/config/env';
+import { USE_MOCK_DATA } from '@core/config/env';
 import { AppException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
 import { ZodSchemas } from '@core/utils/validators';
@@ -65,7 +65,7 @@ function MaleLoginScreen(): React.ReactElement {
     setInlineError(null);
     const cleanedPhone = data.phone.replace(/\D/g, '').slice(-10);
     try {
-      if (Env.devMode) {
+      if (USE_MOCK_DATA) {
         await signInWithPasswordDev(cleanedPhone, data.password, UserRole.Male);
       } else {
         await signInWithPassword(cleanedPhone, data.password);
@@ -154,7 +154,16 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: AppColors.background },
   flex: { flex: 1 },
   scroll: { padding: AppSpacing.md, paddingTop: AppSpacing.lg },
-  card: { gap: AppSpacing.sm },
+  card: {
+    gap: AppSpacing.sm,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#1976D2',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
+  },
   prefix: {
     ...AppTypography.bodyLarge,
     color: AppColors.onSurface,

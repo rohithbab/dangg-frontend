@@ -18,7 +18,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
  *
  * Reads session + role from Zustand:
  *   * No session  → Auth flow (splash → onboarding → signup/login).
- *   * Session + female → FemaleAppStack (tabs + push-able secondary screens).
+ *   * Session + female (any verification status) → FemaleAppStack. The app
+ *     surfaces her status and gates verified-only actions in-screen.
  *   * Session + male  → MaleTabs.
  *
  * Chat navigator is registered so any post-auth flow can push into it.
@@ -27,14 +28,21 @@ function RootNavigator(): React.ReactElement {
   const authed = useIsAuthenticated();
   const role = useSessionRole();
 
+  // A female enters the app regardless of verification status. The app shows
+  // her current status (not-verified / under-review / verified) and gates
+  // verified-only actions (e.g. going online) in-screen. Admin approval flips
+  // her to 'verified' and unlocks those actions on her next status refresh.
+  const showFemaleApp = authed && role === UserRole.Female;
+  const showMaleApp = authed && role === UserRole.Male;
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
-      {!authed ? (
-        <Stack.Screen name="Auth" component={AuthNavigator} />
-      ) : role === UserRole.Female ? (
+      {showFemaleApp ? (
         <Stack.Screen name="FemaleApp" component={FemaleAppStack} />
-      ) : (
+      ) : showMaleApp ? (
         <Stack.Screen name="MaleApp" component={MaleAppStack} />
+      ) : (
+        <Stack.Screen name="Auth" component={AuthNavigator} />
       )}
       <Stack.Screen name="Chat" component={ChatNavigator} />
     </Stack.Navigator>

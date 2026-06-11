@@ -23,7 +23,7 @@ function MaleSignupBasicInfoScreen(): React.ReactElement {
 
   const handlePickLogin = useCallback(
     (role: UserRole.Female | UserRole.Male): void => {
-      navigation.navigate(role === UserRole.Female ? 'FemaleLoginPhone' : 'MaleLogin');
+      navigation.navigate(role === UserRole.Female ? 'FemaleLogin' : 'MaleLogin');
     },
     [navigation],
   );

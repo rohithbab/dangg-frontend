@@ -8,6 +8,8 @@ import { AppRadii } from '@theme/radii';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
+import CoinIcon from '@core/components/CoinIcon';
+
 import { type AvailableFemale } from '../api/maleHomeApi';
 
 export type AvailableFemaleCardProps = {
@@ -44,7 +46,8 @@ function HeartIcon({ filled }: { filled: boolean }): React.ReactElement {
 function CoinPill({ amount }: { amount: number }): React.ReactElement {
   return (
     <View style={styles.coinPill}>
-      <Text style={styles.coinPillText}>{`${amount} 🪙`}</Text>
+      <CoinIcon size={14} />
+      <Text style={styles.coinPillText}>{String(amount)}</Text>
     </View>
   );
 }
@@ -68,39 +71,41 @@ function AvailableFemaleCard({
         pressed && styles.cardPressed,
       ]}
     >
-      <FastImage source={{ uri: female.imageUrl }} style={styles.image} resizeMode="cover" />
+      <View style={styles.cardInner}>
+        <FastImage source={{ uri: female.imageUrl }} style={styles.image} resizeMode="cover" />
 
-      <View style={styles.topRow}>
-        {female.isNew ? (
-          <View style={styles.newBadge}>
-            <Text style={styles.newBadgeText}>NEW</Text>
+        <View style={styles.topRow}>
+          {female.isNew ? (
+            <View style={styles.newBadge}>
+              <Text style={styles.newBadgeText}>NEW</Text>
+            </View>
+          ) : (
+            <View />
+          )}
+          {female.isOnline ? <View style={styles.statusDot} /> : null}
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={female.isFavorited ? 'Unfavorite' : 'Add to favorites'}
+          onPress={onToggleFavorite}
+          hitSlop={8}
+          style={styles.heartButton}
+        >
+          <HeartIcon filled={female.isFavorited} />
+        </Pressable>
+
+        <View style={styles.infoStrip}>
+          <Text style={styles.name} numberOfLines={1}>
+            {`${female.name}, ${female.age}`}
+          </Text>
+          <View style={styles.metaRow}>
+            <View style={styles.ratingRow}>
+              <StarIcon color={AppColors.warning} size={12} />
+              <Text style={styles.rating}>{female.rating.toFixed(1)}</Text>
+            </View>
+            <CoinPill amount={female.coinPrice} />
           </View>
-        ) : (
-          <View />
-        )}
-        {female.isOnline ? <View style={styles.statusDot} /> : null}
-      </View>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={female.isFavorited ? 'Unfavorite' : 'Add to favorites'}
-        onPress={onToggleFavorite}
-        hitSlop={8}
-        style={styles.heartButton}
-      >
-        <HeartIcon filled={female.isFavorited} />
-      </Pressable>
-
-      <View style={styles.infoStrip}>
-        <Text style={styles.name} numberOfLines={1}>
-          {`${female.name}, ${female.age}`}
-        </Text>
-        <View style={styles.metaRow}>
-          <View style={styles.ratingRow}>
-            <StarIcon color={AppColors.warning} size={12} />
-            <Text style={styles.rating}>{female.rating.toFixed(1)}</Text>
-          </View>
-          <CoinPill amount={female.coinPrice} />
         </View>
       </View>
     </Pressable>
@@ -110,9 +115,20 @@ function AvailableFemaleCard({
 const styles = StyleSheet.create({
   card: {
     borderRadius: AppRadii.md,
-    overflow: 'hidden',
     backgroundColor: AppColors.surface,
     position: 'relative',
+    borderWidth: 1.5,
+    borderColor: AppColors.border,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cardInner: {
+    flex: 1,
+    borderRadius: AppRadii.md,
+    overflow: 'hidden',
   },
   cardPressed: { opacity: 0.92 },
   image: {
@@ -184,11 +200,13 @@ const styles = StyleSheet.create({
     color: AppColors.onSurface,
   },
   coinPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: AppColors.primarySubtle,
     paddingHorizontal: 6,
-    height: 20,
+    height: 22,
     borderRadius: AppRadii.sm,
-    alignItems: 'center',
     justifyContent: 'center',
   },
   coinPillText: {

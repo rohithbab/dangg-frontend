@@ -7,6 +7,9 @@ export type IncomingChatRequest = {
   requesterAvatarUrl: string | null;
   coinAmount: number;
   receivedAt: Date;
+  requesterRating?: number;
+  requesterTotalChats?: number;
+  requesterOnlineStatus?: 'online' | 'offline' | 'away' | 'busy';
 };
 
 type ChatRequestState = {

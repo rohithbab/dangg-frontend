@@ -12,13 +12,16 @@ import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import Avatar from '@core/components/Avatar';
+import BottomSheet from '@core/components/BottomSheet';
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
+import PrimaryButton from '@core/components/PrimaryButton';
+import TextField from '@core/components/TextField';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
 import { logger } from '@core/utils/logger';
 
 import { type FemaleAppStackParamList } from '@navigation/types';
 
-import { type Profile, getProfile, signOut } from '../api/profileApi';
+import { type Profile, getProfile, signOut, updateProfile } from '../api/profileApi';
 import EditProfilePicSheet from '../components/EditProfilePicSheet';
 import MenuRow from '../components/MenuRow';
 
@@ -147,6 +150,8 @@ function FemaleProfileScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [editSheetOpen, setEditSheetOpen] = useState(false);
+  const [editDetailsOpen, setEditDetailsOpen] = useState(false);
+  const [editName, setEditName] = useState('');
   const [logoutDialog, setLogoutDialog] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -154,6 +159,7 @@ function FemaleProfileScreen(): React.ReactElement {
     try {
       const p = await getProfile();
       setProfile(p);
+      setEditName(p.name);
     } catch (e) {
       logger.error('FemaleProfileScreen.load failed', e);
     }
@@ -169,6 +175,19 @@ function FemaleProfileScreen(): React.ReactElement {
     setProfile(prev => (prev ? { ...prev, avatarUrl: url } : prev));
   }, []);
 
+  const handleSaveDetails = async (): Promise<void> => {
+    if (!editName.trim()) {
+      return;
+    }
+    try {
+      await updateProfile({ name: editName });
+      setProfile(prev => (prev ? { ...prev, name: editName } : prev));
+      setEditDetailsOpen(false);
+    } catch (e) {
+      logger.error('handleSaveDetails failed', e);
+    }
+  };
+
   const handleLogoutConfirm = useCallback(async (): Promise<void> => {
     if (signingOut) {
       return;
@@ -176,7 +195,6 @@ function FemaleProfileScreen(): React.ReactElement {
     setSigningOut(true);
     try {
       await signOut();
-      // RootNavigator switches to Auth flow automatically as the session clears.
     } catch (e) {
       logger.error('FemaleProfileScreen.signOut failed', e);
     } finally {
@@ -208,81 +226,134 @@ function FemaleProfileScreen(): React.ReactElement {
               <PencilIcon />
             </View>
           </Pressable>
-          <Text style={styles.name}>{profile?.name ?? '—'}</Text>
+
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{profile?.name ?? '—'}</Text>
+            {profile?.verified ? (
+              <View style={styles.verifiedBadge}>
+                <VerifiedIcon />
+              </View>
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Edit name"
+              onPress={() => setEditDetailsOpen(true)}
+              style={styles.nameEditBtn}
+            >
+              <Svg width={14} height={14} viewBox="0 0 24 24">
+                <Path
+                  d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                  fill={AppColors.primary}
+                />
+              </Svg>
+            </Pressable>
+          </View>
           <Text style={styles.maskedPhone}>{profile?.maskedPhone ?? '—'}</Text>
-          {profile?.verified ? (
-            <View style={styles.verifiedRow}>
-              <VerifiedIcon />
-              <Text style={styles.verifiedText}>Verified</Text>
-            </View>
-          ) : null}
         </View>
 
-        <View style={[styles.statsCard, AppShadows.e1]}>
-          <StatCol value={profile?.ratingAvg.toFixed(1) ?? '—'} label="Rating" />
-          <View style={styles.statDivider} />
-          <StatCol value={profile ? String(profile.totalChats) : '—'} label="Chats" />
-          <View style={styles.statDivider} />
-          <StatCol value={profile ? String(profile.daysActive) : '—'} label="Days Active" />
+        <View style={styles.statsGrid}>
+          <View style={[styles.statsGridItem, AppShadows.e1]}>
+            <Svg width={22} height={22} viewBox="0 0 24 24">
+              <Path
+                d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
+                fill={AppColors.coinGold}
+              />
+            </Svg>
+            <Text style={styles.statValue}>{profile?.ratingAvg.toFixed(1) ?? '—'}</Text>
+            <Text style={styles.statLabel}>Rating</Text>
+          </View>
+          <View style={[styles.statsGridItem, AppShadows.e1]}>
+            <Svg width={22} height={22} viewBox="0 0 24 24">
+              <Path
+                d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"
+                fill={AppColors.primary}
+              />
+            </Svg>
+            <Text style={styles.statValue}>{profile ? String(profile.totalChats) : '—'}</Text>
+            <Text style={styles.statLabel}>Chats Completed</Text>
+          </View>
+          <View style={[styles.statsGridItem, AppShadows.e1]}>
+            <Svg width={22} height={22} viewBox="0 0 24 24">
+              <Path
+                d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm-5-7h-2v2h2v-2z"
+                fill={AppColors.warning}
+              />
+            </Svg>
+            <Text style={styles.statValue}>{profile ? String(profile.daysActive) : '—'}</Text>
+            <Text style={styles.statLabel}>Days Active</Text>
+          </View>
+          <View style={[styles.statsGridItem, AppShadows.e1]}>
+            <View style={[styles.dotContainer, { backgroundColor: AppColors.successLight }]}>
+              <View style={[styles.statusDot, { backgroundColor: AppColors.onlineGreen }]} />
+            </View>
+            <Text style={styles.statValue}>Verified</Text>
+            <Text style={styles.statLabel}>Earnings Status</Text>
+          </View>
         </View>
 
         <Text style={styles.groupLabel}>Account</Text>
-        <View style={[styles.menuCard, AppShadows.e1]}>
-          <MenuRow
-            title="Change Password"
-            renderIcon={LockIcon}
-            onPress={() => navigation.navigate('ChangePassword')}
-          />
-          <MenuRow
-            title="Bank/UPI Details"
-            subtitle={bankSubtitle}
-            renderIcon={BankIcon}
-            onPress={() => navigation.navigate('BankUpiUpdate')}
-          />
-          <MenuRow
-            title="Notification Preferences"
-            renderIcon={BellMenuIcon}
-            onPress={() => navigation.navigate('Settings')}
-            last
-          />
+        <View style={[styles.menuCardShadow, AppShadows.e2]}>
+          <View style={styles.menuCardContainer}>
+            <MenuRow
+              title="Change Password"
+              renderIcon={LockIcon}
+              onPress={() => navigation.navigate('ChangePassword')}
+            />
+            <MenuRow
+              title="Bank/UPI Details"
+              subtitle={bankSubtitle}
+              renderIcon={BankIcon}
+              onPress={() => navigation.navigate('BankUpiUpdate')}
+            />
+            <MenuRow
+              title="Notification Preferences"
+              renderIcon={BellMenuIcon}
+              onPress={() => navigation.navigate('Settings')}
+              last
+            />
+          </View>
         </View>
 
         <Text style={styles.groupLabel}>Support</Text>
-        <View style={[styles.menuCard, AppShadows.e1]}>
-          <MenuRow
-            title="Help & Support"
-            renderIcon={HelpIcon}
-            onPress={() => navigation.navigate('HelpSupport')}
-          />
-          <MenuRow
-            title="Report an Issue"
-            renderIcon={ReportIcon}
-            onPress={() => navigation.navigate('ReportIssue')}
-          />
-          <MenuRow
-            title="About App"
-            renderIcon={InfoIcon}
-            onPress={() => navigation.navigate('AboutApp')}
-            last
-          />
+        <View style={[styles.menuCardShadow, AppShadows.e2]}>
+          <View style={styles.menuCardContainer}>
+            <MenuRow
+              title="Help & Support"
+              renderIcon={HelpIcon}
+              onPress={() => navigation.navigate('HelpSupport')}
+            />
+            <MenuRow
+              title="Report an Issue"
+              renderIcon={ReportIcon}
+              onPress={() => navigation.navigate('ReportIssue')}
+            />
+            <MenuRow
+              title="About App"
+              renderIcon={InfoIcon}
+              onPress={() => navigation.navigate('AboutApp')}
+              last
+            />
+          </View>
         </View>
 
         <Text style={styles.groupLabel}>Session</Text>
-        <View style={[styles.menuCard, AppShadows.e1]}>
-          <MenuRow
-            title="Logout"
-            destructive
-            renderIcon={LogoutIcon}
-            hideChevron
-            onPress={() => setLogoutDialog(true)}
-          />
-          <MenuRow
-            title="Delete Account"
-            destructive
-            renderIcon={DeleteForeverIcon}
-            onPress={() => navigation.navigate('DeleteAccount')}
-            last
-          />
+        <View style={[styles.menuCardShadow, AppShadows.e2]}>
+          <View style={styles.menuCardContainer}>
+            <MenuRow
+              title="Logout"
+              destructive
+              renderIcon={LogoutIcon}
+              hideChevron
+              onPress={() => setLogoutDialog(true)}
+            />
+            <MenuRow
+              title="Delete Account"
+              destructive
+              renderIcon={DeleteForeverIcon}
+              onPress={() => navigation.navigate('DeleteAccount')}
+              last
+            />
+          </View>
         </View>
 
         <Text style={styles.footer}>Version 1.0.0 (1)</Text>
@@ -294,6 +365,24 @@ function FemaleProfileScreen(): React.ReactElement {
         onClose={() => setEditSheetOpen(false)}
         onAvatarChanged={handleAvatarChanged}
       />
+
+      <BottomSheet
+        visible={editDetailsOpen}
+        onClose={() => setEditDetailsOpen(false)}
+        title="Edit Profile"
+      >
+        <View style={styles.editForm}>
+          <TextField
+            label="Name"
+            value={editName}
+            onChangeText={setEditName}
+            placeholder="Enter your name"
+          />
+          <View style={styles.editActions}>
+            <PrimaryButton label="Save Changes" onPress={handleSaveDetails} />
+          </View>
+        </View>
+      </BottomSheet>
 
       <ConfirmationDialog
         visible={logoutDialog}
@@ -308,15 +397,6 @@ function FemaleProfileScreen(): React.ReactElement {
         }}
       />
     </SafeAreaView>
-  );
-}
-
-function StatCol({ value, label }: { value: string; label: string }): React.ReactElement {
-  return (
-    <View style={styles.statCol}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
   );
 }
 
@@ -336,6 +416,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 3,
     borderColor: AppColors.primary,
+    backgroundColor: AppColors.surface,
+    shadowColor: AppColors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   editBadge: {
     position: 'absolute',
@@ -349,49 +435,87 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: AppColors.background,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: AppSpacing.xs,
+    marginTop: AppSpacing.md,
+    paddingLeft: 20, // offset pencil button centering
   },
   name: {
     ...AppTypography.headlineMedium,
-    color: AppColors.primaryDark,
-    marginTop: AppSpacing.md,
+    color: AppColors.onSurface,
+    fontWeight: '700',
+  },
+  verifiedBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: AppColors.successLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nameEditBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: AppColors.surfaceVariant,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   maskedPhone: {
     ...AppTypography.bodyMedium,
     color: AppColors.onSurfaceMuted,
     marginTop: 4,
   },
-  verifiedRow: {
+  // Rich Stats Grid (2x2)
+  statsGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    flexWrap: 'wrap',
+    paddingHorizontal: AppSpacing.md,
+    marginTop: AppSpacing.lg,
+    gap: AppSpacing.sm,
   },
-  verifiedText: {
-    ...AppTypography.labelLarge,
-    color: AppColors.success,
-  },
-  statsCard: {
-    flexDirection: 'row',
+  statsGridItem: {
+    width: '48%',
     backgroundColor: AppColors.surface,
     borderRadius: AppRadii.lg,
-    marginHorizontal: AppSpacing.md,
-    marginTop: AppSpacing.lg,
-    padding: AppSpacing.md,
+    paddingVertical: AppSpacing.md,
+    paddingHorizontal: AppSpacing.sm,
+    alignItems: 'center',
+    gap: 6,
   },
-  statCol: { flex: 1, alignItems: 'center' },
   statValue: {
     ...AppTypography.titleLarge,
-    color: AppColors.primaryDark,
+    color: AppColors.onSurface,
+    fontWeight: '800',
+    marginTop: 4,
   },
   statLabel: {
-    ...AppTypography.bodySmall,
+    ...AppTypography.labelSmall,
     color: AppColors.onSurfaceMuted,
-    marginTop: 2,
+    textAlign: 'center',
+    fontSize: 10,
+    textTransform: 'uppercase',
   },
-  statDivider: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: AppColors.divider,
-    marginVertical: 4,
+  dotContainer: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   groupLabel: {
     ...AppTypography.labelLarge,
@@ -402,17 +526,29 @@ const styles = StyleSheet.create({
     marginTop: AppSpacing.lg,
     marginBottom: AppSpacing.sm,
   },
-  menuCard: {
+  menuCardShadow: {
+    marginHorizontal: AppSpacing.md,
+    borderRadius: AppRadii.lg,
+  },
+  menuCardContainer: {
     backgroundColor: AppColors.surface,
     borderRadius: AppRadii.lg,
-    marginHorizontal: AppSpacing.md,
     overflow: 'hidden',
+    borderWidth: 0,
   },
   footer: {
     ...AppTypography.labelSmall,
     color: AppColors.onSurfaceMuted,
     textAlign: 'center',
     marginTop: AppSpacing.xl,
+  },
+  // Edit Form Sheet
+  editForm: {
+    gap: AppSpacing.md,
+    paddingVertical: AppSpacing.sm,
+  },
+  editActions: {
+    marginTop: AppSpacing.sm,
   },
 });
 

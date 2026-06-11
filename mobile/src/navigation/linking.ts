@@ -31,8 +31,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
           MaleSignupBasicInfo: 'auth/male/signup/basic-info',
           MaleSignupOtp: 'auth/male/signup/otp',
 
-          FemaleLoginPhone: 'auth/female/login/phone',
-          FemaleLoginPassword: 'auth/female/login/password',
+          FemaleLogin: 'auth/female/login',
           MaleLogin: 'auth/male/login',
 
           ForgotPasswordPhone: 'auth/forgot-password/phone',

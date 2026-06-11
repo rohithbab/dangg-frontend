@@ -12,6 +12,8 @@ import PrimaryButton from '@core/components/PrimaryButton';
 
 import { type AuthStackParamList } from '@navigation/types';
 
+import { signOut } from '@features/profile/api/profileApi';
+
 import { markOnboardingSeen } from '../../api/authApi';
 import { useSignupDraftStore } from '../../store/signupDraftStore';
 
@@ -36,7 +38,8 @@ function VerificationSubmittedScreen(): React.ReactElement {
   const handleContinue = useCallback((): void => {
     clearDraft();
     markOnboardingSeen();
-    navigation.reset({ index: 0, routes: [{ name: 'FemaleLoginPhone' }] });
+    void signOut().catch(() => undefined);
+    navigation.reset({ index: 0, routes: [{ name: 'FemaleLogin' }] });
   }, [clearDraft, navigation]);
 
   return (

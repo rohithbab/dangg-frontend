@@ -12,34 +12,18 @@ export type CoinPackage = {
   tag: CoinPackageTag | null;
 };
 
+// NOTE: `id` here is a display key only. The real purchase flow
+// (payments-create-order) resolves a package by its DB UUID, so the Wallet
+// screen should fetch the catalogue from `/rest/v1/coin_packages` to buy.
+// Keep these values in sync with the 20260609130000_coin_system_pricing_v2
+// migration (the DB is the source of truth).
 export const COIN_PACKAGES: ReadonlyArray<CoinPackage> = [
-  { id: 'starter', name: 'Starter', baseCoins: 100, bonusCoins: 0, priceInr: 100, tag: null },
-  { id: 'basic', name: 'Basic', baseCoins: 250, bonusCoins: 25, priceInr: 250, tag: null },
-  {
-    id: 'standard',
-    name: 'Standard',
-    baseCoins: 500,
-    bonusCoins: 75,
-    priceInr: 500,
-    tag: 'popular',
-  },
-  { id: 'pro', name: 'Pro', baseCoins: 1000, bonusCoins: 200, priceInr: 1000, tag: null },
-  {
-    id: 'premium',
-    name: 'Premium',
-    baseCoins: 2000,
-    bonusCoins: 500,
-    priceInr: 2000,
-    tag: 'bestDeal',
-  },
-  {
-    id: 'mega',
-    name: 'Mega',
-    baseCoins: 5000,
-    bonusCoins: 1500,
-    priceInr: 5000,
-    tag: 'maxValue',
-  },
+  { id: 'spark', name: 'Spark', baseCoins: 30, bonusCoins: 0, priceInr: 9, tag: null },
+  { id: 'starter', name: 'Starter', baseCoins: 70, bonusCoins: 0, priceInr: 19, tag: null },
+  { id: 'value', name: 'Value', baseCoins: 200, bonusCoins: 0, priceInr: 49, tag: null },
+  { id: 'popular', name: 'Popular', baseCoins: 450, bonusCoins: 0, priceInr: 99, tag: 'popular' },
+  { id: 'power', name: 'Power', baseCoins: 1000, bonusCoins: 0, priceInr: 199, tag: 'bestDeal' },
+  { id: 'mega', name: 'Mega', baseCoins: 2800, bonusCoins: 0, priceInr: 499, tag: 'maxValue' },
 ];
 
 export function getPackageById(id: string): CoinPackage | null {

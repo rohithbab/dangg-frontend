@@ -24,9 +24,12 @@ import Card from '@core/components/Card';
 import PrimaryButton from '@core/components/PrimaryButton';
 import TextButton from '@core/components/TextButton';
 import TextField from '@core/components/TextField';
+import { AppException } from '@core/network/apiException';
+import { logger } from '@core/utils/logger';
 
 import { type AuthStackParamList } from '@navigation/types';
 
+import { savePayoutDetails } from '../../api/authApi';
 import {
   bankAccountSchema,
   type BankAccountInput,
@@ -48,6 +51,8 @@ function BankUpiDetailsScreen(): React.ReactElement {
   const setPayoutDetails = useSignupDraftStore(s => s.setPayoutDetails);
   const skipPayoutDetails = useSignupDraftStore(s => s.skipPayoutDetails);
   const [mode, setMode] = useState<Mode>('bank');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const bankForm = useForm<BankAccountInput>({
     resolver: zodResolver(bankAccountSchema),
@@ -66,9 +71,34 @@ function BankUpiDetailsScreen(): React.ReactElement {
     navigation.navigate('FemaleSignupVerificationInfo');
   }, [navigation, skipPayoutDetails]);
 
+  // Persist payout details to the backend (RLS-scoped to self), keep a draft
+  // copy for resilience, then advance. On failure we surface an inline error
+  // and stay so her details aren't silently lost.
+  const persistAndContinue = useCallback(
+    async (payout: Parameters<typeof setPayoutDetails>[0]): Promise<void> => {
+      setSubmitError(null);
+      setSubmitting(true);
+      try {
+        setPayoutDetails(payout);
+        await savePayoutDetails(payout);
+        navigation.navigate('FemaleSignupVerificationInfo');
+      } catch (e) {
+        if (e instanceof AppException) {
+          setSubmitError(e.message);
+        } else {
+          logger.error('BankUpiDetailsScreen.persist failed', e);
+          setSubmitError('Could not save payout details, try again');
+        }
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [navigation, setPayoutDetails],
+  );
+
   const handleBankSubmit = useCallback(
     (data: BankAccountInput): void => {
-      setPayoutDetails({
+      void persistAndContinue({
         kind: 'bank',
         bank: {
           holderName: data.holderName.trim(),
@@ -76,17 +106,15 @@ function BankUpiDetailsScreen(): React.ReactElement {
           ifsc: data.ifsc,
         },
       });
-      navigation.navigate('FemaleSignupVerificationInfo');
     },
-    [navigation, setPayoutDetails],
+    [persistAndContinue],
   );
 
   const handleUpiSubmit = useCallback(
     (data: UpiInput): void => {
-      setPayoutDetails({ kind: 'upi', upiId: data.upiId.trim() });
-      navigation.navigate('FemaleSignupVerificationInfo');
+      void persistAndContinue({ kind: 'upi', upiId: data.upiId.trim() });
     },
-    [navigation, setPayoutDetails],
+    [persistAndContinue],
   );
 
   const onSavePress = useCallback((): void => {
@@ -206,7 +234,13 @@ function BankUpiDetailsScreen(): React.ReactElement {
           </Card>
         </ScrollView>
         <View style={styles.footer}>
-          <PrimaryButton label="Save & Continue" onPress={onSavePress} disabled={submitDisabled} />
+          {submitError ? <Text style={styles.errorText}>{submitError}</Text> : null}
+          <PrimaryButton
+            label="Save & Continue"
+            onPress={onSavePress}
+            disabled={submitDisabled || submitting}
+            loading={submitting}
+          />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -269,6 +303,12 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: AppColors.divider,
     backgroundColor: AppColors.background,
+  },
+  errorText: {
+    ...AppTypography.bodySmall,
+    color: AppColors.error,
+    marginBottom: AppSpacing.sm,
+    textAlign: 'center',
   },
 });
 

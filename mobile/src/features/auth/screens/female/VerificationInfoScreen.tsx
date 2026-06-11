@@ -11,10 +11,15 @@ import { AppTypography } from '@theme/typography';
 import AppBar from '@core/components/AppBar';
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import PrimaryButton from '@core/components/PrimaryButton';
+import TextButton from '@core/components/TextButton';
 import { AppPermissionStatus, permissionService } from '@core/services/permissionService';
 import { logger } from '@core/utils/logger';
 
 import { type AuthStackParamList } from '@navigation/types';
+
+import { signOut } from '@features/profile/api/profileApi';
+
+import { useSignupDraftStore } from '../../store/signupDraftStore';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'FemaleSignupVerificationInfo'>;
 
@@ -33,6 +38,8 @@ function VerificationInfoScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const [permissionError, setPermissionError] = useState(false);
   const [settingsDialog, setSettingsDialog] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const clearDraft = useSignupDraftStore(s => s.clear);
 
   const handleOpenCamera = useCallback(async (): Promise<void> => {
     try {
@@ -52,9 +59,28 @@ function VerificationInfoScreen(): React.ReactElement {
     }
   }, [navigation]);
 
+  const handleCancel = useCallback(async (): Promise<void> => {
+    try {
+      setIsLoggingOut(true);
+      clearDraft();
+      await signOut();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AccountType' }],
+      });
+    } catch (e) {
+      logger.error('VerificationInfoScreen.handleCancel failed', e);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }, [clearDraft, navigation]);
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <AppBar title="Verify You're You" />
+      <AppBar
+        title="Verify You're You"
+        actions={<TextButton label="Cancel" onPress={handleCancel} disabled={isLoggingOut} />}
+      />
       <View style={styles.body}>
         <View style={styles.illustration}>
           <Text style={styles.illustrationGlyph}>{'👤'}</Text>
@@ -77,6 +103,7 @@ function VerificationInfoScreen(): React.ReactElement {
         <PrimaryButton
           label={permissionError ? 'Allow Camera Access' : 'Open Camera'}
           onPress={handleOpenCamera}
+          disabled={isLoggingOut}
         />
       </View>
       <ConfirmationDialog

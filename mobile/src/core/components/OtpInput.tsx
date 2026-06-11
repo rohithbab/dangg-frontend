@@ -82,17 +82,19 @@ const OtpInput = React.forwardRef<OtpInputHandle, OtpInputProps>(function OtpInp
     }
 
     const digit = input.replace(/\D/g, '').slice(0, 1);
-    setDigits(prev => {
-      const next = [...prev];
-      next[index] = digit;
-      if (digit && index < length - 1) {
-        inputs.current[index + 1]?.focus();
-      }
-      if (next.every(d => d.length === 1)) {
-        onCompleted(next.join(''));
-      }
-      return next;
-    });
+    const next = [...digits];
+    next[index] = digit;
+    setDigits(next);
+    if (digit && index < length - 1) {
+      inputs.current[index + 1]?.focus();
+    }
+    // Fire completion from the event handler, NEVER from inside a state
+    // updater — calling the parent's onCompleted (which setStates) during
+    // React's render of OtpInput triggers "Cannot update a component while
+    // rendering a different component".
+    if (next.every(d => d.length === 1)) {
+      onCompleted(next.join(''));
+    }
   };
 
   const handleKeyPress = (

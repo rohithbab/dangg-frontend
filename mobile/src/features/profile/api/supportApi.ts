@@ -1,7 +1,7 @@
 /**
  * Support / report-an-issue API. DEV_MODE just simulates success.
  */
-import { Env } from '@core/config/env';
+import { USE_MOCK_DATA } from '@core/config/env';
 import { mapSupabaseError } from '@core/network/apiErrorMapper';
 import { getSupabaseClient } from '@core/network/supabaseClient';
 
@@ -19,7 +19,7 @@ function sleep(ms: number): Promise<void> {
 
 /** Submits a support report. */
 export async function submitReport(report: IssueReport): Promise<void> {
-  if (Env.devMode) {
+  if (USE_MOCK_DATA) {
     await sleep(900);
     return;
   }

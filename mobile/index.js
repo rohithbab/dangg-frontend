@@ -7,6 +7,8 @@ import 'react-native-url-polyfill/auto';
 // Gesture handler must be the very first import after the polyfill —
 // `react-native-screens` and `react-native-gesture-handler` cooperate.
 import 'react-native-gesture-handler';
+// Global stylesheet interceptor for dynamic dark mode
+import './src/theme/darkModeInterceptor';
 
 import { AppRegistry } from 'react-native';
 import { enableScreens } from 'react-native-screens';

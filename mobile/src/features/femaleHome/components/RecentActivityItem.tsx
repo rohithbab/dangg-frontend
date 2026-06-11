@@ -6,7 +6,7 @@ import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import Avatar from '@core/components/Avatar';
-import { inr } from '@core/utils/formatters';
+import CoinIcon from '@core/components/CoinIcon';
 
 import { type RecentActivity } from '../api/femaleHomeApi';
 
@@ -14,8 +14,15 @@ export type RecentActivityItemProps = {
   item: RecentActivity;
 };
 
-function relativeTime(date: Date): string {
-  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+function relativeTime(input: Date | string | number): string {
+  // Defensive: callers should pass a Date, but data crossing the API boundary
+  // can arrive as an ISO string — coerce so the render can never crash.
+  const date = input instanceof Date ? input : new Date(input);
+  const ms = date.getTime();
+  if (Number.isNaN(ms)) {
+    return '';
+  }
+  const seconds = Math.max(0, Math.floor((Date.now() - ms) / 1000));
   if (seconds < 60) {
     return 'just now';
   }
@@ -58,7 +65,10 @@ function RecentActivityItem({ item }: RecentActivityItemProps): React.ReactEleme
       </View>
       <View style={styles.right}>
         {item.amountInr !== null ? (
-          <Text style={styles.amount}>{`+${inr(item.amountInr)}`}</Text>
+          <View style={styles.amountWrap}>
+            <Text style={styles.amount}>{`+${item.amountInr.toLocaleString()}`}</Text>
+            <CoinIcon size={14} />
+          </View>
         ) : null}
         <Text style={styles.time}>{time}</Text>
       </View>
@@ -85,6 +95,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   right: { alignItems: 'flex-end' },
+  amountWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   amount: {
     ...AppTypography.bodyMedium,
     color: AppColors.success,

@@ -34,6 +34,10 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSCameraUsageDescription</key>
+	<string>Dangg needs access to your camera to verify your identity with a photo.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Dangg needs access to your photo library to select a verification photo.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>

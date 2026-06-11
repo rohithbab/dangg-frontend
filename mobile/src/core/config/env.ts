@@ -1,4 +1,20 @@
+import { Platform } from 'react-native';
 import Config from 'react-native-config';
+
+/**
+ * The Android emulator cannot reach the host machine's `localhost` — that
+ * resolves to the emulator itself. `10.0.2.2` is the emulator's alias for the
+ * host loopback. iOS Simulator shares the host's localhost, so it's untouched.
+ * Real (non-local) URLs pass through unchanged, so this is a no-op in prod.
+ * NOTE: a PHYSICAL Android device needs the Mac's LAN IP instead — set
+ * SUPABASE_URL to that directly for on-device testing.
+ */
+function resolveLocalhostForAndroid(raw: string): string {
+  if (Platform.OS !== 'android') {
+    return raw;
+  }
+  return raw.replace('localhost', '10.0.2.2').replace('127.0.0.1', '10.0.2.2');
+}
 
 /**
  * Typed accessor over `react-native-config`.
@@ -18,7 +34,7 @@ export const Env = {
   /** True when Firebase Messaging should be initialised at startup. */
   enableFirebase: Config.ENABLE_FIREBASE === 'true',
 
-  supabaseUrl: Config.SUPABASE_URL ?? '',
+  supabaseUrl: resolveLocalhostForAndroid(Config.SUPABASE_URL ?? ''),
   supabaseAnonKey: Config.SUPABASE_ANON_KEY ?? '',
 
   cloudinaryCloudName: Config.CLOUDINARY_CLOUD_NAME ?? '',
@@ -44,3 +60,16 @@ export function missingRequiredEnv(): string[] {
 export const isProduction = (): boolean => Env.appEnv === 'production';
 export const isStaging = (): boolean => Env.appEnv === 'staging';
 export const isDevelopment = (): boolean => Env.appEnv === 'development';
+
+/**
+ * Master kill-switch for in-app MOCK DATA.
+ *
+ * When false (the default now), every feature API and auth call hits the real
+ * backend — no canned data — even while `DEV_MODE=true` keeps dev conveniences
+ * (dev FABs, simulator permission/camera bypass) enabled. Flip to true only to
+ * run the app fully offline against the bundled mock fixtures.
+ *
+ * Typed `boolean` (not the literal `false`) on purpose so call sites like
+ * `if (USE_MOCK_DATA)` are not narrowed to dead code by the compiler.
+ */
+export const USE_MOCK_DATA: boolean = false;

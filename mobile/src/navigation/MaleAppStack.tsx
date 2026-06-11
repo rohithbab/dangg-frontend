@@ -5,10 +5,16 @@ import ChatRequestAcceptedScreen from '@features/chatRequests/screens/ChatReques
 import ChatRequestDeclinedScreen from '@features/chatRequests/screens/ChatRequestDeclinedScreen';
 import ChatRequestSentScreen from '@features/chatRequests/screens/ChatRequestSentScreen';
 import ChatRequestTimeoutScreen from '@features/chatRequests/screens/ChatRequestTimeoutScreen';
+import ChatSessionScreen from '@features/chatRequests/screens/ChatSessionScreen';
+import ChatsInboxScreen from '@features/chatRequests/screens/ChatsInboxScreen';
+import LikeDislikeRatingScreen from '@features/chatRequests/screens/LikeDislikeRatingScreen';
+import NotificationPermissionPrimerScreen from '@features/common/NotificationPermissionPrimerScreen';
 import FemaleProfilePreviewScreen from '@features/maleHome/screens/FemaleProfilePreviewScreen';
 import NotificationsScreen from '@features/notifications/screens/NotificationsScreen';
 import AboutAppScreen from '@features/profile/screens/AboutAppScreen';
 import ChangePasswordScreen from '@features/profile/screens/ChangePasswordScreen';
+import DeleteAccountConfirmScreen from '@features/profile/screens/DeleteAccountConfirmScreen';
+import DeleteAccountWarningScreen from '@features/profile/screens/DeleteAccountWarningScreen';
 import HelpSupportScreen from '@features/profile/screens/HelpSupportScreen';
 import ReportIssueScreen from '@features/profile/screens/ReportIssueScreen';
 import SettingsScreen from '@features/profile/screens/SettingsScreen';
@@ -30,12 +36,18 @@ function MaleAppStack(): React.ReactElement {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <Stack.Screen name="MaleTabs" component={MaleTabNavigator} />
+      <Stack.Screen name="ChatsInbox" component={ChatsInboxScreen} />
       <Stack.Screen name="FemaleProfilePreview" component={FemaleProfilePreviewScreen} />
       <Stack.Screen name="ChatRequestSent" component={ChatRequestSentScreen} />
       <Stack.Screen
         name="ChatRequestAccepted"
         component={ChatRequestAcceptedScreen}
         options={{ animation: 'fade', gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="ChatSession"
+        component={ChatSessionScreen}
+        options={{ animation: 'slide_from_left', gestureEnabled: false }}
       />
       <Stack.Screen
         name="ChatRequestDeclined"
@@ -68,6 +80,14 @@ function MaleAppStack(): React.ReactElement {
       <Stack.Screen name="ReportIssue" component={ReportIssueScreen} />
       <Stack.Screen name="AboutApp" component={AboutAppScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="DeleteAccount" component={DeleteAccountWarningScreen} />
+      <Stack.Screen name="DeleteAccountConfirm" component={DeleteAccountConfirmScreen} />
+      <Stack.Screen name="NotificationPermission" component={NotificationPermissionPrimerScreen} />
+      <Stack.Screen
+        name="LikeDislikeRating"
+        component={LikeDislikeRatingScreen}
+        options={{ animation: 'slide_from_bottom', gestureEnabled: false }}
+      />
     </Stack.Navigator>
   );
 }
