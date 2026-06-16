@@ -1,10 +1,11 @@
 import { StyleSheet } from 'react-native';
 
-import { darkColors, isDarkMode, lightColors } from './colors';
+import { darkColors, lightColors } from './colors';
 
 // Map light colors to dark colors based on property context and values
 function getMappedColor(prop: string, val: unknown): unknown {
-  if (typeof val !== 'string' || !isDarkMode()) {
+  const isDark = true;
+  if (typeof val !== 'string' || !isDark) {
     return val;
   }
 

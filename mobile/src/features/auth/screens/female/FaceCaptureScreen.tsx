@@ -3,6 +3,7 @@ import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Image,
+  Platform,
   Pressable,
   StatusBar,
   StyleSheet,
@@ -124,7 +125,7 @@ function FaceCaptureScreen(): React.ReactElement {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="black" translucent={false} />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
       {previewPath ? (
         <Image source={{ uri: previewPath }} style={StyleSheet.absoluteFill} resizeMode="cover" />
       ) : device ? (
@@ -240,7 +241,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: AppSpacing.lg,
-    paddingTop: AppSpacing.sm,
+    paddingTop:
+      Platform.OS === 'android' ? AppSpacing.sm + (StatusBar.currentHeight ?? 0) : AppSpacing.sm,
   },
   iconButton: {
     width: 36,

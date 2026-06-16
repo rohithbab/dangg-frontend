@@ -7,6 +7,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -597,7 +598,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: AppSpacing.md,
-    paddingVertical: AppSpacing.sm + 2,
+    paddingTop:
+      Platform.OS === 'android'
+        ? (StatusBar.currentHeight ?? 0) + AppSpacing.sm + 2
+        : AppSpacing.sm + 2,
+    paddingBottom: AppSpacing.sm + 2,
     backgroundColor: AppColors.surface,
     gap: AppSpacing.sm,
   },

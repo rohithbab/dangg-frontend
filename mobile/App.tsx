@@ -12,7 +12,7 @@
  */
 import { DefaultTheme, DarkTheme, NavigationContainer } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { StatusBar, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { StatusBar, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -43,10 +43,10 @@ const MyLightTheme = {
   colors: {
     ...DefaultTheme.colors,
     primary: AppColors.primary,
-    background: AppColors.background,
-    card: AppColors.surface,
-    text: AppColors.onSurface,
-    border: AppColors.border,
+    background: '#1C1C1C',
+    card: '#242424',
+    text: '#FFFFFF',
+    border: '#3A3A3A',
   },
 };
 
@@ -55,17 +55,16 @@ const MyDarkTheme = {
   colors: {
     ...DarkTheme.colors,
     primary: AppColors.primary,
-    background: '#121212',
-    card: '#1E1E1E',
-    text: '#F3F4F6',
-    border: '#2D2D2D',
+    background: '#1C1C1C',
+    card: '#242424',
+    text: '#FFFFFF',
+    border: '#3A3A3A',
   },
 };
 
 function App(): React.JSX.Element {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  setThemeScheme(isDark ? 'dark' : 'light');
+  setThemeScheme('dark');
+  const isDark = true;
 
   const [bootError, setBootError] = useState<string | null>(null);
 
@@ -107,10 +106,7 @@ function App(): React.JSX.Element {
     return (
       <GestureHandlerRootView style={styles.root}>
         <SafeAreaProvider>
-          <StatusBar
-            barStyle={isDark ? 'light-content' : 'dark-content'}
-            backgroundColor={isDark ? '#121212' : AppColors.background}
-          />
+          <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
           <View style={styles.error}>
             <Text style={styles.errorTitle}>Dangg failed to start</Text>
             <Text style={styles.errorBody}>{bootError}</Text>
@@ -123,11 +119,7 @@ function App(): React.JSX.Element {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <StatusBar
-          barStyle={isDark ? 'light-content' : 'dark-content'}
-          backgroundColor={isDark ? '#121212' : AppColors.background}
-          translucent={false}
-        />
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
         <OfflineOverlay>
           <NavigationContainer
             ref={navigationRef}

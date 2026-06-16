@@ -20,6 +20,7 @@ import { AppTypography } from '@theme/typography';
 import Card from '@core/components/Card';
 import CoinIcon from '@core/components/CoinIcon';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
+import { Env } from '@core/config/env';
 import { AppException, ConflictException } from '@core/network/apiException';
 import { getSupabaseClient } from '@core/network/supabaseClient';
 import { logger } from '@core/utils/logger';
@@ -157,7 +158,17 @@ function FemaleHomeScreen(): React.ReactElement {
       logger.warn('FemaleHome: getHomeStats failed', s.reason);
     }
     if (a.status === 'fulfilled') {
-      setAvailabilityState(a.value);
+      let availabilityVal = a.value;
+      // In DEV_MODE, automatically toggle online on startup if verified and currently offline
+      // so that she is immediately visible to the male user.
+      if (Env.devMode && isVerified && !availabilityVal.online) {
+        logger.info('DEV_MODE: Auto-toggling female availability to online');
+        availabilityVal = { ...availabilityVal, online: true };
+        setAvailability(true).catch(e => {
+          logger.error('Failed to auto-toggle availability in DEV_MODE', e);
+        });
+      }
+      setAvailabilityState(availabilityVal);
     } else {
       logger.error('FemaleHome: getAvailability failed — toggle will stay disabled', a.reason);
     }
@@ -181,7 +192,7 @@ function FemaleHomeScreen(): React.ReactElement {
         logger.warn('FemaleHome: verification_status refresh failed', verifyErr.message);
       }
     }
-  }, [session]);
+  }, [session, isVerified]);
 
   useEffect(() => {
     void loadAll();

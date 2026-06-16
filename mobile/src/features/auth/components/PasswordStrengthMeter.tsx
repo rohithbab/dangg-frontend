@@ -92,7 +92,7 @@ function PasswordStrengthMeter({ password }: PasswordStrengthMeterProps): React.
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: AppSpacing.xs },
+  row: { flexDirection: 'row', gap: AppSpacing.xs, marginTop: AppSpacing.sm },
   segment: {
     flex: 1,
     height: 4,

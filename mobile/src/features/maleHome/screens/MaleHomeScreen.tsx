@@ -8,9 +8,11 @@ import {
   FlatList,
   Modal,
   PanResponder,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -898,7 +900,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: AppSpacing.md,
-    paddingTop: AppSpacing.sm,
+    paddingTop:
+      Platform.OS === 'android' ? AppSpacing.sm + (StatusBar.currentHeight ?? 0) : AppSpacing.sm,
   },
   headerLeft: { flex: 1 },
   greeting: {

@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 
 import { AppColors } from '@theme/colors';
 import { AppSpacing } from '@theme/spacing';
@@ -73,7 +73,8 @@ function AppBar({
 
 const styles = StyleSheet.create({
   bar: {
-    height: 56,
+    height: Platform.OS === 'android' ? 56 + (StatusBar.currentHeight ?? 0) : 56,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: AppSpacing.md,

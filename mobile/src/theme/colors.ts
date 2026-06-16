@@ -8,39 +8,39 @@ export const lightColors = {
   primary: '#E91E63',
   primaryDark: '#B5179E',
   primaryLight: '#FF6B9D',
-  primarySubtle: '#FDE8E9',
+  primarySubtle: '#3A1321',
 
   // Background hierarchy. `background` is a clean neutral, NOT pink-tinted.
-  background: '#FAFAFC',
-  surface: '#FFFFFF',
-  surfaceVariant: '#F3F4F6',
-  surfaceHigh: '#FFFFFF',
+  background: '#1C1C1C',
+  surface: '#242424',
+  surfaceVariant: '#2E2E2E',
+  surfaceHigh: '#242424',
 
   // Text
   onPrimary: '#FFFFFF',
-  onSurface: '#121212',
-  onSurfaceMuted: '#6B7280',
-  onSurfaceDisabled: '#9CA3AF',
+  onSurface: '#FFFFFF',
+  onSurfaceMuted: '#A0A0A8',
+  onSurfaceDisabled: '#4A4A55',
   onError: '#FFFFFF',
 
   // Borders & dividers — neutral, not pink-tinted
-  border: '#E5E7EB',
-  borderStrong: '#D1D5DB',
-  divider: '#F3F4F6',
+  border: '#3A3A3A',
+  borderStrong: '#3A3A3A',
+  divider: '#3A3A3A',
 
   // Semantic — modern fintech/social status colors
   success: '#10B981',
-  successLight: '#E6F9F0',
+  successLight: '#062E21',
   warning: '#FF8020',
-  warningLight: '#FFEDD5',
+  warningLight: '#2D1E0C',
   error: '#EF4444',
-  errorLight: '#FEE2E2',
+  errorLight: '#3B1212',
   info: '#3B82F6',
-  infoLight: '#DBEAFE',
+  infoLight: '#0E2347',
 
   // Status indicators
   onlineGreen: '#10B981',
-  offlineGray: '#9CA3AF',
+  offlineGray: '#4A4A55',
   availableYellow: '#EAB308',
 
   // Coin / gold palette
@@ -51,14 +51,14 @@ export const lightColors = {
   // Gradient anchors
   gradientRoseStart: '#E91E63',
   gradientRoseEnd: '#FF6B9D',
-  gradientRoseSubtleStart: '#FFF0F5',
-  gradientRoseSubtleEnd: '#FAFAFC',
+  gradientRoseSubtleStart: '#1F0E16',
+  gradientRoseSubtleEnd: '#1C1C1C',
   splashBackground: '#FF66C4',
 
   // Utility
-  scrim: 'rgba(18,18,18,0.5)',
-  shimmerBase: '#E5E7EB',
-  shimmerHighlight: '#F3F4F6',
+  scrim: 'rgba(0,0,0,0.7)',
+  shimmerBase: '#242424',
+  shimmerHighlight: '#3A3A3A',
   transparent: 'transparent',
 } as const;
 
@@ -70,22 +70,22 @@ export const darkColors = {
   primarySubtle: '#3A1321',
 
   // Background hierarchy
-  background: '#121212',
-  surface: '#1E1E1E',
-  surfaceVariant: '#2D2D2D',
-  surfaceHigh: '#222222',
+  background: '#1C1C1C',
+  surface: '#242424',
+  surfaceVariant: '#2E2E2E',
+  surfaceHigh: '#242424',
 
   // Text
   onPrimary: '#FFFFFF',
-  onSurface: '#F3F4F6',
-  onSurfaceMuted: '#9CA3AF',
-  onSurfaceDisabled: '#6B7280',
+  onSurface: '#FFFFFF',
+  onSurfaceMuted: '#A0A0A8',
+  onSurfaceDisabled: '#4A4A55',
   onError: '#FFFFFF',
 
   // Borders & dividers
-  border: '#2D2D2D',
-  borderStrong: '#3F3F46',
-  divider: '#1F1F1F',
+  border: '#3A3A3A',
+  borderStrong: '#3A3A3A',
+  divider: '#3A3A3A',
 
   // Semantic
   success: '#34D399',
@@ -99,7 +99,7 @@ export const darkColors = {
 
   // Status indicators
   onlineGreen: '#34D399',
-  offlineGray: '#6B7280',
+  offlineGray: '#4A4A55',
   availableYellow: '#EAB308',
 
   // Coin / gold palette
@@ -111,24 +111,24 @@ export const darkColors = {
   gradientRoseStart: '#E91E63',
   gradientRoseEnd: '#FF6B9D',
   gradientRoseSubtleStart: '#1F0E16',
-  gradientRoseSubtleEnd: '#121212',
+  gradientRoseSubtleEnd: '#1C1C1C',
   splashBackground: '#FF66C4',
 
   // Utility
   scrim: 'rgba(0,0,0,0.7)',
-  shimmerBase: '#2D2D2D',
-  shimmerHighlight: '#333333',
+  shimmerBase: '#242424',
+  shimmerHighlight: '#3A3A3A',
   transparent: 'transparent',
 } as const;
 
-let themeScheme: 'light' | 'dark' = 'light';
+let themeScheme: 'light' | 'dark' = 'dark';
 
-export function setThemeScheme(scheme: 'light' | 'dark') {
-  themeScheme = scheme;
+export function setThemeScheme(_scheme: 'light' | 'dark') {
+  themeScheme = 'dark';
 }
 
 export function isDarkMode() {
-  return themeScheme === 'dark';
+  return true;
 }
 
 export const AppColors = new Proxy(lightColors, {

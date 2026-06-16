@@ -1,7 +1,7 @@
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -460,7 +460,8 @@ const styles = StyleSheet.create({
 
   header: {
     paddingHorizontal: AppSpacing.md,
-    paddingTop: AppSpacing.sm,
+    paddingTop:
+      Platform.OS === 'android' ? AppSpacing.sm + (StatusBar.currentHeight ?? 0) : AppSpacing.sm,
     flexDirection: 'row',
   },
   closeBtn: {
@@ -499,8 +500,6 @@ const styles = StyleSheet.create({
   orbitAvatar: {
     position: 'absolute',
     borderRadius: 999,
-    borderWidth: 2.5,
-    borderColor: AppColors.primaryLight,
     backgroundColor: AppColors.surface,
     shadowColor: AppColors.primary,
     shadowOffset: { width: 0, height: 4 },
@@ -510,8 +509,6 @@ const styles = StyleSheet.create({
   },
   centerAvatarWrap: {
     borderRadius: 999,
-    borderWidth: 3,
-    borderColor: AppColors.primaryLight,
     backgroundColor: AppColors.surface,
     shadowColor: AppColors.primary,
     shadowOffset: { width: 0, height: 0 },

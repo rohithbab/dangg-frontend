@@ -1,7 +1,16 @@
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Dimensions, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import {
+  Dimensions,
+  Platform,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
@@ -143,7 +152,7 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
 
   return (
     <View style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={AppColors.primaryDark} />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={[styles.hero, { height: HERO_HEIGHT }]}>
           <FastImage
@@ -313,7 +322,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: AppSpacing.md,
-    paddingTop: AppSpacing.sm,
+    paddingTop:
+      Platform.OS === 'android' ? AppSpacing.sm + (StatusBar.currentHeight ?? 0) : AppSpacing.sm,
   },
   iconBtn: {
     width: 40,

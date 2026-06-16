@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppTypography } from '@theme/typography';
@@ -167,8 +168,27 @@ function FloatingBottomNav({
       style={[styles.container, { paddingBottom: containerPaddingBottom }]}
       pointerEvents="box-none"
     >
-      {/* Floating White Pill Container with locked layout width */}
+      {/* Floating Pill Container with locked layout width */}
       <View style={[styles.pillBar, { width: barWidth }]}>
+        {/* Gradient Background */}
+        <View style={StyleSheet.absoluteFill}>
+          <Svg width="100%" height="100%">
+            <Defs>
+              <LinearGradient id="navGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <Stop offset="0%" stopColor="#2A2A2A" stopOpacity={0.75} />
+                <Stop offset="100%" stopColor="#0F0F0F" stopOpacity={0.85} />
+              </LinearGradient>
+            </Defs>
+            <Rect
+              width="100%"
+              height="100%"
+              rx={BAR_HEIGHT / 2}
+              ry={BAR_HEIGHT / 2}
+              fill="url(#navGradient)"
+            />
+          </Svg>
+        </View>
+
         {/* Sliding Liquid Indicator */}
         <Animated.View style={[styles.indicator, indicatorStyle]} />
 
@@ -202,21 +222,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     alignItems: 'center',
   },
+
   pillBar: {
     height: BAR_HEIGHT,
     borderRadius: BAR_HEIGHT / 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: 'transparent',
     flexDirection: 'row',
     alignItems: 'center',
     position: 'relative',
     maxWidth: 600, // prevent overly wide layouts on tablets
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     // Premium soft floating shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    elevation: 8,
-    borderWidth: 0,
+    shadowOpacity: 0.5,
+    shadowRadius: 32,
+    elevation: 12,
   },
   tabButton: {
     flex: 1,

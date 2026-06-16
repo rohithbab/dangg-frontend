@@ -55,11 +55,7 @@ function AccountTypeScreen(): React.ReactElement {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor={AppColors.background}
-        translucent={false}
-      />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.logoHeader}>
           <DanggLogo width={140} showTagline={false} />

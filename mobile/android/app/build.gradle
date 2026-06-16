@@ -125,3 +125,8 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+// Apply Google Services plugin if the config file exists
+if (file("google-services.json").exists()) {
+    apply plugin: "com.google.gms.google-services"
+}
