@@ -89,7 +89,9 @@ function BottomSheet({
         <Animated.View style={[styles.sheet, animatedSheetStyle]}>
           <View style={styles.handle} />
           {title ? <Text style={styles.title}>{title}</Text> : null}
-          <ScrollView contentContainerStyle={styles.content}>{children}</ScrollView>
+          <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+            {children}
+          </ScrollView>
         </Animated.View>
       </View>
     </Modal>
@@ -111,6 +113,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingTop: AppSpacing.sm,
     maxHeight: '85%',
+  },
+  scrollView: {
+    flexGrow: 0,
+    flexShrink: 1,
   },
   handle: {
     width: 36,

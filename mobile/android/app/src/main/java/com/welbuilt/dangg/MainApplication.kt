@@ -18,6 +18,7 @@ class MainApplication : Application(), ReactApplication {
       object : DefaultReactNativeHost(this) {
         override fun getPackages(): List<ReactPackage> =
             PackageList(this).packages.apply {
+              // Manually-added packages would go here. All standard plugins autolink.
             }
 
         override fun getJSMainModuleName(): String = "index"
