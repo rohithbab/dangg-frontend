@@ -36,7 +36,12 @@
       "Bash(echo \"===CURL_EXIT=$?===\")",
       "Bash(npx react-native *)",
       "Bash(curl -s http://localhost:8081/status)",
-      "Bash(./gradlew assembleRelease --console=plain)"
+      "Bash(./gradlew assembleRelease --console=plain)",
+      "Bash(git rm *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(./gradlew.bat clean *)",
+      "Bash(./gradlew.bat assembleRelease)"
     ]
   }
 }
