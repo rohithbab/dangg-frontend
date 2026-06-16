@@ -221,7 +221,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   card: {
-    flex: 1,
+    width: '100%',
+    minHeight: 180,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: AppRadii.lg,
