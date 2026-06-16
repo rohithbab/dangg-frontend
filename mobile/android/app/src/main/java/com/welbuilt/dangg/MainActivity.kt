@@ -1,4 +1,4 @@
-package com.dangg.app
+package com.welbuilt.dangg
 
 import android.os.Bundle
 import com.facebook.react.ReactActivity
