@@ -32,11 +32,10 @@ import RootNavigator from '@navigation/RootNavigator';
 import { useConnectivityStore } from '@store/connectivityStore';
 import { subscribeSupabaseAuth } from '@store/sessionStore';
 
-import DevSimulateChatFab from '@features/chatRequests/components/DevSimulateChatFab';
 import IncomingChatRequestListener from '@features/chatRequests/components/IncomingChatRequestListener';
 import IncomingChatRequestModal from '@features/chatRequests/components/IncomingChatRequestModal';
 import OfflineOverlay from '@features/common/OfflineOverlay';
-import DevVerificationFab from '@features/femaleHome/components/DevVerificationFab';
+
 
 const MyLightTheme = {
   ...DefaultTheme,
@@ -129,8 +128,6 @@ function App(): React.JSX.Element {
             <RootNavigator />
             <IncomingChatRequestListener />
             <IncomingChatRequestModal />
-            <DevSimulateChatFab />
-            <DevVerificationFab />
           </NavigationContainer>
         </OfflineOverlay>
       </SafeAreaProvider>

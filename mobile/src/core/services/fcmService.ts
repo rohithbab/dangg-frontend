@@ -1,5 +1,5 @@
-import { Platform } from 'react-native';
 import messaging, { type FirebaseMessagingTypes } from '@react-native-firebase/messaging';
+import { Platform } from 'react-native';
 
 import { Env } from '../config/env';
 import { getSupabaseClient } from '../network/supabaseClient';

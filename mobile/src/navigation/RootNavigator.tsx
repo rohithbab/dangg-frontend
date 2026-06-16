@@ -1,9 +1,9 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
-import { useIsAuthenticated, useSessionRole } from '@store/sessionStore';
+import { useIsAuthenticated, useSessionRole, useVerificationStatus } from '@store/sessionStore';
 
-import { UserRole } from '@app-types/domain';
+import { UserRole, VerificationStatus } from '@app-types/domain';
 
 import AuthNavigator from './AuthNavigator';
 import ChatNavigator from './ChatNavigator';
@@ -18,8 +18,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
  *
  * Reads session + role from Zustand:
  *   * No session  → Auth flow (splash → onboarding → signup/login).
- *   * Session + female (any verification status) → FemaleAppStack. The app
- *     surfaces her status and gates verified-only actions in-screen.
+ *   * Session + female (verified) → FemaleAppStack.
+ *   * Session + female (unverified) → AuthNavigator (gated to verification info/submitted).
  *   * Session + male  → MaleTabs.
  *
  * Chat navigator is registered so any post-auth flow can push into it.
@@ -27,12 +27,13 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 function RootNavigator(): React.ReactElement {
   const authed = useIsAuthenticated();
   const role = useSessionRole();
+  const verificationStatus = useVerificationStatus();
 
-  // A female enters the app regardless of verification status. The app shows
-  // her current status (not-verified / under-review / verified) and gates
-  // verified-only actions (e.g. going online) in-screen. Admin approval flips
-  // her to 'verified' and unlocks those actions on her next status refresh.
-  const showFemaleApp = authed && role === UserRole.Female;
+  // A female enters the main app only when verified. If unverified (none,
+  // rejected, or pending), she falls back to the AuthNavigator which displays
+  // the verification capture or status submission screen.
+  const showFemaleApp =
+    authed && role === UserRole.Female && verificationStatus === VerificationStatus.Verified;
   const showMaleApp = authed && role === UserRole.Male;
 
   return (

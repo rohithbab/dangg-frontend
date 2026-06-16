@@ -172,34 +172,46 @@ export async function verifyOtp(
  *   * `Pending`  → "verification in progress" modal
  *   * `None`     → re-route into the verification capture screens
  */
-export async function getFemaleVerificationStatus(phone: string): Promise<VerificationStatus> {
+export type FemaleVerificationStatusInfo = {
+  status: VerificationStatus;
+  name: string | null;
+  profilePictureUrl: string | null;
+};
+
+export async function getFemaleVerificationStatus(phone: string): Promise<FemaleVerificationStatusInfo> {
   if (USE_MOCK_DATA) {
     await sleep(DEV_DELAY_MS / 2);
     const last = phone.charAt(phone.length - 1);
+    let status = VerificationStatus.Verified;
     if (last === '1') {
-      return VerificationStatus.Verified;
+      status = VerificationStatus.Verified;
+    } else if (last === '2') {
+      status = VerificationStatus.Pending;
+    } else if (last === '3') {
+      status = VerificationStatus.None;
     }
-    if (last === '2') {
-      return VerificationStatus.Pending;
-    }
-    if (last === '3') {
-      return VerificationStatus.None;
-    }
-    return VerificationStatus.Verified;
+    return {
+      status,
+      name: 'Simulated Name',
+      profilePictureUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200',
+    };
   }
   const { data, error } = await getSupabaseClient()
-    .from('females')
-    .select('verification_status, users!inner(phone)')
-    .eq('users.phone', toE164(phone))
-    .maybeSingle();
+    .rpc('get_female_verification_status', { p_phone: toE164(phone) });
   if (error) {
     throw mapSupabaseError(error);
   }
-  if (!data) {
-    return VerificationStatus.None;
-  }
-  const raw = (data as { verification_status?: string }).verification_status;
-  return parseVerificationStatus(raw);
+  const statusInfo = data as {
+    verification_status?: string;
+    name?: string | null;
+    profile_picture_url?: string | null;
+  } | null;
+
+  return {
+    status: parseVerificationStatus(statusInfo?.verification_status),
+    name: statusInfo?.name ?? null,
+    profilePictureUrl: statusInfo?.profile_picture_url ?? null,
+  };
 }
 
 function parseVerificationStatus(raw: unknown): VerificationStatus {
