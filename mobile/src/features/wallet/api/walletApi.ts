@@ -57,7 +57,11 @@ export async function fetchWalletSnapshot(): Promise<{
   if (error) {
     throw mapSupabaseError(error);
   }
-  return data as { coinBalance: number; totalCoinsPurchased: number; chatsStarted: number };
+  const snapshot = data as { coinBalance: number; totalCoinsPurchased: number; chatsStarted: number };
+  const store = useWalletStore.getState();
+  store.setBalance(snapshot.coinBalance);
+  store.setTotals({ totalCoinsPurchased: snapshot.totalCoinsPurchased, chatsStarted: snapshot.chatsStarted });
+  return snapshot;
 }
 
 /** Returns the static coin-package catalogue. */
