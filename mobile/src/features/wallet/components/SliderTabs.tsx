@@ -2,9 +2,7 @@ import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
-import { AppColors } from '@theme/colors';
-import { AppRadii } from '@theme/radii';
-import { AppTypography } from '@theme/typography';
+import { WC, WR, WShadow } from '../walletTheme';
 
 export type SliderTabsProps<T extends string> = {
   options: ReadonlyArray<{ value: T; label: string }>;
@@ -70,14 +68,16 @@ function SliderTabs<T extends string>({
 }
 
 const INDICATOR_PADDING = 4;
-const TRACK_HEIGHT = 44;
+const TRACK_HEIGHT = 46;
 
 const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
     height: TRACK_HEIGHT,
-    borderRadius: AppRadii.full,
-    backgroundColor: AppColors.primarySubtle,
+    borderRadius: WR.md,
+    backgroundColor: WC.surface,
+    borderWidth: 1,
+    borderColor: WC.hairline,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -85,8 +85,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: INDICATOR_PADDING,
     bottom: INDICATOR_PADDING,
-    borderRadius: AppRadii.full,
-    backgroundColor: AppColors.primary,
+    borderRadius: WR.sm,
+    backgroundColor: WC.cardHi,
+    ...WShadow.card,
   },
   segment: {
     flex: 1,
@@ -95,11 +96,11 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   label: {
-    ...AppTypography.labelLarge,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
   },
-  labelActive: { color: AppColors.onPrimary },
-  labelInactive: { color: AppColors.primaryDark },
+  labelActive: { color: WC.text },
+  labelInactive: { color: WC.textDim },
 });
 
 export default SliderTabs;

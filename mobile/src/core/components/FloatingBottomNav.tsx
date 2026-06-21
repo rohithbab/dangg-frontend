@@ -6,13 +6,11 @@ import Animated, {
   useSharedValue,
   withDelay,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
-import { AppTypography } from '@theme/typography';
 
 const BAR_HEIGHT = 64;
 const INDICATOR_HEIGHT = 4;
@@ -20,28 +18,19 @@ const INDICATOR_WIDTH = 24;
 
 type TabBarIconFn = (props: { focused: boolean; color: string; size: number }) => React.ReactNode;
 
-function resolveLabel(option: unknown, fallback: string): string {
-  if (typeof option === 'string') {
-    return option;
-  }
-  return fallback;
-}
-
 function resolveIcon(option: unknown): TabBarIconFn | null {
   return typeof option === 'function' ? (option as TabBarIconFn) : null;
 }
 
 type TabButtonProps = {
-  label: string;
   active: boolean;
   onPress: () => void;
   onLongPress: () => void;
   renderIcon: TabBarIconFn | null;
 };
 
-/** Tab button — displays active label inside the top, and animates icon scale and position. */
+/** Tab button — icon only, with an active scale bump and accent color. */
 function TabButton({
-  label,
   active,
   onPress,
   onLongPress,
@@ -49,30 +38,13 @@ function TabButton({
 }: TabButtonProps): React.ReactElement {
   const color = active ? AppColors.primary : AppColors.onSurfaceMuted;
 
-  // Icon bounce & scale animation
-  const scale = useSharedValue(active ? 1.15 : 1);
+  const scale = useSharedValue(active ? 1.1 : 1);
   useEffect(() => {
-    scale.value = withSpring(active ? 1.15 : 1, { damping: 10, stiffness: 150 });
+    scale.value = withSpring(active ? 1.1 : 1, { damping: 10, stiffness: 150 });
   }, [active, scale]);
 
-  const animatedIconStyle = useAnimatedStyle(() => {
-    const translateY = withSpring(active ? 6 : 0, { damping: 12, stiffness: 120 });
-    return {
-      transform: [{ scale: scale.value }, { translateY }],
-    };
-  });
-
-  // Label opacity and slide animation inside the top of the button
-  const opacity = useSharedValue(active ? 1 : 0);
-  const labelY = useSharedValue(active ? 0 : 4);
-  useEffect(() => {
-    opacity.value = withTiming(active ? 1 : 0, { duration: 180 });
-    labelY.value = withSpring(active ? 0 : 4, { damping: 12, stiffness: 120 });
-  }, [active, opacity, labelY]);
-
-  const animatedLabelStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: labelY.value }],
+  const animatedIconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
   }));
 
   return (
@@ -83,12 +55,8 @@ function TabButton({
       onLongPress={onLongPress}
       style={styles.tabButton}
     >
-      {/* Label sitting inside the button at the top */}
-      <Animated.Text style={[styles.labelText, animatedLabelStyle]}>{label}</Animated.Text>
-
-      {/* Icon centered / shifted */}
       <Animated.View style={animatedIconStyle}>
-        {renderIcon ? renderIcon({ focused: active, color, size: 22 }) : null}
+        {renderIcon ? renderIcon({ focused: active, color, size: 24 }) : null}
       </Animated.View>
     </Pressable>
   );
@@ -175,8 +143,8 @@ function FloatingBottomNav({
           <Svg width="100%" height="100%">
             <Defs>
               <LinearGradient id="navGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <Stop offset="0%" stopColor="#2A2A2A" stopOpacity={0.75} />
-                <Stop offset="100%" stopColor="#0F0F0F" stopOpacity={0.85} />
+                <Stop offset="0%" stopColor="#1D1D24" stopOpacity={0.94} />
+                <Stop offset="100%" stopColor="#101015" stopOpacity={0.97} />
               </LinearGradient>
             </Defs>
             <Rect
@@ -195,12 +163,10 @@ function FloatingBottomNav({
         {/* Tab Buttons Row */}
         {state.routes.map((route, idx) => {
           const options = descriptors[route.key]?.options;
-          const label = resolveLabel(options?.tabBarLabel, route.name);
           const iconRenderer = resolveIcon(options?.tabBarIcon);
           return (
             <TabButton
               key={`button-${route.key}`}
-              label={label}
               active={state.index === idx}
               onPress={() => handlePress(route.name, route.key)}
               onLongPress={() => handleLongPress(route.key)}
@@ -232,13 +198,13 @@ const styles = StyleSheet.create({
     position: 'relative',
     maxWidth: 600, // prevent overly wide layouts on tablets
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     // Premium soft floating shadow
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 32,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.55,
+    shadowRadius: 28,
+    elevation: 16,
   },
   tabButton: {
     flex: 1,
@@ -246,14 +212,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-  },
-  labelText: {
-    position: 'absolute',
-    top: 8,
-    ...AppTypography.labelSmall,
-    fontWeight: '700',
-    color: AppColors.primary,
-    fontSize: 10,
   },
   indicator: {
     position: 'absolute',

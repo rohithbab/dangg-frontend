@@ -56,7 +56,7 @@ function FemaleAppStack(): React.ReactElement {
       <Stack.Screen
         name="ChatSession"
         component={FemaleChatSessionScreen}
-        options={{ animation: 'slide_from_left', gestureEnabled: false }}
+        options={{ animation: 'slide_from_right', gestureEnabled: false }}
       />
     </Stack.Navigator>
   );

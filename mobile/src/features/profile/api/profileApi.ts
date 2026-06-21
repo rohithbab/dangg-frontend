@@ -1,17 +1,27 @@
 /**
  * Profile data + avatar lifecycle.
  *
- * Avatar uploads go through Cloudinary in production; DEV builds return a
- * stub URL so the local pick-and-display path still works. Password change
- * delegates to `authApi`.
+ * Avatars are stored in the PUBLIC, R2-backed Supabase Storage bucket `users`
+ * under `profile-images/{uid}/…`, and served via the public storage URL. DEV
+ * builds return the local URI so the pick-and-display path still works.
+ * Password change delegates to `authApi`.
  */
 import { USE_MOCK_DATA } from '@core/config/env';
 import { mapSupabaseError } from '@core/network/apiErrorMapper';
 import { AuthException } from '@core/network/apiException';
-import { uploadToR2 } from '@core/network/mediaService';
 import { getSupabaseClient } from '@core/network/supabaseClient';
 
 import { useSessionStore } from '@store/sessionStore';
+
+const AVATAR_BUCKET = 'users';
+
+/** image/* content type from a file path; defaults to jpeg. */
+function avatarContentType(path: string): string {
+  const ext = path.split('?')[0].split('.').pop()?.toLowerCase() ?? '';
+  if (ext === 'png') return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  return 'image/jpeg';
+}
 
 export type Profile = {
   name: string;
@@ -156,8 +166,24 @@ export async function updateAvatar(localPath: string): Promise<string> {
     throw new AuthException('You must be signed in to update your photo.');
   }
 
-  const { objectKey, publicUrl } = await uploadToR2('profile', localPath);
-  const url = publicUrl ?? objectKey;
+  // RN-safe file read: fetch the URI as an ArrayBuffer (Blob upload is
+  // unreliable on React Native). Pass through file:// / http(s):// as-is.
+  const contentType = avatarContentType(localPath);
+  const ext = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
+  const fileUri = /^(file|https?):\/\//.test(localPath) ? localPath : `file://${localPath}`;
+  const arrayBuffer = await fetch(fileUri).then(res => res.arrayBuffer());
+
+  // Public, R2-backed key: dangg-media/users/profile-images/{uid}/{ts}.{ext}
+  const objectName = `profile-images/${userId}/${Date.now()}.${ext}`;
+  const { error: uploadErr } = await client.storage
+    .from(AVATAR_BUCKET)
+    .upload(objectName, arrayBuffer, { contentType, upsert: true });
+  if (uploadErr) {
+    throw mapSupabaseError(uploadErr);
+  }
+
+  const { data: pub } = client.storage.from(AVATAR_BUCKET).getPublicUrl(objectName);
+  const url = pub.publicUrl;
 
   const { error } = await client
     .from('users')
@@ -179,10 +205,27 @@ export async function removeAvatar(): Promise<void> {
   if (userErr || !userData.user) {
     throw mapSupabaseError(userErr ?? new Error('You must be signed in'));
   }
+  const userId = userData.user.id;
+
+  // Best-effort: delete the stored object from R2 (via storage) before clearing.
+  const { data: row } = await client
+    .from('users')
+    .select('profile_picture_url')
+    .eq('id', userId)
+    .maybeSingle();
+  const currentUrl = row?.profile_picture_url ?? null;
+  const marker = `/object/public/${AVATAR_BUCKET}/`;
+  if (currentUrl && currentUrl.includes(marker)) {
+    const objectName = currentUrl.slice(currentUrl.indexOf(marker) + marker.length);
+    if (objectName.startsWith(`profile-images/${userId}/`)) {
+      await client.storage.from(AVATAR_BUCKET).remove([objectName]);
+    }
+  }
+
   const { error } = await client
     .from('users')
     .update({ profile_picture_url: null })
-    .eq('id', userData.user.id);
+    .eq('id', userId);
   if (error) {
     throw mapSupabaseError(error);
   }

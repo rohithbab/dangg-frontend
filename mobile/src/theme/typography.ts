@@ -5,6 +5,11 @@ import { AppColors } from './colors';
 /**
  * Type-scale tokens.
  *
+ * Color contract (v2 "Vibrant Splash"): primary text is high-contrast white
+ * (`onSurface` #FFFFFF), muted metadata is `onSurfaceMuted` #A0A0A8, and accent
+ * headings use `headlineAccent` which resolves to the bright splash pink
+ * (`primary` #FF66C4) — perfectly legible on the obsidian #0B0B0C background.
+ *
  * `fontFamily` is left undefined (system default) for v1. To swap to Inter
  * later, drop `assets/fonts/Inter-*.ttf` files, link them, and set
  * `fontFamily: 'Inter'` here. Explicit `lineHeight` + `letterSpacing` are
@@ -45,6 +50,17 @@ export const AppTypography = {
     fontSize: 24,
     fontWeight: '600',
     lineHeight: 30,
+  } satisfies TextStyle,
+
+  // Accent heading — bright splash pink, legible on obsidian (#0B0B0C).
+  headlineAccent: {
+    ...base,
+    fontFamily: fontFamilyHeadings,
+    fontSize: 24,
+    fontWeight: '700',
+    lineHeight: 30,
+    letterSpacing: -0.3,
+    color: AppColors.primary,
   } satisfies TextStyle,
 
   // Card Title (H3)

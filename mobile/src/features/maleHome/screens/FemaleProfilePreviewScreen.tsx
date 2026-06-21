@@ -12,16 +12,19 @@ import {
   View,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, {
+  FadeIn,
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
-import { AppColors } from '@theme/colors';
-import { AppRadii } from '@theme/radii';
-import { AppShadows } from '@theme/shadows';
-import { AppSpacing } from '@theme/spacing';
-import { AppTypography } from '@theme/typography';
 
-import PrimaryButton from '@core/components/PrimaryButton';
+
 import { logger } from '@core/utils/logger';
 
 import { type MaleAppStackParamList } from '@navigation/types';
@@ -38,24 +41,49 @@ type Nav = NativeStackNavigationProp<MaleAppStackParamList, 'FemaleProfilePrevie
 type Route = RouteProp<MaleAppStackParamList, 'FemaleProfilePreview'>;
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const HERO_HEIGHT = Math.round(SCREEN_HEIGHT * 0.6);
+const HERO_HEIGHT = Math.round(SCREEN_HEIGHT * 0.55);
+
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
+const AnimatedFastImage = Animated.createAnimatedComponent(FastImage);
+
+/* ─────────────────────── Premium Color Palette ─────────────────────── */
+const P = {
+  bg: '#09090B',
+  surface: '#121217',
+  card: '#18181F',
+  primary: '#FF4FA3',
+  secondary: '#9D5CFF',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#A1A1AA',
+  border: 'rgba(255,255,255,0.05)',
+  frosted: 'rgba(15,15,20,0.82)',
+  frostedBorder: 'rgba(255,255,255,0.12)',
+  scrim: '#09090B',
+  onlineGreen: '#10B981',
+  offlineGray: '#52525B',
+  coinGold: '#F59E0B',
+  gradient1: '#FF4FA3',
+  gradient2: '#9D5CFF',
+} as const;
+
+/* ─────────────────────── SVG Icons ─────────────────────── */
 
 function ChevronLeft(): React.ReactElement {
   return (
-    <Svg width={24} height={24} viewBox="0 0 24 24">
-      <Path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z" fill={AppColors.primaryDark} />
+    <Svg width={20} height={20} viewBox="0 0 24 24">
+      <Path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z" fill={P.textPrimary} />
     </Svg>
   );
 }
 
 function HeartIcon({ filled }: { filled: boolean }): React.ReactElement {
   return (
-    <Svg width={22} height={22} viewBox="0 0 24 24">
+    <Svg width={20} height={20} viewBox="0 0 24 24">
       <Path
         d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-        fill={filled ? AppColors.primary : AppColors.transparent}
-        stroke={filled ? AppColors.transparent : AppColors.primaryDark}
-        strokeWidth={filled ? 0 : 2}
+        fill={filled ? P.primary : 'transparent'}
+        stroke={filled ? 'transparent' : P.textPrimary}
+        strokeWidth={filled ? 0 : 1.5}
       />
     </Svg>
   );
@@ -72,11 +100,59 @@ function StarIcon({ size, color }: { size: number; color: string }): React.React
   );
 }
 
+/* ─────────────────────── Pressable Button Wrapper ─────────────────────── */
+
+function AnimatedPressable({
+  onPress,
+  accessibilityRole,
+  accessibilityLabel,
+  hitSlop,
+  style,
+  children,
+}: {
+  onPress: () => void;
+  accessibilityRole: 'button';
+  accessibilityLabel: string;
+  hitSlop?: number;
+  style?: object;
+  children: React.ReactNode;
+}): React.ReactElement {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <Pressable
+        accessibilityRole={accessibilityRole}
+        accessibilityLabel={accessibilityLabel}
+        onPress={onPress}
+        hitSlop={hitSlop}
+        onPressIn={() => {
+          scale.value = withSpring(0.9, { damping: 15, stiffness: 300 });
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+        }}
+        style={style}
+      >
+        {children}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+/* ─────────────────────── Main Screen ─────────────────────── */
+
 /** Full-bleed female profile preview with sticky Send Chat Request CTA. */
 function FemaleProfilePreviewScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { femaleId } = route.params;
+
+  const insets = useSafeAreaInsets();
 
   const coinBalance = useWalletStore(s => s.coinBalance);
   const spend = useWalletStore(s => s.spend);
@@ -85,6 +161,26 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [insufficientOpen, setInsufficientOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  /* ── Scroll tracking for header transition ── */
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  const headerBgStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [0, HERO_HEIGHT * 0.4], [0, 1], 'clamp'),
+  }));
+
+  const heroImageStyle = useAnimatedStyle(() => {
+    const scale = interpolate(scrollY.value, [-HERO_HEIGHT * 0.3, 0, HERO_HEIGHT * 0.3], [1.15, 1, 0.95], 'clamp');
+    const translateY = interpolate(scrollY.value, [0, HERO_HEIGHT * 0.3], [0, HERO_HEIGHT * 0.08], 'clamp');
+    return {
+      transform: [{ scale }, { translateY }],
+    };
+  });
 
   useEffect(() => {
     getFemaleById(femaleId)
@@ -153,31 +249,47 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
   return (
     <View style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={[styles.hero, { height: HERO_HEIGHT }]}>
-          <FastImage
+
+      {/* ── Scroll-reactive header backdrop ── */}
+      <Animated.View style={[styles.headerBackdrop, headerBgStyle]} pointerEvents="none" />
+
+      <AnimatedScrollView
+        contentContainerStyle={styles.scroll}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+      >
+        {/* ═══════════════════ HERO IMAGE ═══════════════════ */}
+        <Animated.View
+          entering={FadeIn.duration(600)}
+          style={[styles.hero, { height: HERO_HEIGHT }]}
+        >
+          <AnimatedFastImage
             source={{ uri: female.imageUrl }}
-            style={StyleSheet.absoluteFill}
+            style={[StyleSheet.absoluteFill, heroImageStyle]}
             resizeMode="cover"
           />
+          {/* Bottom gradient fade — 70% of hero for cinematic effect */}
           <Svg
             style={styles.heroGradient}
             width="100%"
-            height={Math.round(HERO_HEIGHT * 0.4)}
+            height={Math.round(HERO_HEIGHT * 0.7)}
             preserveAspectRatio="none"
           >
             <Defs>
               <LinearGradient id="heroFade" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0%" stopColor={AppColors.scrim} stopOpacity="0" />
-                <Stop offset="100%" stopColor={AppColors.scrim} stopOpacity="0.85" />
+                <Stop offset="0%" stopColor={P.scrim} stopOpacity="0" />
+                <Stop offset="40%" stopColor={P.scrim} stopOpacity="0.3" />
+                <Stop offset="70%" stopColor={P.scrim} stopOpacity="0.75" />
+                <Stop offset="100%" stopColor={P.scrim} stopOpacity="1" />
               </LinearGradient>
             </Defs>
             <Rect width="100%" height="100%" fill="url(#heroFade)" />
           </Svg>
 
+          {/* ── Top Action Buttons ── */}
           <SafeAreaView style={styles.heroOverlay} edges={['top']} pointerEvents="box-none">
             <View style={styles.heroTopRow}>
-              <Pressable
+              <AnimatedPressable
                 accessibilityRole="button"
                 accessibilityLabel="Back"
                 onPress={() => navigation.goBack()}
@@ -185,8 +297,8 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
                 style={styles.iconBtn}
               >
                 <ChevronLeft />
-              </Pressable>
-              <Pressable
+              </AnimatedPressable>
+              <AnimatedPressable
                 accessibilityRole="button"
                 accessibilityLabel={female.isFavorited ? 'Unfavorite' : 'Add to favorites'}
                 onPress={() => {
@@ -196,68 +308,77 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
                 style={styles.iconBtn}
               >
                 <HeartIcon filled={female.isFavorited} />
-              </Pressable>
+              </AnimatedPressable>
             </View>
           </SafeAreaView>
 
+          {/* ── Hero Bottom Info ── */}
           <View style={styles.heroBottom}>
             <Text style={styles.heroName}>{`${female.name}, ${female.age}`}</Text>
             <View style={styles.heroMetaRow}>
-              <View style={styles.heroMetaLeft}>
+              <View style={styles.statusPill}>
                 <View
                   style={[
-                    styles.heroDot,
+                    styles.statusDot,
                     {
                       backgroundColor: female.isOnline
-                        ? AppColors.onlineGreen
-                        : AppColors.offlineGray,
+                        ? P.onlineGreen
+                        : P.offlineGray,
                     },
                   ]}
                 />
-                <Text style={styles.heroMetaText}>
+                <Text style={styles.statusText}>
                   {female.isOnline ? 'Online now' : 'Offline'}
                 </Text>
               </View>
-              <View style={styles.heroMetaRight}>
-                <StarIcon size={16} color={AppColors.surface} />
-                <Text style={styles.heroMetaText}>
+              <View style={styles.ratingBadge}>
+                <StarIcon size={14} color={P.coinGold} />
+                <Text style={styles.ratingText}>
                   {`${female.rating.toFixed(1)} (${female.totalChats} chats)`}
                 </Text>
               </View>
             </View>
           </View>
-        </View>
+        </Animated.View>
 
-        <View style={styles.bodyBlock}>
+        {/* ═══════════════════ BODY ═══════════════════ */}
+        <Animated.View entering={FadeIn.duration(500).delay(200)} style={styles.bodyBlock}>
+          {/* ── Price + Response Row ── */}
           <View style={styles.actionRow}>
-            <View style={styles.pricePill}>
-              <Text style={styles.pricePillText}>{`${female.coinPrice} coins per chat`}</Text>
+            <View style={styles.priceCapsule}>
+              <Text style={styles.priceCapsuleText}>{`${female.coinPrice} coins per chat`}</Text>
             </View>
             <Text style={styles.responseText}>
               {`Responds in ${female.averageResponseMinutes} min`}
             </Text>
           </View>
 
+          {/* ── About Section ── */}
           <Text style={styles.sectionTitle}>About</Text>
           <Text style={styles.bioText}>{female.bio}</Text>
 
-          <View style={[styles.statsCard, AppShadows.e1]}>
+          {/* ── Statistics Card (Glassmorphism) ── */}
+          <Animated.View
+            entering={FadeIn.duration(500).delay(400)}
+            style={styles.statsCard}
+          >
             <StatCol value={String(female.totalChats)} label="Chats" />
             <View style={styles.statDivider} />
             <StatCol value={female.rating.toFixed(1)} label="Rating" />
             <View style={styles.statDivider} />
             <StatCol value={`${female.averageResponseMinutes}m`} label="Response" />
-          </View>
-        </View>
-      </ScrollView>
+          </Animated.View>
+        </Animated.View>
+      </AnimatedScrollView>
 
-      <SafeAreaView edges={['bottom']} style={styles.ctaWrap}>
-        <PrimaryButton
+      {/* ═══════════════════ BOTTOM CTA ═══════════════════ */}
+      <View style={[styles.ctaWrap, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+        <PremiumCTA
           label={`Send Chat Request — ${female.coinPrice} coins`}
           onPress={handleSendPress}
         />
         <Text style={styles.balanceHint}>{`Your balance: ${coinBalance} coins`}</Text>
-      </SafeAreaView>
+      </View>
 
       <ChatRequestConfirmModal
         visible={confirmOpen}
@@ -293,6 +414,8 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
   );
 }
 
+/* ─────────────────────── Stat Column ─────────────────────── */
+
 function StatCol({ value, label }: { value: string; label: string }): React.ReactElement {
   return (
     <View style={styles.statCol}>
@@ -302,135 +425,348 @@ function StatCol({ value, label }: { value: string; label: string }): React.Reac
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: AppColors.background },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: {
-    ...AppTypography.bodyLarge,
-    color: AppColors.onSurfaceMuted,
+/* ─────────────────────── Premium CTA Button ─────────────────────── */
+
+function PremiumCTA({ label, onPress }: { label: string; onPress: () => void }): React.ReactElement {
+  const scale = useSharedValue(1);
+  const gradientId = React.useId();
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onPress}
+        onPressIn={() => {
+          scale.value = withSpring(0.98, { damping: 25, stiffness: 350 });
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1, { damping: 15, stiffness: 200 });
+        }}
+        style={ctaStyles.base}
+      >
+        <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
+          <Defs>
+            <LinearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
+              <Stop offset="0" stopColor="#FF4FA3" />
+              <Stop offset="0.55" stopColor="#E84393" />
+              <Stop offset="1" stopColor="#D946EF" />
+            </LinearGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" rx={20} fill={`url(#${gradientId})`} />
+        </Svg>
+        <View style={ctaStyles.inner}>
+          <Text style={ctaStyles.label}>{label}</Text>
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+const ctaStyles = StyleSheet.create({
+  base: {
+    minHeight: 60,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowColor: '#E84393',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 6,
   },
-  scroll: { paddingBottom: 160 },
-  hero: { width: '100%', backgroundColor: AppColors.primarySubtle, position: 'relative' },
+  inner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  label: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.4,
+    includeFontPadding: false,
+  },
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   STYLES — Premium Luxury Design System
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const styles = StyleSheet.create({
+  /* ── Root ── */
+  safe: {
+    flex: 1,
+    backgroundColor: P.bg,
+  },
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: P.bg,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '400',
+    lineHeight: 24,
+    color: P.textSecondary,
+  },
+  scroll: {
+    paddingBottom: 180,
+  },
+
+  /* ── Scroll-reactive header backdrop ── */
+  headerBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'android' ? 56 + (StatusBar.currentHeight ?? 0) : 100,
+    backgroundColor: P.bg,
+    zIndex: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: P.border,
+  },
+
+  /* ── Hero Image ── */
+  hero: {
+    width: '100%',
+    backgroundColor: P.surface,
+    position: 'relative',
+    overflow: 'hidden',
+  },
   heroGradient: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
   },
-  heroOverlay: { position: 'absolute', top: 0, left: 0, right: 0 },
+  heroOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+  },
   heroTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: AppSpacing.md,
+    paddingHorizontal: 20,
     paddingTop:
-      Platform.OS === 'android' ? AppSpacing.sm + (StatusBar.currentHeight ?? 0) : AppSpacing.sm,
+      Platform.OS === 'android' ? 12 + (StatusBar.currentHeight ?? 0) : 8,
   },
+
+  /* ── Frosted glass icon buttons ── */
   iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: AppColors.surface,
-    opacity: 0.92,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: P.frosted,
+    borderWidth: 1,
+    borderColor: P.frostedBorder,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
+
+  /* ── Hero bottom info overlay ── */
   heroBottom: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: AppSpacing.md,
-    paddingBottom: AppSpacing.md,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
   },
   heroName: {
-    ...AppTypography.headlineLarge,
-    color: AppColors.surface,
+    fontSize: 32,
     fontWeight: '700',
+    lineHeight: 38,
+    letterSpacing: -0.5,
+    color: P.textPrimary,
   },
   heroMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 4,
+    gap: 12,
+    marginTop: 10,
   },
-  heroMetaLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  heroMetaRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  heroDot: { width: 10, height: 10, borderRadius: 5 },
-  heroMetaText: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.surface,
-    opacity: 0.95,
+
+  /* ── Online status pill ── */
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: P.frosted,
+    borderWidth: 1,
+    borderColor: P.frostedBorder,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  bodyBlock: { paddingHorizontal: AppSpacing.md, paddingTop: AppSpacing.md },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: P.textPrimary,
+    letterSpacing: 0.1,
+  },
+
+  /* ── Rating glass badge ── */
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: P.frosted,
+    borderWidth: 1,
+    borderColor: P.frostedBorder,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    gap: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  ratingText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: P.textPrimary,
+    letterSpacing: 0.1,
+  },
+
+  /* ── Body Section ── */
+  bodyBlock: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+  },
+
+  /* ── Price + Response Row ── */
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: AppSpacing.sm,
   },
-  pricePill: {
-    backgroundColor: AppColors.primarySubtle,
-    borderRadius: AppRadii.full,
-    paddingHorizontal: AppSpacing.md,
-    paddingVertical: 6,
+  priceCapsule: {
+    backgroundColor: 'rgba(255,79,163,0.08)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,79,163,0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    shadowColor: '#FF4FA3',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  pricePillText: {
-    ...AppTypography.labelLarge,
-    color: AppColors.primaryDark,
+  priceCapsuleText: {
+    fontSize: 14,
     fontWeight: '700',
+    color: P.primary,
+    letterSpacing: 0.2,
   },
   responseText: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.onSurfaceMuted,
+    fontSize: 14,
+    fontWeight: '400',
+    color: P.textSecondary,
   },
+
+  /* ── About Section ── */
   sectionTitle: {
-    ...AppTypography.titleMedium,
-    color: AppColors.primaryDark,
-    marginTop: AppSpacing.lg,
+    fontSize: 22,
+    fontWeight: '700',
+    lineHeight: 28,
+    color: P.textPrimary,
+    marginTop: 32,
+    letterSpacing: -0.3,
   },
   bioText: {
-    ...AppTypography.bodyLarge,
-    color: AppColors.onSurface,
-    marginTop: 4,
+    fontSize: 15,
+    fontWeight: '400',
+    lineHeight: 24,
+    color: P.textSecondary,
+    marginTop: 10,
+    letterSpacing: 0.1,
   },
+
+  /* ── Statistics Card (Glassmorphism) ── */
   statsCard: {
     flexDirection: 'row',
-    backgroundColor: AppColors.surface,
-    borderRadius: AppRadii.lg,
-    padding: AppSpacing.md,
-    marginTop: AppSpacing.lg,
+    backgroundColor: 'rgba(24,24,31,0.7)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    paddingVertical: 28,
+    paddingHorizontal: 8,
+    marginTop: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 6,
   },
-  statCol: { flex: 1, alignItems: 'center' },
+  statCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
   statValue: {
-    ...AppTypography.titleLarge,
-    color: AppColors.primaryDark,
+    fontSize: 28,
+    fontWeight: '800',
+    lineHeight: 34,
+    color: P.textPrimary,
+    letterSpacing: -0.5,
   },
   statLabel: {
-    ...AppTypography.bodySmall,
-    color: AppColors.onSurfaceMuted,
-    marginTop: 2,
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 18,
+    color: P.textSecondary,
+    marginTop: 6,
+    letterSpacing: 0.2,
   },
   statDivider: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: AppColors.divider,
+    width: 1,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     marginVertical: 4,
   },
+
+  /* ── Bottom CTA ── */
   ctaWrap: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: AppSpacing.md,
-    paddingTop: AppSpacing.sm,
-    backgroundColor: AppColors.background,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: AppColors.divider,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    backgroundColor: 'rgba(9,9,11,0.92)',
   },
   balanceHint: {
-    ...AppTypography.bodySmall,
-    color: AppColors.onSurfaceMuted,
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.35)',
     textAlign: 'center',
-    marginTop: AppSpacing.xs,
+    marginTop: 8,
+    letterSpacing: 0.3,
   },
 });
 

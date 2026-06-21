@@ -82,7 +82,13 @@ function MaleLoginScreen(): React.ReactElement {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <AppBar title="Welcome back" subtitle="Male" />
+      <AppBar
+        title="Welcome back"
+        subtitle="Male"
+        onBack={() =>
+          navigation.canGoBack() ? navigation.goBack() : navigation.navigate('AccountType')
+        }
+      />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

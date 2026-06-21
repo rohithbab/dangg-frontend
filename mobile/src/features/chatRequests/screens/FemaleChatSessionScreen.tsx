@@ -31,6 +31,7 @@ import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
+import Avatar from '@core/components/Avatar';
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import { USE_MOCK_DATA } from '@core/config/env';
 import { getSupabaseClient } from '@core/network/supabaseClient';
@@ -106,6 +107,13 @@ function mapChatMessage(message: ChatMessage, selfId: string): MockMessage {
     text: message.body,
     time: formatMessageTime(message.sentAt),
   };
+}
+
+function initialsFromName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
+  return `${first}${last}`.toUpperCase();
 }
 
 function BackIcon(): React.ReactElement {
@@ -222,14 +230,18 @@ function MessageBubble({ msg, index }: { msg: MockMessage; index: number }): Rea
 
 function ChatHeader({
   name,
+  avatarUri,
   secondsElapsed,
   coinsEarned,
+  isLive,
   onBack,
   onEnd,
 }: {
   name: string;
+  avatarUri: string | null;
   secondsElapsed: number;
   coinsEarned: number;
+  isLive: boolean;
   onBack: () => void;
   onEnd: () => void;
 }): React.ReactElement {
@@ -244,14 +256,22 @@ function ChatHeader({
 
       <View style={styles.headerCenter}>
         <View style={styles.maleAvatarWrap}>
-          <View style={styles.maleAvatar}>
-            <Text style={styles.maleAvatarText}>{name[0]}</Text>
-          </View>
-          <View style={styles.onlineDot} />
+          <Avatar
+            uri={avatarUri}
+            size={40}
+            initials={initialsFromName(name)}
+            borderColor={AppColors.primary}
+            borderWidth={2}
+          />
+          {isLive ? <View style={styles.onlineDot} /> : null}
         </View>
         <View>
           <Text style={styles.headerName}>{name}</Text>
-          <Text style={styles.headerOnline}>{`Active • ${mm}:${ss}`}</Text>
+          {isLive ? (
+            <Text style={styles.headerOnline}>{`Active • ${mm}:${ss}`}</Text>
+          ) : (
+            <Text style={styles.headerEnded}>Chat ended</Text>
+          )}
         </View>
       </View>
 
@@ -260,15 +280,17 @@ function ChatHeader({
           <Text style={styles.earningsCurrency}>₹</Text>
           <Text style={styles.earningsValue}>{coinsEarned}</Text>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="End chat"
-          hitSlop={6}
-          onPress={onEnd}
-          style={styles.endBtn}
-        >
-          <CloseIcon />
-        </Pressable>
+        {isLive ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="End chat"
+            hitSlop={6}
+            onPress={onEnd}
+            style={styles.endBtn}
+          >
+            <CloseIcon />
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -294,8 +316,13 @@ function FemaleChatSessionScreen(): React.ReactElement {
   const [isTyping, setIsTyping] = useState(USE_MOCK_DATA);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [endDialog, setEndDialog] = useState(false);
+  const [isLive, setIsLive] = useState(true);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [selfId, setSelfId] = useState<string | null>(null);
+  // Real counterpart name (resolved from the session); falls back to the mock
+  // until the live session loads.
+  const [partnerName, setPartnerName] = useState(MOCK_MALE_NAME);
+  const [partnerAvatarUrl, setPartnerAvatarUrl] = useState<string | null>(null);
 
   // Disconnect-to-home, invoked either by this user (confirmEnd) or by the poll
   // when the OTHER participant ends the session. Guarded so it runs once.
@@ -308,9 +335,12 @@ function FemaleChatSessionScreen(): React.ReactElement {
   }, []);
 
   useEffect(() => {
+    if (!isLive) {
+      return;
+    }
     const t = setInterval(() => setSecondsElapsed(s => s + 1), 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [isLive]);
 
   useEffect(() => {
     if (USE_MOCK_DATA) {
@@ -336,12 +366,23 @@ function FemaleChatSessionScreen(): React.ReactElement {
 
       setSelfId(currentUserId);
       setSessionId(session.id);
+      if (session.partnerName) {
+        setPartnerName(session.partnerName);
+      }
+      setPartnerAvatarUrl(session.partnerAvatarUrl);
+
+      const live = session.status === 'active';
+      setIsLive(live);
 
       const history = await listChatMessages(session.id);
       if (!mounted) {
         return;
       }
       setMessages(history.map(message => mapChatMessage(message, currentUserId)));
+
+      if (!live) {
+        return;
+      }
 
       channel = client
         .channel(`public:chat_messages:chat_session_id=eq.${session.id}`)
@@ -509,10 +550,18 @@ function FemaleChatSessionScreen(): React.ReactElement {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ChatHeader
-        name={MOCK_MALE_NAME}
+        name={partnerName}
+        avatarUri={partnerAvatarUrl}
         secondsElapsed={secondsElapsed}
         coinsEarned={coinsEarned}
-        onBack={() => setEndDialog(true)}
+        isLive={isLive}
+        onBack={() => {
+          if (isLive) {
+            setEndDialog(true);
+          } else {
+            navigation.goBack();
+          }
+        }}
         onEnd={() => setEndDialog(true)}
       />
 
@@ -551,29 +600,35 @@ function FemaleChatSessionScreen(): React.ReactElement {
           ) : null}
         </ScrollView>
 
-        <View style={[styles.inputBar, AppShadows.e2]}>
-          <TextInput
-            style={styles.input}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Type a reply…"
-            placeholderTextColor={AppColors.onSurfaceMuted}
-            multiline
-            maxLength={200}
-            onSubmitEditing={() => {
-              void handleSend();
-            }}
-            returnKeyType="send"
-          />
-          <Pressable
-            onPress={() => {
-              void handleSend();
-            }}
-            style={({ pressed }) => [styles.sendBtn, pressed && styles.sendBtnPressed]}
-          >
-            <SendIcon />
-          </Pressable>
-        </View>
+        {isLive ? (
+          <View style={[styles.inputBar, AppShadows.e2]}>
+            <TextInput
+              style={styles.input}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="Type a reply…"
+              placeholderTextColor={AppColors.onSurfaceMuted}
+              multiline
+              maxLength={200}
+              onSubmitEditing={() => {
+                void handleSend();
+              }}
+              returnKeyType="send"
+            />
+            <Pressable
+              onPress={() => {
+                void handleSend();
+              }}
+              style={({ pressed }) => [styles.sendBtn, pressed && styles.sendBtnPressed]}
+            >
+              <SendIcon />
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.endedFooter}>
+            <Text style={styles.endedFooterText}>This chat has ended</Text>
+          </View>
+        )}
       </KeyboardAvoidingView>
 
       <ConfirmationDialog
@@ -620,21 +675,6 @@ const styles = StyleSheet.create({
     gap: AppSpacing.sm,
   },
   maleAvatarWrap: { position: 'relative' },
-  maleAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: AppColors.primarySubtle,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: AppColors.primary,
-  },
-  maleAvatarText: {
-    ...AppTypography.titleMedium,
-    color: AppColors.primaryDark,
-    fontWeight: '700',
-  },
   onlineDot: {
     position: 'absolute',
     bottom: 1,
@@ -654,6 +694,11 @@ const styles = StyleSheet.create({
   headerOnline: {
     ...AppTypography.labelSmall,
     color: AppColors.success,
+    fontWeight: '600',
+  },
+  headerEnded: {
+    ...AppTypography.labelSmall,
+    color: AppColors.onSurfaceMuted,
     fontWeight: '600',
   },
   headerRightCol: {
@@ -838,6 +883,17 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   sendBtnPressed: { opacity: 0.82, transform: [{ scale: 0.96 }] },
+
+  endedFooter: {
+    paddingHorizontal: AppSpacing.md,
+    paddingVertical: AppSpacing.lg,
+    alignItems: 'center',
+  },
+  endedFooterText: {
+    ...AppTypography.bodyMedium,
+    color: AppColors.onSurfaceMuted,
+    fontWeight: '500',
+  },
 });
 
 export default FemaleChatSessionScreen;

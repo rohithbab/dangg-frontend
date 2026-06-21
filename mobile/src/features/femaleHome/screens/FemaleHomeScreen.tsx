@@ -12,12 +12,8 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { AppColors } from '@theme/colors';
-import { AppRadii } from '@theme/radii';
-import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
-import Card from '@core/components/Card';
 import CoinIcon from '@core/components/CoinIcon';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
 import { Env } from '@core/config/env';
@@ -47,6 +43,7 @@ import {
 } from '../api/femaleHomeApi';
 import AvailabilityToggle from '../components/AvailabilityToggle';
 import RecentActivityItem from '../components/RecentActivityItem';
+import { FC, FGradient, FR, FS, FShadow } from '../femaleTheme';
 import { useAvailabilityHeartbeat } from '../hooks/useAvailabilityHeartbeat';
 
 type Nav = NativeStackNavigationProp<FemaleAppStackParamList>;
@@ -71,14 +68,40 @@ function firstNameFromSession(fullName: string | undefined): string {
   return fullName.split(/\s+/)[0] ?? fullName;
 }
 
+function mixHexColor(a: string, b: string, amount: number): string {
+  const parse = (hex: string) =>
+    [1, 3, 5].map(pos => Number.parseInt(hex.slice(pos, pos + 2), 16));
+  const [r1, g1, b1] = parse(a);
+  const [r2, g2, b2] = parse(b);
+  const mix = (x: number, y: number) => Math.round(x + (y - x) * amount);
+  return `#${[mix(r1, r2), mix(g1, g2), mix(b1, b2)].map(v => v.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function GradientGreetingName({ name }: { name: string }): React.ReactElement {
+  const letters = Array.from(name);
+  const denominator = Math.max(letters.length - 1, 1);
+  return (
+    <Text>
+      {letters.map((letter, index) => (
+        <Text
+          key={`${letter}-${index}`}
+          style={{ color: mixHexColor(FGradient[0], FGradient[1], index / denominator) }}
+        >
+          {letter}
+        </Text>
+      ))}
+    </Text>
+  );
+}
+
 function trendColor(trend: Trend): string {
   if (trend.kind === 'up') {
-    return AppColors.success;
+    return FC.success;
   }
   if (trend.kind === 'down') {
-    return AppColors.error;
+    return FC.error;
   }
-  return AppColors.onSurfaceMuted;
+  return FC.textDim;
 }
 
 type IconColor = string;
@@ -110,17 +133,12 @@ function ChatsHeaderIcon(): React.ReactElement {
     <Svg width={24} height={24} viewBox="0 0 24 24">
       <Path
         d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"
-        fill={AppColors.primaryDark}
+        fill={FC.primary}
       />
     </Svg>
   );
 }
 
-/**
- * Female Home — the default tab after login. Greeting header, availability
- * toggle, 2×2 stats grid, recent activity feed. Pull-to-refresh re-fetches
- * everything in parallel.
- */
 function FemaleHomeScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const session = useSessionStore(s => s.session);
@@ -136,17 +154,9 @@ function FemaleHomeScreen(): React.ReactElement {
   const [notice, setNotice] = useState<string | null>(null);
   const clearNotice = useCallback(() => setNotice(null), []);
 
-  // Keep her card on male discovery for as long as she is online + foregrounded.
-  // Fires female_heartbeat() every 60s; the backend sweep only takes her offline
-  // once these STOP (app backgrounded / closed / killed), within the grace window.
-  // Without this the sweep dropped her ~3 min after toggling on.
   useAvailabilityHeartbeat(availability?.online === true);
 
   const loadAll = useCallback(async (): Promise<void> => {
-    // allSettled (not Promise.all): each section loads independently so a
-    // failure in stats/activity/notifications can never block `availability`
-    // from being set — that would leave the "Available for chats" toggle
-    // permanently disabled (disabled={availability === null || !isVerified}).
     const [s, a, r] = await Promise.allSettled([
       getHomeStats(),
       getAvailability(),
@@ -159,8 +169,6 @@ function FemaleHomeScreen(): React.ReactElement {
     }
     if (a.status === 'fulfilled') {
       let availabilityVal = a.value;
-      // In DEV_MODE, automatically toggle online on startup if verified and currently offline
-      // so that she is immediately visible to the male user.
       if (Env.devMode && isVerified && !availabilityVal.online) {
         logger.info('DEV_MODE: Auto-toggling female availability to online');
         availabilityVal = { ...availabilityVal, online: true };
@@ -216,8 +224,6 @@ function FemaleHomeScreen(): React.ReactElement {
         logger.debug('Availability toggle ignored: request already in flight');
         return;
       }
-      // Going online requires a verified account — the backend rejects it too
-      // (female-availability-toggle). Ignore attempts to switch on when unverified.
       if (next && !isVerified) {
         logger.warn('Availability toggle ignored: cannot go online while unverified');
         return;
@@ -228,8 +234,6 @@ function FemaleHomeScreen(): React.ReactElement {
       setAvailability(next)
         .then(() => logger.info('Availability toggle committed', { next }))
         .catch(e => {
-          // Missing payout details surfaces as a 409 ConflictException — show
-          // the shake popup prompting her to add bank/UPI before going online.
           if (e instanceof ConflictException) {
             logger.warn('Availability toggle blocked: payout details missing');
             setNotice('Add payment details to go online');
@@ -255,14 +259,16 @@ function FemaleHomeScreen(): React.ReactElement {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={AppColors.primary}
-            colors={[AppColors.primary]}
+            tintColor={FC.primary}
+            colors={[FC.primary]}
           />
         }
       >
         <View style={styles.header}>
           <View style={styles.headerText}>
-            <Text style={styles.greeting}>{`Hi, ${firstName}!`}</Text>
+            <Text style={styles.greeting}>
+              Hi, <GradientGreetingName name={firstName} />!
+            </Text>
             <Text style={styles.subgreeting}>Welcome back</Text>
           </View>
           <Pressable
@@ -278,38 +284,45 @@ function FemaleHomeScreen(): React.ReactElement {
 
         {!isVerified ? <VerificationBanner status={verificationStatus} /> : null}
 
-        <Card padding={AppSpacing.lg} containerStyle={styles.availabilityCard}>
-          <View style={styles.availabilityHeader}>
-            <Text style={styles.availabilityTitle}>Available for chats</Text>
-            <AvailabilityToggle
-              value={isVerified ? (availability?.online ?? false) : false}
-              onValueChange={handleToggleAvailability}
-              disabled={availability === null || !isVerified}
-            />
+        <View
+          style={[
+            styles.availabilityCard,
+            availability?.online ? styles.availabilityCardOnline : null,
+          ]}
+        >
+          <View style={styles.availabilityInner}>
+            <View style={styles.availabilityHeader}>
+              <Text style={styles.availabilityTitle}>Available for chats</Text>
+              <AvailabilityToggle
+                value={isVerified ? (availability?.online ?? false) : false}
+                onValueChange={handleToggleAvailability}
+                disabled={availability === null || !isVerified}
+              />
+            </View>
+            <View style={styles.statusRow}>
+              <View
+                style={[
+                  styles.statusDot,
+                  {
+                    backgroundColor: availability?.online
+                      ? FC.onlineGreen
+                      : FC.offlineGray,
+                  },
+                ]}
+              />
+              <Text style={styles.statusText}>
+                {availability?.online ? 'You are online and visible' : 'You are offline'}
+              </Text>
+            </View>
+            {availability ? (
+              <Text style={styles.lastToggled}>
+                {availability.online
+                  ? `Online since ${relativeOnline(availability.lastToggledAt)}`
+                  : `Last online ${relativeOnline(availability.lastToggledAt)}`}
+              </Text>
+            ) : null}
           </View>
-          <View style={styles.statusRow}>
-            <View
-              style={[
-                styles.statusDot,
-                {
-                  backgroundColor: availability?.online
-                    ? AppColors.onlineGreen
-                    : AppColors.offlineGray,
-                },
-              ]}
-            />
-            <Text style={styles.statusText}>
-              {availability?.online ? 'You are online and visible' : 'You are offline'}
-            </Text>
-          </View>
-          {availability ? (
-            <Text style={styles.lastToggled}>
-              {availability.online
-                ? `Online since ${relativeOnline(availability.lastToggledAt)}`
-                : `Last online ${relativeOnline(availability.lastToggledAt)}`}
-            </Text>
-          ) : null}
-        </Card>
+        </View>
 
         <View style={styles.statsGrid}>
           <StatCell
@@ -341,15 +354,12 @@ function FemaleHomeScreen(): React.ReactElement {
 
         <View style={styles.activityHeader}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
-          <Pressable hitSlop={8} accessibilityRole="link" onPress={() => undefined}>
-            <Text style={styles.seeAll}>See all</Text>
-          </Pressable>
         </View>
 
         {activity.length === 0 ? (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <ChatIcon color={AppColors.primary} />
+              <ChatIcon color={FC.primary} />
             </View>
             <Text style={styles.emptyTitle}>No activity yet</Text>
             <Text style={styles.emptyBody}>
@@ -357,7 +367,7 @@ function FemaleHomeScreen(): React.ReactElement {
             </Text>
           </View>
         ) : (
-          <Card padding={0} containerStyle={styles.activityCard}>
+          <View style={styles.activityCard}>
             {activity.slice(0, 5).map((item, idx) => (
               <View
                 key={item.id}
@@ -366,7 +376,7 @@ function FemaleHomeScreen(): React.ReactElement {
                 <RecentActivityItem item={item} />
               </View>
             ))}
-          </Card>
+          </View>
         )}
       </ScrollView>
       <ShakeToast message={notice} onHide={clearNotice} />
@@ -374,10 +384,6 @@ function FemaleHomeScreen(): React.ReactElement {
   );
 }
 
-/**
- * Small floating popup that shakes on appear and auto-dismisses. Used to nudge
- * the female (e.g. "add payment details to go online") without a blocking alert.
- */
 function ShakeToast({
   message,
   onHide,
@@ -439,7 +445,7 @@ function StatCell({
 }: StatCellProps): React.ReactElement {
   return (
     <View style={styles.statCell}>
-      <View style={styles.statIcon}>{renderIcon(AppColors.primary)}</View>
+      <View style={styles.statIcon}>{renderIcon(FC.primary)}</View>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
       {trend ? (
@@ -450,11 +456,6 @@ function StatCell({
   );
 }
 
-/**
- * Verification status banner shown on Home while the female is not yet
- * verified. Copy varies by status; admin approval flips her to 'verified'
- * (re-fetched on next session/refresh) and the banner disappears.
- */
 function VerificationBanner({ status }: { status: VerificationStatus }): React.ReactElement {
   const pending = status === VerificationStatus.Pending;
   const rejected = status === VerificationStatus.Rejected;
@@ -464,87 +465,109 @@ function VerificationBanner({ status }: { status: VerificationStatus }): React.R
       ? 'Verification rejected'
       : 'Account not verified';
   const body = pending
-    ? 'Our team is reviewing your photo. You can go online once it’s approved (usually within 2 days).'
+    ? 'Our team is reviewing your photo. You can go online once it\'s approved (usually within 2 days).'
     : rejected
       ? 'Your previous photo was rejected. Please re-submit a clear face photo to get verified.'
       : 'Submit a verification photo to get approved. You can go online and earn once verified.';
   return (
-    <Card padding={AppSpacing.lg} containerStyle={styles.verifyBanner}>
+    <View style={styles.verifyBanner}>
       <Text style={styles.verifyTitle}>{title}</Text>
       <Text style={styles.verifyBody}>{body}</Text>
-    </Card>
+    </View>
   );
 }
 
-const BOTTOM_CLEAR = BOTTOM_NAV_HEIGHT + FAB_PROTRUSION + AppSpacing.lg;
+const BOTTOM_CLEAR = BOTTOM_NAV_HEIGHT + FAB_PROTRUSION + FS.lg;
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: AppColors.background },
+  safe: { flex: 1, backgroundColor: FC.bg },
   scroll: { paddingBottom: BOTTOM_CLEAR },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: AppSpacing.lg,
-    paddingTop: AppSpacing.md,
+    paddingHorizontal: FS.lg,
+    paddingTop: FS.md,
   },
   headerText: { flex: 1 },
-  chatsButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  chatsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: FR.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: FC.glass,
+  },
   greeting: {
-    ...AppTypography.headlineMedium,
-    color: AppColors.primaryDark,
+    fontSize: 24,
+    fontWeight: '700',
+    fontFamily: 'Poppins',
+    color: FC.text,
+    lineHeight: 30,
   },
   subgreeting: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.onSurfaceMuted,
+    fontSize: 14,
+    fontWeight: '500',
+    fontFamily: 'Nunito',
+    color: FC.textDim,
     marginTop: 2,
   },
   toast: {
     position: 'absolute',
-    top: AppSpacing.sm,
-    left: AppSpacing.lg,
-    right: AppSpacing.lg,
-    backgroundColor: AppColors.primaryDark,
-    paddingVertical: AppSpacing.sm,
-    paddingHorizontal: AppSpacing.md,
-    borderRadius: AppRadii.md,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 6,
+    top: FS.sm,
+    left: FS.lg,
+    right: FS.lg,
+    backgroundColor: FC.card,
+    paddingVertical: FS.sm,
+    paddingHorizontal: FS.md,
+    borderRadius: FR.sm,
+    borderWidth: 1,
+    borderColor: FC.hairline,
+    ...FShadow.float,
   },
   toastText: {
     ...AppTypography.bodyMedium,
-    color: AppColors.onPrimary,
+    color: FC.text,
     textAlign: 'center',
   },
   verifyBanner: {
-    marginHorizontal: AppSpacing.md,
-    marginTop: AppSpacing.lg,
-    borderWidth: 1.5,
-    borderColor: AppColors.error,
-    backgroundColor: '#FDECEF',
-    gap: AppSpacing.xs,
+    marginHorizontal: FS.md,
+    marginTop: FS.lg,
+    backgroundColor: FC.card,
+    borderRadius: FR.lg,
+    padding: FS.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.3)',
+    gap: FS.xs,
   },
   verifyTitle: {
-    ...AppTypography.titleMedium,
-    color: AppColors.primaryDark,
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: 'Poppins',
+    color: FC.error,
   },
   verifyBody: {
-    ...AppTypography.bodySmall,
-    color: AppColors.onSurfaceMuted,
+    fontSize: 13,
+    fontWeight: '500',
+    fontFamily: 'Nunito',
+    color: FC.textDim,
+    lineHeight: 18,
   },
   availabilityCard: {
-    marginHorizontal: AppSpacing.md,
-    marginTop: AppSpacing.lg,
-    borderWidth: 1.5,
-    borderColor: AppColors.border,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
+    marginHorizontal: FS.md,
+    marginTop: FS.lg,
+    backgroundColor: FC.card,
+    borderRadius: FR.lg,
+    borderWidth: 1,
+    borderColor: FC.hairline,
+    overflow: 'hidden',
+    ...FShadow.card,
+  },
+  availabilityCardOnline: {
+    borderColor: FC.primaryEdge,
+  },
+  availabilityInner: {
+    padding: FS.lg,
   },
   availabilityHeader: {
     flexDirection: 'row',
@@ -552,16 +575,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   availabilityTitle: {
-    ...AppTypography.titleLarge,
-    color: AppColors.primaryDark,
+    fontSize: 17,
+    fontWeight: '700',
+    fontFamily: 'Poppins',
+    color: FC.text,
     flex: 1,
-    marginRight: AppSpacing.sm,
+    marginRight: FS.sm,
   },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: AppSpacing.sm,
-    marginTop: AppSpacing.sm,
+    gap: FS.sm,
+    marginTop: FS.sm,
   },
   statusDot: {
     width: 8,
@@ -569,109 +594,123 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   statusText: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.onSurface,
+    fontSize: 13,
+    fontWeight: '500',
+    fontFamily: 'Nunito',
+    color: FC.textDim,
   },
   lastToggled: {
-    ...AppTypography.bodySmall,
-    color: AppColors.onSurfaceMuted,
+    fontSize: 12,
+    fontWeight: '500',
+    fontFamily: 'Nunito',
+    color: FC.textFaint,
     marginTop: 4,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginHorizontal: AppSpacing.md,
-    marginTop: AppSpacing.lg,
-    rowGap: AppSpacing.sm,
+    marginHorizontal: FS.md,
+    marginTop: FS.lg,
+    rowGap: FS.sm,
   },
   statCell: {
     width: '48.5%',
-    backgroundColor: AppColors.surface,
-    borderRadius: AppRadii.md,
-    padding: AppSpacing.md,
-    borderWidth: 1.5,
-    borderColor: AppColors.border,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: FC.card,
+    borderRadius: FR.lg,
+    padding: FS.lg,
+    borderWidth: 1,
+    borderColor: FC.hairline,
+    ...FShadow.card,
   },
-  statIcon: { marginBottom: AppSpacing.sm },
+  statIcon: { marginBottom: FS.sm },
   statValue: {
-    ...AppTypography.headlineMedium,
-    color: AppColors.primaryDark,
+    fontSize: 22,
+    fontWeight: '800',
+    fontFamily: 'Poppins',
+    color: FC.primary,
+    letterSpacing: -0.3,
   },
   statLabel: {
-    ...AppTypography.bodySmall,
-    color: AppColors.onSurfaceMuted,
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: 'Nunito',
+    color: FC.textDim,
     marginTop: 2,
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
   },
   statTrend: {
-    ...AppTypography.labelSmall,
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: 'Nunito',
     marginTop: 4,
   },
   statFootnote: {
-    ...AppTypography.labelSmall,
-    color: AppColors.onSurfaceMuted,
+    fontSize: 11,
+    fontWeight: '500',
+    fontFamily: 'Nunito',
+    color: FC.textFaint,
     marginTop: 4,
   },
   activityHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginHorizontal: AppSpacing.md,
-    marginTop: AppSpacing.lg,
-    marginBottom: AppSpacing.sm,
+    marginHorizontal: FS.md,
+    marginTop: FS.xl,
+    marginBottom: FS.sm,
   },
   sectionTitle: {
-    ...AppTypography.titleMedium,
-    color: AppColors.primaryDark,
-  },
-  seeAll: {
-    ...AppTypography.labelLarge,
-    color: AppColors.primary,
+    fontSize: 18,
+    fontWeight: '700',
+    fontFamily: 'Poppins',
+    color: FC.text,
   },
   activityCard: {
-    marginHorizontal: AppSpacing.md,
+    marginHorizontal: FS.md,
+    backgroundColor: FC.card,
+    borderRadius: FR.lg,
+    borderWidth: 1,
+    borderColor: FC.hairline,
     overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: AppColors.border,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
+    ...FShadow.card,
   },
   activityRow: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: AppColors.divider,
+    borderBottomColor: FC.border,
   },
   empty: {
     alignItems: 'center',
-    marginHorizontal: AppSpacing.lg,
-    marginTop: AppSpacing.lg,
-    padding: AppSpacing.lg,
+    marginHorizontal: FS.lg,
+    marginTop: FS.lg,
+    padding: FS.lg,
   },
   emptyIcon: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: AppColors.primarySubtle,
+    backgroundColor: FC.card,
+    borderWidth: 1,
+    borderColor: FC.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyTitle: {
-    ...AppTypography.titleMedium,
-    color: AppColors.primaryDark,
-    marginTop: AppSpacing.md,
+    fontSize: 17,
+    fontWeight: '700',
+    fontFamily: 'Poppins',
+    color: FC.text,
+    marginTop: FS.md,
   },
   emptyBody: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.onSurfaceMuted,
+    fontSize: 13,
+    fontWeight: '500',
+    fontFamily: 'Nunito',
+    color: FC.textDim,
     textAlign: 'center',
-    marginTop: AppSpacing.xs,
+    marginTop: FS.xs,
+    lineHeight: 18,
   },
 });
 

@@ -17,6 +17,7 @@ import { enableScreens } from 'react-native-screens';
 
 import App from './App';
 import { name as appName } from './app.json';
+import { logger } from './src/core/utils/logger';
 
 // Required by `@react-navigation/native-stack` — opts the app into native
 // container views, which is what makes navigation buttery on both platforms.
@@ -30,7 +31,7 @@ if (Config.ENABLE_FIREBASE === 'true') {
   try {
     messaging().setBackgroundMessageHandler(async () => {});
   } catch (e) {
-    console.warn('FCM background handler not registered:', e?.message ?? e);
+    logger.warn('FCM background handler not registered:', e?.message ?? e);
   }
 }
 

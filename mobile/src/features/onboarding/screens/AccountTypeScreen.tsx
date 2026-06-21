@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import { ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,7 +16,6 @@ import { UserRole } from '@app-types/domain';
 
 import { markOnboardingSeen } from '../../auth/api/authApi';
 import AccountTypeCard from '../../auth/components/AccountTypeCard';
-import RoleLoginBottomSheet from '../../auth/components/RoleLoginBottomSheet';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'AccountType'>;
 
@@ -30,7 +29,6 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'AccountType'>;
  */
 function AccountTypeScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
-  const [loginSheetOpen, setLoginSheetOpen] = useState(false);
 
   const handlePickFemale = useCallback((): void => {
     markOnboardingSeen();
@@ -41,17 +39,6 @@ function AccountTypeScreen(): React.ReactElement {
     markOnboardingSeen();
     navigation.navigate('MaleSignupBasicInfo');
   }, [navigation]);
-
-  const handleLoginPick = useCallback(
-    (role: UserRole.Female | UserRole.Male): void => {
-      if (role === UserRole.Female) {
-        navigation.navigate('FemaleLogin');
-      } else {
-        navigation.navigate('MaleLogin');
-      }
-    },
-    [navigation],
-  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -85,18 +72,12 @@ function AccountTypeScreen(): React.ReactElement {
         <View style={styles.footer}>
           <Text style={styles.footerText}>
             Already have an account?{' '}
-            <Text style={styles.footerLink} onPress={() => setLoginSheetOpen(true)}>
+            <Text style={styles.footerLink} onPress={() => navigation.navigate('CommonLogin')}>
               Login
             </Text>
           </Text>
         </View>
       </ScrollView>
-
-      <RoleLoginBottomSheet
-        visible={loginSheetOpen}
-        onClose={() => setLoginSheetOpen(false)}
-        onPick={handleLoginPick}
-      />
     </SafeAreaView>
   );
 }

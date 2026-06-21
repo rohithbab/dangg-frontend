@@ -5,6 +5,7 @@ import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-nativ
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -170,16 +171,12 @@ const styles = StyleSheet.create({
     minHeight: 110,
     borderRadius: AppRadii.lg,
     borderWidth: 1,
-    borderColor: AppColors.gradientRoseSubtleStart, // #FFE4EC
-    backgroundColor: AppColors.surface, // #FFFFFF
+    borderColor: AppColors.primaryBorderSoft,
+    backgroundColor: AppColors.surface,
     paddingHorizontal: AppSpacing.lg,
     paddingVertical: AppSpacing.md,
-    // Premium soft pink shadow
-    shadowColor: AppColors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    elevation: 4,
+    // Medium pink neon under-glow.
+    ...AppShadows.e2,
   },
   iconContainer: {
     marginRight: AppSpacing.md,

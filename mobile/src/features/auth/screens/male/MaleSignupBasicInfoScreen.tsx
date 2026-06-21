@@ -21,18 +21,10 @@ function MaleSignupBasicInfoScreen(): React.ReactElement {
     [navigation],
   );
 
-  const handlePickLogin = useCallback(
-    (role: UserRole.Female | UserRole.Male): void => {
-      navigation.navigate(role === UserRole.Female ? 'FemaleLogin' : 'MaleLogin');
-    },
-    [navigation],
-  );
-
   return (
     <BasicInfoForm
       role={UserRole.Male}
       onOtpRequested={handleOtpRequested}
-      onPickLogin={handlePickLogin}
     />
   );
 }

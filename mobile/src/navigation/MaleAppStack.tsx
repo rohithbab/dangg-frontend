@@ -47,7 +47,7 @@ function MaleAppStack(): React.ReactElement {
       <Stack.Screen
         name="ChatSession"
         component={ChatSessionScreen}
-        options={{ animation: 'slide_from_left', gestureEnabled: false }}
+        options={{ animation: 'slide_from_right', gestureEnabled: false }}
       />
       <Stack.Screen
         name="ChatRequestDeclined"

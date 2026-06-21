@@ -34,6 +34,7 @@ import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
+import Avatar from '@core/components/Avatar';
 import CoinIcon from '@core/components/CoinIcon';
 import { USE_MOCK_DATA } from '@core/config/env';
 import { getSupabaseClient } from '@core/network/supabaseClient';
@@ -107,6 +108,13 @@ function mapChatMessage(message: ChatMessage, selfId: string): MockMessage {
     text: message.body,
     time: formatMessageTime(message.sentAt),
   };
+}
+
+function initialsFromName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
+  return `${first}${last}`.toUpperCase();
 }
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
@@ -220,12 +228,14 @@ function MessageBubble({ msg, index }: { msg: MockMessage; index: number }): Rea
 
 function ChatHeader({
   name,
+  avatarUri,
   secondsElapsed,
   coinsSpent,
   onBack,
   isLive,
 }: {
   name: string;
+  avatarUri: string | null;
   secondsElapsed: number;
   coinsSpent: number;
   onBack: () => void;
@@ -242,11 +252,14 @@ function ChatHeader({
       </Pressable>
 
       <View style={styles.headerCenter}>
-        {/* Female avatar placeholder */}
         <View style={styles.femaleAvatarWrap}>
-          <View style={styles.femaleAvatar}>
-            <Text style={styles.femaleAvatarText}>{name[0]}</Text>
-          </View>
+          <Avatar
+            uri={avatarUri}
+            size={40}
+            initials={initialsFromName(name)}
+            borderColor={AppColors.primary}
+            borderWidth={2}
+          />
           {isLive ? <View style={styles.onlineDot} /> : null}
         </View>
         <View>
@@ -322,6 +335,10 @@ function ChatSessionScreen(): React.ReactElement {
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [selfId, setSelfId] = useState<string | null>(null);
+  // Real counterpart name (resolved from the session); falls back to the mock
+  // until the live session loads.
+  const [partnerName, setPartnerName] = useState(MOCK_FEMALE_NAME);
+  const [partnerAvatarUrl, setPartnerAvatarUrl] = useState<string | null>(null);
   // True only while the session is active. Old chats opened from the inbox/
   // history load as ended → read-only transcript, no timer, no time limit.
   const [isLive, setIsLive] = useState(true);
@@ -489,7 +506,7 @@ function ChatSessionScreen(): React.ReactElement {
             </View>
             <Text style={styles.modalTitle}>End Chat Session?</Text>
             <Text style={styles.modalBody}>
-              Are you sure you want to end your chat with {MOCK_FEMALE_NAME}? Remaining time will be
+              Are you sure you want to end your chat with {partnerName}? Remaining time will be
               stopped immediately.
             </Text>
             <View style={styles.modalButtons}>
@@ -520,12 +537,16 @@ function ChatSessionScreen(): React.ReactElement {
         return (
           <View style={styles.modalContent}>
             <View style={styles.modalAvatarCircle}>
-              <View style={styles.modalAvatar}>
-                <Text style={styles.modalAvatarText}>{MOCK_FEMALE_NAME[0]}</Text>
-              </View>
+              <Avatar
+                uri={partnerAvatarUrl}
+                size={60}
+                initials={initialsFromName(partnerName)}
+                borderColor={AppColors.primary}
+                borderWidth={2}
+              />
             </View>
             <Text style={styles.modalTitle}>How was the chat?</Text>
-            <Text style={styles.modalSubTitle}>Rate your conversation with {MOCK_FEMALE_NAME}</Text>
+            <Text style={styles.modalSubTitle}>Rate your conversation with {partnerName}</Text>
 
             <View style={styles.starRow}>
               {starScales.map((scale, idx) => (
@@ -641,6 +662,10 @@ function ChatSessionScreen(): React.ReactElement {
 
       setSelfId(currentUserId);
       setSessionId(session.id);
+      if (session.partnerName) {
+        setPartnerName(session.partnerName);
+      }
+      setPartnerAvatarUrl(session.partnerAvatarUrl);
 
       const history = await listChatMessages(session.id);
       if (!mounted) {
@@ -805,7 +830,8 @@ function ChatSessionScreen(): React.ReactElement {
       ) : null}
 
       <ChatHeader
-        name={MOCK_FEMALE_NAME}
+        name={partnerName}
+        avatarUri={partnerAvatarUrl}
         secondsElapsed={secondsElapsed}
         coinsSpent={coinsSpent}
         isLive={isLive}
@@ -942,21 +968,6 @@ const styles = StyleSheet.create({
     gap: AppSpacing.sm,
   },
   femaleAvatarWrap: { position: 'relative' },
-  femaleAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: AppColors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: AppColors.primary,
-  },
-  femaleAvatarText: {
-    ...AppTypography.titleMedium,
-    color: AppColors.primaryDark,
-    fontWeight: '700',
-  },
   onlineDot: {
     position: 'absolute',
     bottom: 1,
@@ -1280,19 +1291,6 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     borderWidth: 2,
     borderColor: AppColors.primary,
-  },
-  modalAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: AppColors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalAvatarText: {
-    ...AppTypography.headlineMedium,
-    color: AppColors.primaryDark,
-    fontWeight: '700',
   },
 
   // Star Rating

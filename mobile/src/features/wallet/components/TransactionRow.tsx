@@ -2,15 +2,10 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { AppColors } from '@theme/colors';
-import { AppRadii } from '@theme/radii';
-import { AppSpacing } from '@theme/spacing';
-import { AppTypography } from '@theme/typography';
-
-import CoinIcon from '@core/components/CoinIcon';
 import { timeAgo } from '@core/utils/formatters';
 
 import { type WalletTransaction } from '../api/walletApi';
+import { WC, WR, WS } from '../walletTheme';
 
 type TransactionRowProps = {
   item: WalletTransaction;
@@ -20,10 +15,13 @@ type TransactionRowProps = {
 
 function PurchaseIcon(): React.ReactElement {
   return (
-    <Svg width={20} height={20} viewBox="0 0 24 24">
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M7 4V2h10v2h3a1 1 0 0 1 1 1v3a4 4 0 0 1-4 4h-.34a6 6 0 0 1-3.66 3.74V18h3v2H8v-2h3v-2.26A6 6 0 0 1 7.34 12H7a4 4 0 0 1-4-4V5a1 1 0 0 1 1-1h3zm10 2H7v3a4 4 0 0 0 8 0V6h2zm-12 2V6H4v2a2 2 0 0 0 2 2V8a2 2 0 0 1-1-2zm14 0V6h-1v2a2 2 0 0 1-1 2v0a2 2 0 0 0 2-2z"
-        fill={AppColors.success}
+        d="M12 5v14M5 12l7-7 7 7"
+        stroke={WC.successText}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </Svg>
   );
@@ -31,10 +29,12 @@ function PurchaseIcon(): React.ReactElement {
 
 function ChatIcon(): React.ReactElement {
   return (
-    <Svg width={20} height={20} viewBox="0 0 24 24">
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"
-        fill={AppColors.primary}
+        d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"
+        stroke={WC.primary}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
       />
     </Svg>
   );
@@ -42,10 +42,13 @@ function ChatIcon(): React.ReactElement {
 
 function RefundIcon(): React.ReactElement {
   return (
-    <Svg width={20} height={20} viewBox="0 0 24 24">
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"
-        fill={AppColors.info}
+        d="M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6"
+        stroke={WC.secondary}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </Svg>
   );
@@ -63,20 +66,32 @@ function TypeIcon({ kind }: { kind: WalletTransaction['kind'] }): React.ReactEle
 
 function iconBackground(kind: WalletTransaction['kind']): string {
   if (kind === 'purchase') {
-    return AppColors.successLight;
+    return WC.successSoft;
   }
   if (kind === 'refund') {
-    return AppColors.infoLight;
+    return WC.secondarySoft;
   }
-  return AppColors.primarySubtle;
+  return WC.primarySoft;
 }
 
-/** Single transaction row with type-coded icon, title/subtitle, and amount. */
+function statusVisual(status: WalletTransaction['status']): { label: string; color: string } {
+  if (status === 'processing') {
+    return { label: 'Processing', color: WC.warning };
+  }
+  if (status === 'failed') {
+    return { label: 'Failed', color: '#F87171' };
+  }
+  return { label: 'Completed', color: WC.successText };
+}
+
+/** Premium activity-feed row: type icon, title/description, amount + status. */
 function TransactionRow({ item }: TransactionRowProps): React.ReactElement {
   const positive = item.coinDelta > 0;
-  const amountColor = positive ? AppColors.success : AppColors.onSurface;
+  const amountColor = positive ? WC.successText : WC.text;
   const sign = positive ? '+' : '−';
   const magnitude = Math.abs(item.coinDelta);
+  const status = statusVisual(item.status);
+
   return (
     <View style={styles.row}>
       <View style={[styles.iconWrap, { backgroundColor: iconBackground(item.kind) }]}>
@@ -87,12 +102,15 @@ function TransactionRow({ item }: TransactionRowProps): React.ReactElement {
           {item.title}
         </Text>
         <Text style={styles.subtitle} numberOfLines={1}>
-          {`${item.subtitle} • ${timeAgo(item.occurredAt)}`}
+          {`${item.subtitle} · ${timeAgo(item.occurredAt)}`}
         </Text>
       </View>
-      <View style={styles.amountWrap}>
+      <View style={styles.right}>
         <Text style={[styles.amount, { color: amountColor }]}>{`${sign}${magnitude}`}</Text>
-        <CoinIcon size={14} />
+        <View style={styles.statusRow}>
+          <View style={[styles.statusDot, { backgroundColor: status.color }]} />
+          <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+        </View>
       </View>
     </View>
   );
@@ -102,37 +120,25 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: AppSpacing.md,
-    paddingVertical: AppSpacing.sm + 4,
-    gap: AppSpacing.sm + 4,
+    paddingHorizontal: WS.lg,
+    paddingVertical: WS.md + 3,
+    gap: WS.md + 1,
   },
   iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: AppRadii.full,
+    width: 44,
+    height: 44,
+    borderRadius: WR.md - 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  middle: { flex: 1 },
-  title: {
-    ...AppTypography.bodyLarge,
-    color: AppColors.onSurface,
-    fontWeight: '600',
-  },
-  subtitle: {
-    ...AppTypography.bodySmall,
-    color: AppColors.onSurfaceMuted,
-    marginTop: 2,
-  },
-  amountWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  amount: {
-    ...AppTypography.bodyLarge,
-    fontWeight: '700',
-  },
+  middle: { flex: 1, minWidth: 0 },
+  title: { fontSize: 15, fontWeight: '700', color: WC.text },
+  subtitle: { fontSize: 12.5, fontWeight: '500', color: WC.textDim, marginTop: 2 },
+  right: { alignItems: 'flex-end' },
+  amount: { fontSize: 16, fontWeight: '800', letterSpacing: -0.3 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontSize: 10.5, fontWeight: '700' },
 });
 
 export default TransactionRow;

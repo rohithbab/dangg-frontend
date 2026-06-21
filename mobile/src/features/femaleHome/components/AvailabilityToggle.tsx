@@ -8,8 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { AppColors } from '@theme/colors';
-import { AppShadows } from '@theme/shadows';
+import { FC, FShadow } from '../femaleTheme';
 
 const TRACK_WIDTH = 56;
 const TRACK_HEIGHT = 32;
@@ -22,13 +21,6 @@ export type AvailabilityToggleProps = {
   disabled?: boolean;
 };
 
-/**
- * Custom rose-tinted on/off switch.
- *
- * Built from scratch (not React Native's `Switch`) because the OS switch
- * can't be themed deeply enough for the brand-rose look. Thumb position
- * uses a spring; track color crossfades with a timing animation.
- */
 function AvailabilityToggle({
   value,
   onValueChange,
@@ -44,7 +36,7 @@ function AvailabilityToggle({
     backgroundColor: interpolateColor(
       progress.value,
       [0, 1],
-      [AppColors.divider, AppColors.primary],
+      [FC.border, FC.primary],
     ),
   }));
 
@@ -69,7 +61,7 @@ function AvailabilityToggle({
       style={[styles.outer, disabled && styles.disabled]}
     >
       <Animated.View style={[styles.track, trackStyle]} />
-      <Animated.View style={[styles.thumb, AppShadows.e1, thumbStyle]}>
+      <Animated.View style={[styles.thumb, FShadow.float, thumbStyle]}>
         <View />
       </Animated.View>
     </Pressable>
@@ -95,7 +87,7 @@ const styles = StyleSheet.create({
     width: THUMB_SIZE,
     height: THUMB_SIZE,
     borderRadius: THUMB_SIZE / 2,
-    backgroundColor: AppColors.surface,
+    backgroundColor: FC.text,
   },
   disabled: { opacity: 0.55 },
 });

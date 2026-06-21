@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: AppSpacing.xl + 8,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: AppColors.primaryLight,
+    borderColor: AppColors.primary,
     marginTop: AppSpacing.xs,
   },
   countdownLabel: {
@@ -552,10 +552,14 @@ const styles = StyleSheet.create({
   },
   countdownValue: {
     ...AppTypography.displayLarge,
-    color: AppColors.primaryDark,
+    color: AppColors.primary,
     fontWeight: '800',
     marginTop: 2,
     letterSpacing: 2,
+    // Bright glowing pink timer.
+    textShadowColor: AppColors.primaryGlow,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12,
   },
 
   // Step status track

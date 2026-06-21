@@ -30,7 +30,9 @@ function AppBar({
 }: AppBarProps): React.ReactElement {
   const navigation = useNavigation();
   const canGoBack = navigation.canGoBack();
-  const renderBack = showBack && canGoBack;
+  // Show the chevron when we can pop OR the screen supplied its own `onBack`
+  // (e.g. a root screen that still wants a custom back destination).
+  const renderBack = showBack && (canGoBack || !!onBack);
 
   const handleBack = (): void => {
     if (onBack) {

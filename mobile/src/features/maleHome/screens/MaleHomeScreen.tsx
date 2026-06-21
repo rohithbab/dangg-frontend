@@ -30,9 +30,7 @@ import Animated, {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
-import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
-import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -63,6 +61,8 @@ import {
 } from '../api/maleHomeApi';
 import AvailableFemaleCard from '../components/AvailableFemaleCard';
 import FemaleSearchFilterSheet from '../components/FemaleSearchFilterSheet';
+import { GradientFill } from '../components/HomeGradients';
+import { HC, HGradient } from '../homeTheme';
 import { useFemaleFiltersStore } from '../store/femaleFiltersStore';
 
 type Nav = NativeStackNavigationProp<MaleAppStackParamList>;
@@ -79,7 +79,7 @@ function FilterIcon(): React.ReactElement {
     <Svg width={22} height={22} viewBox="0 0 24 24">
       <Path
         d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.74-7.39A1 1 0 0 0 18.95 4H5.04a1 1 0 0 0-.79 1.61z"
-        fill={AppColors.primary}
+        fill={HC.primary}
       />
     </Svg>
   );
@@ -90,7 +90,7 @@ function ChatsIcon(): React.ReactElement {
     <Svg width={24} height={24} viewBox="0 0 24 24">
       <Path
         d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"
-        fill={AppColors.primaryDark}
+        fill={HC.text}
       />
     </Svg>
   );
@@ -101,7 +101,7 @@ function SearchOffIcon(): React.ReactElement {
     <Svg width={48} height={48} viewBox="0 0 24 24">
       <Path
         d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 0 0-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 0 0 5.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
-        fill={AppColors.primary}
+        fill={HC.textDim}
       />
     </Svg>
   );
@@ -119,10 +119,39 @@ function initialsFromName(name: string): string {
   return (parts[0]?.[0] ?? '?').toUpperCase();
 }
 
+function mixHexColor(from: string, to: string, amount: number): string {
+  const start = Number.parseInt(from.replace('#', ''), 16);
+  const end = Number.parseInt(to.replace('#', ''), 16);
+  const mix = (shift: number): number => {
+    const a = (start >> shift) & 255;
+    const b = (end >> shift) & 255;
+    return Math.round(a + (b - a) * amount);
+  };
+  return `#${[mix(16), mix(8), mix(0)].map(value => value.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function GradientGreetingName({ name }: { name: string }): React.ReactElement {
+  const letters = Array.from(name);
+  const denominator = Math.max(letters.length - 1, 1);
+
+  return (
+    <Text style={styles.greetingName}>
+      {letters.map((letter, index) => (
+        <Text
+          key={`${letter}-${index}`}
+          style={{ color: mixHexColor(HGradient[0], HGradient[1], index / denominator) }}
+        >
+          {letter}
+        </Text>
+      ))}
+    </Text>
+  );
+}
+
 function ChevronLeft(): React.ReactElement {
   return (
     <Svg width={24} height={24} viewBox="0 0 24 24">
-      <Path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z" fill={AppColors.primaryDark} />
+      <Path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z" fill={HC.text} />
     </Svg>
   );
 }
@@ -132,8 +161,8 @@ function PreviewHeartIcon({ filled }: { filled: boolean }): React.ReactElement {
     <Svg width={22} height={22} viewBox="0 0 24 24">
       <Path
         d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-        fill={filled ? AppColors.primary : AppColors.transparent}
-        stroke={filled ? AppColors.transparent : AppColors.primaryDark}
+        fill={filled ? HC.primary : 'transparent'}
+        stroke={filled ? 'transparent' : '#FFFFFF'}
         strokeWidth={filled ? 0 : 2}
       />
     </Svg>
@@ -185,7 +214,10 @@ function FavoriteItem({ item, onPress }: FavoriteItemProps): React.ReactElement 
   return (
     <Pressable accessibilityRole="button" onPress={handlePress} style={styles.favItem}>
       <View ref={itemRef} collapsable={false} style={styles.favAvatarRing}>
-        <Avatar uri={item.imageUrl} size={72} initials={initialsFromName(item.name)} />
+        <GradientFill radius={999} />
+        <View style={styles.favAvatarInner}>
+          <Avatar uri={item.imageUrl} size={64} initials={initialsFromName(item.name)} />
+        </View>
       </View>
       {item.isOnline ? <View style={styles.favStatusDot} /> : null}
       <Text style={styles.favName} numberOfLines={1}>
@@ -224,6 +256,8 @@ function MaleHomeScreen(): React.ReactElement {
   const [genieCoords, setGenieCoords] = useState({ x: 0, y: 0, w: 72, h: 72 });
   const [isGenieActive, setIsGenieActive] = useState(false);
   const genieProgress = useSharedValue(0);
+  // 0 = circle-expand (favorites), 1 = settle/zoom-in (discovery cards).
+  const genieSettle = useSharedValue(0);
 
   const walletCoins = useWalletStore(s => s.coinBalance);
   const spend = useWalletStore(s => s.spend);
@@ -233,10 +267,18 @@ function MaleHomeScreen(): React.ReactElement {
   const [submitting, setSubmitting] = useState(false);
 
   const handleFavoritePress = useCallback(
-    (item: AvailableFemale, pageX: number, pageY: number, width: number, height: number) => {
+    (
+      item: AvailableFemale,
+      pageX: number,
+      pageY: number,
+      width: number,
+      height: number,
+      settle = false,
+    ) => {
       // Cancel any in-flight close animation and reset immediately so reopen is always clean
       cancelAnimation(genieProgress);
       genieProgress.value = 0;
+      genieSettle.value = settle ? 1 : 0;
       setGenieCoords({
         x: pageX || SCREEN_WIDTH / 2 - 36,
         y: pageY || 180,
@@ -245,9 +287,9 @@ function MaleHomeScreen(): React.ReactElement {
       });
       setSelectedFavorite(item);
       setIsGenieActive(true);
-      genieProgress.value = withTiming(1, { duration: 280 });
+      genieProgress.value = withTiming(1, { duration: settle ? 340 : 280 });
     },
-    [genieProgress],
+    [genieProgress, genieSettle],
   );
 
   const handleCloseGenie = useCallback(() => {
@@ -362,6 +404,18 @@ function MaleHomeScreen(): React.ReactElement {
 
   const animatedOverlayStyle = useAnimatedStyle(() => {
     const p = genieProgress.value;
+    if (genieSettle.value === 1) {
+      // Settle: a full-screen page that gently scales up + fades into place.
+      return {
+        left: 0,
+        top: 0,
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
+        borderRadius: 0,
+        opacity: interpolate(p, [0, 1], [0, 1]),
+        transform: [{ scale: interpolate(p, [0, 1], [0.94, 1]) }],
+      };
+    }
     const { x, y, w, h } = genieCoords;
     const diameter = Math.max(w, h);
     return {
@@ -370,6 +424,8 @@ function MaleHomeScreen(): React.ReactElement {
       width: interpolate(p, [0, 1], [diameter, SCREEN_WIDTH]),
       height: interpolate(p, [0, 1], [diameter, SCREEN_HEIGHT]),
       borderRadius: interpolate(p, [0, 1], [diameter / 2, 0]),
+      opacity: 1,
+      transform: [{ scale: 1 }],
     };
   });
 
@@ -377,6 +433,16 @@ function MaleHomeScreen(): React.ReactElement {
   // correct screen coordinates regardless of the overlay's current position.
   const profileContentStyle = useAnimatedStyle(() => {
     const p = genieProgress.value;
+    if (genieSettle.value === 1) {
+      return {
+        position: 'absolute' as const,
+        left: 0,
+        top: 0,
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
+        opacity: interpolate(p, [0, 0.5], [0, 1], Extrapolate.CLAMP),
+      };
+    }
     const { x, y } = genieCoords;
     return {
       position: 'absolute' as const,
@@ -388,9 +454,13 @@ function MaleHomeScreen(): React.ReactElement {
     };
   });
 
-  // Avatar photo fills the expanding circle until content fades in.
+  // Avatar photo fills the expanding circle until content fades in (circle mode
+  // only — the settle animation shows the full page directly).
   const circleHeroStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(genieProgress.value, [0, 0.45], [1, 0], Extrapolate.CLAMP),
+    opacity:
+      genieSettle.value === 1
+        ? 0
+        : interpolate(genieProgress.value, [0, 0.45], [1, 0], Extrapolate.CLAMP),
   }));
 
   // Buttons sit OUTSIDE the clipping overlay so they are never cropped.
@@ -563,7 +633,7 @@ function MaleHomeScreen(): React.ReactElement {
           <AvailableFemaleCard
             female={item}
             width={CARD_WIDTH}
-            onPress={() => navigation.navigate('FemaleProfilePreview', { femaleId: item.id })}
+            onPress={(x, y, w, h) => handleFavoritePress(item, x, y, w, h, true)}
             onToggleFavorite={() => {
               void handleToggleFavorite(item.id);
             }}
@@ -571,14 +641,16 @@ function MaleHomeScreen(): React.ReactElement {
         </View>
       );
     },
-    [handleToggleFavorite, navigation],
+    [handleFavoritePress, handleToggleFavorite],
   );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.greeting}>{`Hi, ${firstName}`}</Text>
+          <Text style={styles.greeting}>
+            Hi, <GradientGreetingName name={firstName} />
+          </Text>
           <Text style={styles.subgreeting}>Find your match</Text>
         </View>
         <View style={styles.headerRight}>
@@ -621,20 +693,17 @@ function MaleHomeScreen(): React.ReactElement {
             onRefresh={() => {
               void handleRefresh();
             }}
-            tintColor={AppColors.primary}
-            colors={[AppColors.primary]}
+            tintColor={HC.primary}
+            colors={[HC.primary]}
           />
         }
         ListHeaderComponent={
           <>
             {favorites.length > 0 ? (
-              <View style={styles.favSection}>
-                <View style={styles.favHeader}>
-                  <Text style={styles.favTitle}>Your Favorites</Text>
-                  <Pressable hitSlop={8} accessibilityRole="link" onPress={() => undefined}>
-                    <Text style={styles.favSeeAll}>See all</Text>
-                  </Pressable>
-                </View>
+                <View style={styles.favSection}>
+                  <View style={styles.favHeader}>
+                    <Text style={styles.favTitle}>Your Favorites</Text>
+                  </View>
                 <FlatList
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -731,8 +800,8 @@ function MaleHomeScreen(): React.ReactElement {
                       >
                         <Defs>
                           <LinearGradient id="genieHeroFade" x1="0" y1="0" x2="0" y2="1">
-                            <Stop offset="0%" stopColor={AppColors.scrim} stopOpacity="0" />
-                            <Stop offset="100%" stopColor={AppColors.scrim} stopOpacity="0.85" />
+                            <Stop offset="0%" stopColor="#000000" stopOpacity="0" />
+                            <Stop offset="100%" stopColor="#000000" stopOpacity="0.9" />
                           </LinearGradient>
                         </Defs>
                         <Rect width="100%" height="100%" fill="url(#genieHeroFade)" />
@@ -749,8 +818,8 @@ function MaleHomeScreen(): React.ReactElement {
                                 styles.genieHeroDot,
                                 {
                                   backgroundColor: selectedFavorite.isOnline
-                                    ? AppColors.onlineGreen
-                                    : AppColors.offlineGray,
+                                    ? HC.success
+                                    : HC.textFaint,
                                 },
                               ]}
                             />
@@ -759,7 +828,7 @@ function MaleHomeScreen(): React.ReactElement {
                             </Text>
                           </View>
                           <View style={styles.genieHeroMetaRight}>
-                            <PreviewStarIcon size={16} color={AppColors.surface} />
+                            <PreviewStarIcon size={16} color="#FBBF24" />
                             <Text style={styles.genieHeroMetaText}>
                               {`${selectedFavorite.rating.toFixed(1)} (${selectedFavorite.totalChats ?? 12} chats)`}
                             </Text>
@@ -785,7 +854,7 @@ function MaleHomeScreen(): React.ReactElement {
                         {selectedFavorite.bio || 'Available for chats and matches.'}
                       </Text>
 
-                      <View style={[styles.genieStatsCard, AppShadows.e1]}>
+                      <View style={styles.genieStatsCard}>
                         <StatCol value={String(selectedFavorite.totalChats ?? 12)} label="Chats" />
                         <View style={styles.genieStatDivider} />
                         <StatCol
@@ -894,10 +963,10 @@ function MaleHomeScreen(): React.ReactElement {
 const BOTTOM_CLEAR = BOTTOM_NAV_HEIGHT + FAB_PROTRUSION + AppSpacing.lg;
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: AppColors.background },
+  safe: { flex: 1, backgroundColor: HC.bg },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: AppSpacing.md,
     paddingTop:
@@ -905,38 +974,52 @@ const styles = StyleSheet.create({
   },
   headerLeft: { flex: 1 },
   greeting: {
-    ...AppTypography.titleMedium,
-    color: AppColors.primaryDark,
+    ...AppTypography.titleLarge,
+    color: HC.text,
+    fontWeight: '800',
+    letterSpacing: -0.3,
     marginLeft: 1,
   },
+  greetingName: { fontWeight: '800' },
   subgreeting: {
     ...AppTypography.bodyMedium,
-    color: AppColors.onSurfaceMuted,
-    marginTop: 2,
+    color: HC.textDim,
+    marginTop: 0,
   },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: AppSpacing.xs },
   coinPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: AppColors.primarySubtle,
-    height: 32,
+    backgroundColor: HC.glass,
+    borderWidth: 1,
+    borderColor: HC.hairline,
+    height: 34,
     paddingHorizontal: AppSpacing.sm + 4,
     borderRadius: AppRadii.full,
   },
   coinPillText: {
     ...AppTypography.labelLarge,
-    color: AppColors.primaryDark,
-    fontWeight: '700',
+    color: HC.text,
+    fontWeight: '800',
   },
-  chatsButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  chatsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: HC.glass,
+    borderWidth: 1,
+    borderColor: HC.hairline,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   filterIconWrap: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: AppColors.surface,
+    backgroundColor: HC.surface,
     borderWidth: 1,
-    borderColor: AppColors.border,
+    borderColor: HC.hairline,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: AppSpacing.xs,
@@ -949,14 +1032,14 @@ const styles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: AppColors.primary,
+    backgroundColor: HC.primary,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
   },
   filterBadgeText: {
     ...AppTypography.labelSmall,
-    color: AppColors.onPrimary,
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   favSection: { marginTop: AppSpacing.md },
@@ -967,40 +1050,47 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   favTitle: {
-    ...AppTypography.titleMedium,
-    color: AppColors.primaryDark,
-  },
-  favSeeAll: {
-    ...AppTypography.labelLarge,
-    color: AppColors.primary,
+    ...AppTypography.titleLarge,
+    color: HC.text,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   favListContent: {
     paddingHorizontal: 0,
-    gap: AppSpacing.sm,
+    gap: AppSpacing.sm + 2,
     paddingTop: AppSpacing.sm,
   },
-  favItem: { width: 88, alignItems: 'center', position: 'relative' },
+  favItem: { width: 84, alignItems: 'center', position: 'relative' },
   favAvatarRing: {
-    padding: 3,
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    padding: 2.5,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  favAvatarInner: {
     borderRadius: 999,
-    borderWidth: 3,
-    borderColor: AppColors.primary,
+    padding: 2.5,
+    backgroundColor: HC.bg,
   },
   favStatusDot: {
     position: 'absolute',
     bottom: 24,
-    right: 8,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: AppColors.onlineGreen,
-    borderWidth: 2,
-    borderColor: AppColors.background,
+    right: 6,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: HC.success,
+    borderWidth: 2.5,
+    borderColor: HC.bg,
   },
   favName: {
     ...AppTypography.bodySmall,
-    color: AppColors.onSurface,
-    marginTop: 4,
+    color: HC.text,
+    fontWeight: '600',
+    marginTop: 6,
     textAlign: 'center',
   },
   availableHeader: {
@@ -1012,12 +1102,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   availableTitle: {
-    ...AppTypography.titleMedium,
-    color: AppColors.primaryDark,
+    ...AppTypography.titleLarge,
+    color: HC.text,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   availableCount: {
     ...AppTypography.bodyMedium,
-    color: AppColors.onSurfaceMuted,
+    color: HC.textDim,
   },
   gridContent: { paddingHorizontal: GRID_HORIZONTAL_PADDING, paddingBottom: BOTTOM_CLEAR },
   cardWrapLeft: {
@@ -1036,32 +1128,35 @@ const styles = StyleSheet.create({
     paddingVertical: AppSpacing.xl,
   },
   emptyIcon: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: AppColors.primarySubtle,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: HC.surface,
+    borderWidth: 1,
+    borderColor: HC.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyTitle: {
-    ...AppTypography.titleMedium,
-    color: AppColors.primaryDark,
+    ...AppTypography.titleLarge,
+    color: HC.text,
+    fontWeight: '700',
     marginTop: AppSpacing.md,
   },
   emptyBody: {
     ...AppTypography.bodyMedium,
-    color: AppColors.onSurfaceMuted,
+    color: HC.textDim,
     textAlign: 'center',
     marginTop: AppSpacing.xs,
   },
   genieOverlay: {
     position: 'absolute',
-    backgroundColor: AppColors.background,
+    backgroundColor: HC.bg,
     zIndex: 9999,
     overflow: 'hidden',
   },
-  genieScroll: { paddingBottom: 160 },
-  genieHero: { width: '100%', backgroundColor: AppColors.primarySubtle, position: 'relative' },
+  genieScroll: { paddingBottom: 180 },
+  genieHero: { width: '100%', backgroundColor: HC.cardHi, position: 'relative' },
   genieHeroGradient: {
     position: 'absolute',
     left: 0,
@@ -1081,8 +1176,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: AppColors.surface,
-    opacity: 0.92,
+    backgroundColor: HC.glassStrong,
+    borderWidth: 1,
+    borderColor: HC.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1096,8 +1192,8 @@ const styles = StyleSheet.create({
   },
   genieHeroName: {
     ...AppTypography.headlineLarge,
-    color: AppColors.surface,
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   genieHeroMetaRow: {
     flexDirection: 'row',
@@ -1110,7 +1206,7 @@ const styles = StyleSheet.create({
   genieHeroDot: { width: 10, height: 10, borderRadius: 5 },
   genieHeroMetaText: {
     ...AppTypography.bodyMedium,
-    color: AppColors.surface,
+    color: '#FFFFFF',
     opacity: 0.95,
   },
   genieBodyBlock: { paddingHorizontal: AppSpacing.md, paddingTop: AppSpacing.md },
@@ -1121,33 +1217,38 @@ const styles = StyleSheet.create({
     marginTop: AppSpacing.sm,
   },
   geniePricePill: {
-    backgroundColor: AppColors.primarySubtle,
+    backgroundColor: HC.primarySoft,
+    borderWidth: 1,
+    borderColor: HC.hairline,
     borderRadius: AppRadii.full,
     paddingHorizontal: AppSpacing.md,
     paddingVertical: 6,
   },
   geniePricePillText: {
     ...AppTypography.labelLarge,
-    color: AppColors.primaryDark,
-    fontWeight: '700',
+    color: HC.primary,
+    fontWeight: '800',
   },
   genieResponseText: {
     ...AppTypography.bodyMedium,
-    color: AppColors.onSurfaceMuted,
+    color: HC.textDim,
   },
   genieSectionTitle: {
     ...AppTypography.titleMedium,
-    color: AppColors.primaryDark,
+    color: HC.text,
+    fontWeight: '700',
     marginTop: AppSpacing.lg,
   },
   genieBioText: {
     ...AppTypography.bodyLarge,
-    color: AppColors.onSurface,
+    color: HC.text,
     marginTop: 4,
   },
   genieStatsCard: {
     flexDirection: 'row',
-    backgroundColor: AppColors.surface,
+    backgroundColor: HC.card,
+    borderWidth: 1,
+    borderColor: HC.hairline,
     borderRadius: AppRadii.lg,
     padding: AppSpacing.md,
     marginTop: AppSpacing.lg,
@@ -1155,33 +1256,34 @@ const styles = StyleSheet.create({
   statCol: { flex: 1, alignItems: 'center' },
   statValue: {
     ...AppTypography.titleLarge,
-    color: AppColors.primaryDark,
+    color: HC.text,
+    fontWeight: '800',
   },
   statLabel: {
     ...AppTypography.bodySmall,
-    color: AppColors.onSurfaceMuted,
+    color: HC.textDim,
     marginTop: 2,
   },
   genieStatDivider: {
     width: StyleSheet.hairlineWidth,
-    backgroundColor: AppColors.divider,
+    backgroundColor: HC.border,
     marginVertical: 4,
   },
   genieCtaWrap: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
+    bottom: 20,
     paddingHorizontal: AppSpacing.md,
     paddingTop: AppSpacing.sm,
     paddingBottom: AppSpacing.md,
-    backgroundColor: AppColors.background,
+    backgroundColor: HC.bg,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: AppColors.divider,
+    borderTopColor: HC.border,
   },
   genieBalanceHint: {
     ...AppTypography.bodySmall,
-    color: AppColors.onSurfaceMuted,
+    color: HC.textDim,
     textAlign: 'center',
     marginTop: AppSpacing.xs,
   },

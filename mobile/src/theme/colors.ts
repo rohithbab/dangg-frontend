@@ -1,20 +1,31 @@
 /**
  * Single source of truth for color tokens. Never hard-code `#xxxxxx`
- * outside this file — ESLint will flag any drift.
+ * outside this file — keep every color literal here so the theme stays
+ * swappable from one place.
+ *
+ * v2 "Vibrant Splash" palette: the splash pink (#FF66C4) is now the brand
+ * primary, layered over a deep obsidian surface stack so neon-pink glows and
+ * gradients pop.
  */
 
 export const lightColors = {
-  // Brand — vibrant pink accent
-  primary: '#E91E63',
-  primaryDark: '#B5179E',
-  primaryLight: '#FF6B9D',
-  primarySubtle: '#3A1321',
+  // Brand — vibrant splash pink accent
+  primary: '#FF66C4',
+  primaryDark: '#E64DB0',
+  primaryLight: '#FF8EC6',
+  primarySubtle: '#1F0E16',
 
-  // Background hierarchy. `background` is a clean neutral, NOT pink-tinted.
-  background: '#1C1C1C',
-  surface: '#242424',
-  surfaceVariant: '#2E2E2E',
-  surfaceHigh: '#242424',
+  // Glow / translucent pink helpers (rgba so they layer over dark surfaces)
+  primaryGlow: 'rgba(255, 102, 196, 0.25)',
+  primaryOutline: 'rgba(255, 102, 196, 0.3)',
+  primaryBorderSoft: 'rgba(255, 102, 196, 0.15)',
+  primaryBorderSubtle: 'rgba(255, 102, 196, 0.08)',
+
+  // Background hierarchy — deep obsidian so surfaces & glows stand out.
+  background: '#0B0B0C',
+  surface: '#141416',
+  surfaceVariant: '#1D1D21',
+  surfaceHigh: '#202024',
 
   // Text
   onPrimary: '#FFFFFF',
@@ -23,10 +34,10 @@ export const lightColors = {
   onSurfaceDisabled: '#4A4A55',
   onError: '#FFFFFF',
 
-  // Borders & dividers — neutral, not pink-tinted
-  border: '#3A3A3A',
-  borderStrong: '#3A3A3A',
-  divider: '#3A3A3A',
+  // Borders & dividers — high-contrast boundary lines
+  border: '#242429',
+  borderStrong: '#2E2E34',
+  divider: '#242429',
 
   // Semantic — modern fintech/social status colors
   success: '#10B981',
@@ -42,6 +53,7 @@ export const lightColors = {
   onlineGreen: '#10B981',
   offlineGray: '#4A4A55',
   availableYellow: '#EAB308',
+  neonGreen: '#39FF8B',
 
   // Coin / gold palette
   coinGold: '#F59E0B',
@@ -49,31 +61,39 @@ export const lightColors = {
   coinGoldDark: '#D97706',
 
   // Gradient anchors
-  gradientRoseStart: '#E91E63',
-  gradientRoseEnd: '#FF6B9D',
+  gradientRoseStart: '#FF66C4',
+  gradientRoseEnd: '#FF8EC6',
   gradientRoseSubtleStart: '#1F0E16',
-  gradientRoseSubtleEnd: '#1C1C1C',
+  gradientRoseSubtleEnd: '#0B0B0C',
+  gradientVioletStart: '#FF66C4',
+  gradientVioletEnd: '#7B2CBF',
   splashBackground: '#FF66C4',
 
   // Utility
   scrim: 'rgba(0,0,0,0.7)',
-  shimmerBase: '#242424',
-  shimmerHighlight: '#3A3A3A',
+  shimmerBase: '#1D1D21',
+  shimmerHighlight: '#2A2A30',
   transparent: 'transparent',
 } as const;
 
 export const darkColors = {
-  // Brand — vibrant pink accent
-  primary: '#E91E63',
-  primaryDark: '#B5179E',
-  primaryLight: '#FF6B9D',
-  primarySubtle: '#3A1321',
+  // Brand — vibrant splash pink accent
+  primary: '#FF66C4',
+  primaryDark: '#E64DB0',
+  primaryLight: '#FF8EC6',
+  primarySubtle: '#1F0E16',
 
-  // Background hierarchy
-  background: '#1C1C1C',
-  surface: '#242424',
-  surfaceVariant: '#2E2E2E',
-  surfaceHigh: '#242424',
+  // Glow / translucent pink helpers (rgba so they layer over dark surfaces)
+  primaryGlow: 'rgba(255, 102, 196, 0.25)',
+  primaryOutline: 'rgba(255, 102, 196, 0.3)',
+  primaryBorderSoft: 'rgba(255, 102, 196, 0.15)',
+  primaryBorderSubtle: 'rgba(255, 102, 196, 0.08)',
+
+  // Background hierarchy — deep obsidian so surfaces & glows stand out.
+  background: '#0B0B0C',
+  surface: '#141416',
+  surfaceVariant: '#1D1D21',
+  surfaceHigh: '#202024',
 
   // Text
   onPrimary: '#FFFFFF',
@@ -82,10 +102,10 @@ export const darkColors = {
   onSurfaceDisabled: '#4A4A55',
   onError: '#FFFFFF',
 
-  // Borders & dividers
-  border: '#3A3A3A',
-  borderStrong: '#3A3A3A',
-  divider: '#3A3A3A',
+  // Borders & dividers — high-contrast boundary lines
+  border: '#242429',
+  borderStrong: '#2E2E34',
+  divider: '#242429',
 
   // Semantic
   success: '#34D399',
@@ -101,6 +121,7 @@ export const darkColors = {
   onlineGreen: '#34D399',
   offlineGray: '#4A4A55',
   availableYellow: '#EAB308',
+  neonGreen: '#39FF8B',
 
   // Coin / gold palette
   coinGold: '#F59E0B',
@@ -108,16 +129,18 @@ export const darkColors = {
   coinGoldDark: '#D97706',
 
   // Gradient anchors
-  gradientRoseStart: '#E91E63',
-  gradientRoseEnd: '#FF6B9D',
+  gradientRoseStart: '#FF66C4',
+  gradientRoseEnd: '#FF8EC6',
   gradientRoseSubtleStart: '#1F0E16',
-  gradientRoseSubtleEnd: '#1C1C1C',
+  gradientRoseSubtleEnd: '#0B0B0C',
+  gradientVioletStart: '#FF66C4',
+  gradientVioletEnd: '#7B2CBF',
   splashBackground: '#FF66C4',
 
   // Utility
   scrim: 'rgba(0,0,0,0.7)',
-  shimmerBase: '#242424',
-  shimmerHighlight: '#3A3A3A',
+  shimmerBase: '#1D1D21',
+  shimmerHighlight: '#2A2A30',
   transparent: 'transparent',
 } as const;
 

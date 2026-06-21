@@ -24,6 +24,9 @@ export type ChatSession = {
   status: 'active' | 'ended';
   startedAt: string;
   endedAt: string | null;
+  /** Display name of the OTHER participant (resolved relative to the caller). */
+  partnerName: string;
+  partnerAvatarUrl: string | null;
 };
 
 export type ChatMessage = {
@@ -188,10 +191,13 @@ export async function getChatSessionForRequest(requestId: string): Promise<ChatS
       status: 'active',
       startedAt: new Date().toISOString(),
       endedAt: null,
+      partnerName: '',
+      partnerAvatarUrl: null,
     };
   }
 
-  const { data, error } = await getSupabaseClient()
+  const client = getSupabaseClient();
+  const { data, error } = await client
     .from('chat_sessions')
     .select('id, chat_request_id, male_id, female_id, status, started_at, ended_at')
     .eq('chat_request_id', requestId)
@@ -204,6 +210,26 @@ export async function getChatSessionForRequest(requestId: string): Promise<ChatS
     return null;
   }
 
+  // Resolve the OTHER participant's display name relative to the caller. RLS
+  // (`users_select_related`) lets each participant read the other's profile
+  // because a chat_request links them.
+  const { data: userData } = await client.auth.getUser();
+  const selfId = userData.user?.id ?? null;
+  const counterpartId = selfId === data.male_id ? data.female_id : data.male_id;
+  let partnerName = '';
+  let partnerAvatarUrl: string | null = null;
+  if (counterpartId) {
+    const { data: partner } = await client
+      .from('users')
+      .select('name, profile_picture_url')
+      .eq('id', counterpartId)
+      .maybeSingle();
+    if (partner) {
+      partnerName = partner.name ?? '';
+      partnerAvatarUrl = partner.profile_picture_url ?? null;
+    }
+  }
+
   return {
     id: data.id,
     requestId: data.chat_request_id,
@@ -212,6 +238,8 @@ export async function getChatSessionForRequest(requestId: string): Promise<ChatS
     status: data.status,
     startedAt: data.started_at,
     endedAt: data.ended_at,
+    partnerName,
+    partnerAvatarUrl,
   } as ChatSession;
 }
 

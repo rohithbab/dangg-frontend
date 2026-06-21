@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: AppColors.surface,
     borderWidth: 1.5,
-    borderColor: AppColors.border,
+    borderColor: AppColors.primaryOutline,
   },
   full: { alignSelf: 'stretch' },
   inline: { alignSelf: 'flex-start' },

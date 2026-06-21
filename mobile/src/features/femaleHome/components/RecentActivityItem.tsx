@@ -1,22 +1,17 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { AppColors } from '@theme/colors';
-import { AppSpacing } from '@theme/spacing';
-import { AppTypography } from '@theme/typography';
-
 import Avatar from '@core/components/Avatar';
 import CoinIcon from '@core/components/CoinIcon';
 
 import { type RecentActivity } from '../api/femaleHomeApi';
+import { FC, FS } from '../femaleTheme';
 
 export type RecentActivityItemProps = {
   item: RecentActivity;
 };
 
 function relativeTime(input: Date | string | number): string {
-  // Defensive: callers should pass a Date, but data crossing the API boundary
-  // can arrive as an ISO string — coerce so the render can never crash.
   const date = input instanceof Date ? input : new Date(input);
   const ms = date.getTime();
   if (Number.isNaN(ms)) {
@@ -48,7 +43,6 @@ function initialsFromName(name: string): string {
   return `${first}${last}`.toUpperCase();
 }
 
-/** Row in the Female Home Recent Activity list. */
 function RecentActivityItem({ item }: RecentActivityItemProps): React.ReactElement {
   const time = useMemo(() => relativeTime(item.occurredAt), [item.occurredAt]);
 
@@ -80,18 +74,22 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: AppSpacing.sm + 4,
-    paddingHorizontal: AppSpacing.md,
-    gap: AppSpacing.sm,
+    paddingVertical: FS.md + 2,
+    paddingHorizontal: FS.lg,
+    gap: FS.sm,
   },
-  middle: { flex: 1, marginHorizontal: AppSpacing.sm },
+  middle: { flex: 1, marginHorizontal: FS.sm },
   name: {
-    ...AppTypography.bodyLarge,
-    color: AppColors.onSurface,
+    fontSize: 15,
+    fontWeight: '700',
+    fontFamily: 'Nunito',
+    color: FC.text,
   },
   description: {
-    ...AppTypography.bodySmall,
-    color: AppColors.onSurfaceMuted,
+    fontSize: 12.5,
+    fontWeight: '500',
+    fontFamily: 'Nunito',
+    color: FC.textDim,
     marginTop: 2,
   },
   right: { alignItems: 'flex-end' },
@@ -101,13 +99,17 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   amount: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.success,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '800',
+    fontFamily: 'Poppins',
+    color: FC.successText,
+    letterSpacing: -0.2,
   },
   time: {
-    ...AppTypography.labelSmall,
-    color: AppColors.onSurfaceMuted,
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: 'Nunito',
+    color: FC.textFaint,
     marginTop: 2,
   },
 });

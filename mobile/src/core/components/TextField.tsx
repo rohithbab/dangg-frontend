@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, TextInput, type TextInputProps, View } fro
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -126,7 +127,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: AppSpacing.md,
     minHeight: 52,
   },
-  fieldRowFocused: { borderColor: AppColors.primary, borderWidth: 1.5 },
+  fieldRowFocused: { borderColor: AppColors.primary, borderWidth: 1.5, ...AppShadows.e1 },
   fieldRowError: { borderColor: AppColors.error, borderWidth: 1.5 },
   iconLeft: { marginRight: AppSpacing.sm },
   iconRight: { marginLeft: AppSpacing.sm },

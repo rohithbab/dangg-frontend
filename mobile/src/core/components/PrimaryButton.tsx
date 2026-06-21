@@ -1,8 +1,10 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -23,9 +25,32 @@ export type PrimaryButtonProps = {
 };
 
 /**
- * Primary call-to-action button. Filled background, white label. States:
- * default / pressed / disabled / loading. `loading=true` blocks press and
- * swaps the label for a spinner.
+ * Premium pink gradient fill (#FF66C4 → #FF8EC6) rendered via an absolutely
+ * positioned SVG behind the label. The corners are rounded on the SVG `Rect`
+ * (rather than clipping the Pressable) so the `e2` neon under-glow is not
+ * masked on iOS. A solid `primary` base color sits under the gradient so
+ * Android `elevation` still has a surface to cast its glow from.
+ */
+function GradientFill(): React.ReactElement {
+  const gradientId = React.useId();
+  return (
+    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
+      <Defs>
+        <LinearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
+          <Stop offset="0" stopColor={AppColors.gradientRoseStart} />
+          <Stop offset="1" stopColor={AppColors.gradientRoseEnd} />
+        </LinearGradient>
+      </Defs>
+      <Rect x="0" y="0" width="100%" height="100%" rx={AppRadii.md} fill={`url(#${gradientId})`} />
+    </Svg>
+  );
+}
+
+/**
+ * Primary call-to-action button. The default `filled` variant uses a premium
+ * pink gradient + neon under-glow; `danger`/`success` keep flat semantic fills.
+ * States: default / pressed / disabled / loading. `loading=true` blocks press
+ * and swaps the label for a spinner.
  */
 function PrimaryButton({
   label,
@@ -38,12 +63,9 @@ function PrimaryButton({
   testID,
 }: PrimaryButtonProps): React.ReactElement {
   const isBlocked = disabled || loading;
-  const background =
-    variant === 'danger'
-      ? AppColors.error
-      : variant === 'success'
-        ? AppColors.success
-        : AppColors.primary;
+  const isFilled = variant === 'filled';
+  const flatBackground =
+    variant === 'danger' ? AppColors.error : variant === 'success' ? AppColors.success : AppColors.primary;
 
   return (
     <Pressable
@@ -55,10 +77,13 @@ function PrimaryButton({
       style={({ pressed }) => [
         styles.base,
         fullWidth ? styles.full : styles.inline,
-        { backgroundColor: background, opacity: pressed && !isBlocked ? 0.85 : 1 },
+        { backgroundColor: flatBackground },
+        isFilled && AppShadows.e2,
+        { opacity: pressed && !isBlocked ? 0.9 : 1 },
         isBlocked && styles.disabled,
       ]}
     >
+      {isFilled ? <GradientFill /> : null}
       {loading ? (
         <ActivityIndicator color={AppColors.onPrimary} />
       ) : (
@@ -79,6 +104,7 @@ const styles = StyleSheet.create({
     paddingVertical: AppSpacing.md,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
   },
   full: { alignSelf: 'stretch' },
   inline: { alignSelf: 'flex-start' },

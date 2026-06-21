@@ -1,5 +1,12 @@
 import React from 'react';
-import { Pressable, StyleSheet, View, type ViewProps, type ViewStyle } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewProps,
+  type ViewStyle,
+} from 'react-native';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
@@ -14,7 +21,7 @@ export type CardProps = ViewProps & {
   /** Becomes tappable when set — renders Pressable with ink-style feedback. */
   onPress?: () => void;
   /** Override the outer container style (use sparingly). */
-  containerStyle?: ViewStyle;
+  containerStyle?: StyleProp<ViewStyle>;
 };
 
 /**
@@ -60,6 +67,9 @@ const styles = StyleSheet.create({
   base: {
     backgroundColor: AppColors.surface,
     borderRadius: AppRadii.lg,
+    // Subtle glassmorphic pink outline; pairs with the e1 neon glow (default).
+    borderWidth: 1.2,
+    borderColor: AppColors.primaryBorderSubtle,
   },
 });
 

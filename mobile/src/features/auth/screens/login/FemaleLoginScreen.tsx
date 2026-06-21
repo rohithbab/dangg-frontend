@@ -201,8 +201,12 @@ function FemaleLoginScreen(): React.ReactElement {
   const handleBack = useCallback(() => {
     if (step === 'password') {
       setStep('phone');
-    } else {
+    } else if (navigation.canGoBack()) {
       navigation.goBack();
+    } else {
+      // Reached as a navigation root (e.g. after verification) — fall back to
+      // the account-type chooser so the user isn't stranded with no way back.
+      navigation.navigate('AccountType');
     }
   }, [step, navigation]);
 

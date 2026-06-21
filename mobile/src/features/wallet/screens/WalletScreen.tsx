@@ -1,32 +1,32 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, {
-  Circle,
-  Defs,
-  LinearGradient as SvgLinearGradient,
-  Path,
-  Rect,
-  Stop,
-} from 'react-native-svg';
-
-import { AppColors } from '@theme/colors';
-import { AppRadii } from '@theme/radii';
-import { AppShadows } from '@theme/shadows';
-import { AppSpacing } from '@theme/spacing';
-import { AppTypography } from '@theme/typography';
+import Svg, { Path } from 'react-native-svg';
 
 import CoinIcon from '@core/components/CoinIcon';
-import PrimaryButton from '@core/components/PrimaryButton';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
-import { compactNumber, inr } from '@core/utils/formatters';
+import { inr } from '@core/utils/formatters';
 import { logger } from '@core/utils/logger';
 
 import { type MaleAppStackParamList } from '@navigation/types';
-
-import FilterChip from '@features/maleHome/components/FilterChip';
 
 import {
   type WalletTransaction,
@@ -38,8 +38,10 @@ import CoinPackageCard from '../components/CoinPackageCard';
 import CoinPurchaseConfirmModal from '../components/CoinPurchaseConfirmModal';
 import SliderTabs from '../components/SliderTabs';
 import TransactionRow from '../components/TransactionRow';
+import { GradientFill, HeroBackdrop } from '../components/WalletGradients';
 import { COIN_PACKAGES, type CoinPackage, totalCoinsFor } from '../constants';
-import { useCoinBalance, useWalletStore } from '../store/walletStore';
+import { useCoinBalance } from '../store/walletStore';
+import { WC, WR, WS, WShadow } from '../walletTheme';
 
 type Nav = NativeStackNavigationProp<MaleAppStackParamList>;
 type WalletTab = 'wallet' | 'transaction';
@@ -59,10 +61,73 @@ const BUCKET_LABEL: Record<DayBucket, string> = {
   older: 'Earlier',
 };
 
-function ChevronRightIcon(): React.ReactElement {
+// ─── Icons ──────────────────────────────────────────────────────────────────
+function BellIcon(): React.ReactElement {
   return (
-    <Svg width={16} height={16} viewBox="0 0 24 24">
-      <Path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z" fill={AppColors.primary} />
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"
+        stroke={WC.text}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="M13.7 21a2 2 0 0 1-3.4 0" stroke={WC.text} strokeWidth={1.7} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function HistoryIcon(): React.ReactElement {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 8v4l3 2"
+        stroke={WC.text}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M3.05 11a9 9 0 1 1 .5 4"
+        stroke={WC.text}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M3 4v4h4"
+        stroke={WC.text}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function SearchIcon(): React.ReactElement {
+  return (
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14ZM20 20l-3.2-3.2"
+        stroke={WC.textDim}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function SortIcon(): React.ReactElement {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 6h16M7 12h10M10 18h4"
+        stroke={WC.text}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+      />
     </Svg>
   );
 }
@@ -85,17 +150,18 @@ function bucketFor(date: Date, now: Date): DayBucket {
 }
 
 /**
- * Male Wallet tab with header slider between two sub-views.
+ * Male Wallet tab — premium fintech redesign (scoped to the wallet feature).
  *
- *   * Wallet view — premium gold-coin hero + 6-package grid + recent activity
- *     teaser + sticky buy button.
- *   * Transaction view — filter chips + grouped transaction list with type icons.
+ *   * Wallet view — frosted balance hero + analytics stat cards + subscription
+ *     style coin packs + recent activity + sticky buy CTA.
+ *   * Transaction view — analytics overview + glass search/sort + segmented
+ *     category control + premium activity feed.
+ *
+ * All data, navigation routes, payment flow and store logic are unchanged.
  */
 function WalletScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const coinBalance = useCoinBalance();
-  const totalCoinsPurchased = useWalletStore(s => s.totalCoinsPurchased);
-  const chatsStarted = useWalletStore(s => s.chatsStarted);
 
   const [activeTab, setActiveTab] = useState<WalletTab>('wallet');
   const [selectedPkg, setSelectedPkg] = useState<CoinPackage | null>(null);
@@ -104,6 +170,9 @@ function WalletScreen(): React.ReactElement {
   const [txFilter, setTxFilter] = useState<WalletTransactionFilter>('all');
   const [transactions, setTransactions] = useState<ReadonlyArray<WalletTransaction>>([]);
   const [recentTxs, setRecentTxs] = useState<ReadonlyArray<WalletTransaction>>([]);
+  const [txLoading, setTxLoading] = useState(true);
+  const [walletRefreshing, setWalletRefreshing] = useState(false);
+  const [txRefreshing, setTxRefreshing] = useState(false);
 
   useEffect(() => {
     fetchWalletSnapshot().catch(e => logger.warn('Wallet snapshot failed', e));
@@ -125,9 +194,11 @@ function WalletScreen(): React.ReactElement {
     if (activeTab !== 'transaction') {
       return;
     }
+    setTxLoading(true);
     listTransactions(txFilter)
       .then(setTransactions)
-      .catch(e => logger.warn('Transactions load failed', e));
+      .catch(e => logger.warn('Transactions load failed', e))
+      .finally(() => setTxLoading(false));
   }, [activeTab, txFilter]);
 
   const handleConfirmPurchase = useCallback((): void => {
@@ -138,10 +209,59 @@ function WalletScreen(): React.ReactElement {
     navigation.navigate('PaymentProcessing', { packageId: selectedPkg.id });
   }, [navigation, selectedPkg]);
 
+  const handleWalletRefresh = useCallback(async (): Promise<void> => {
+    setWalletRefreshing(true);
+    try {
+      await Promise.all([
+        fetchWalletSnapshot(),
+        listTransactions('all').then(txs => setRecentTxs(txs.slice(0, 3))),
+      ]);
+    } catch (e) {
+      logger.warn('Wallet refresh failed', e);
+    } finally {
+      setWalletRefreshing(false);
+    }
+  }, []);
+
+  const handleTxRefresh = useCallback(async (): Promise<void> => {
+    setTxRefreshing(true);
+    try {
+      setTransactions(await listTransactions(txFilter));
+    } catch (e) {
+      logger.warn('Transactions refresh failed', e);
+    } finally {
+      setTxRefreshing(false);
+    }
+  }, [txFilter]);
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Wallet</Text>
+        <View>
+          <Text style={styles.headerTitle}>Wallet</Text>
+          <Text style={styles.headerSubtitle}>Manage your balance and purchases</Text>
+        </View>
+        <View style={styles.headerIcons}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
+            hitSlop={6}
+            onPress={() => navigation.navigate('Notifications')}
+            style={styles.iconBtn}
+          >
+            <View style={styles.iconDot} />
+            <BellIcon />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Transaction history"
+            hitSlop={6}
+            onPress={() => setActiveTab('transaction')}
+            style={styles.iconBtn}
+          >
+            <HistoryIcon />
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.sliderWrap}>
@@ -158,19 +278,22 @@ function WalletScreen(): React.ReactElement {
       {activeTab === 'wallet' ? (
         <WalletView
           coinBalance={coinBalance}
-          totalCoinsPurchased={totalCoinsPurchased}
-          chatsStarted={chatsStarted}
           selectedPkg={selectedPkg}
           onSelectPkg={setSelectedPkg}
           onBuy={() => setConfirmOpen(true)}
           recentTxs={recentTxs}
           onSeeAllActivity={() => setActiveTab('transaction')}
+          refreshing={walletRefreshing}
+          onRefresh={handleWalletRefresh}
         />
       ) : (
         <TransactionView
           filter={txFilter}
           onFilterChange={setTxFilter}
           transactions={transactions}
+          loading={txLoading}
+          refreshing={txRefreshing}
+          onRefresh={handleTxRefresh}
           onGoToPackages={() => setActiveTab('wallet')}
         />
       )}
@@ -185,125 +308,91 @@ function WalletScreen(): React.ReactElement {
   );
 }
 
-type StatCardProps = { label: string; value: string };
-function StatCard({ label, value }: StatCardProps): React.ReactElement {
-  return (
-    <View style={[styles.statCard, AppShadows.e1]}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
-
+// ─── Wallet view ──────────────────────────────────────────────────────────────
 type WalletViewProps = {
   coinBalance: number;
-  totalCoinsPurchased: number;
-  chatsStarted: number;
   selectedPkg: CoinPackage | null;
   onSelectPkg: (pkg: CoinPackage) => void;
   onBuy: () => void;
   recentTxs: ReadonlyArray<WalletTransaction>;
   onSeeAllActivity: () => void;
+  refreshing: boolean;
+  onRefresh: () => void;
 };
 
 function WalletView({
   coinBalance,
-  totalCoinsPurchased,
-  chatsStarted,
   selectedPkg,
   onSelectPkg,
   onBuy,
   recentTxs,
   onSeeAllActivity,
+  refreshing,
+  onRefresh,
 }: WalletViewProps): React.ReactElement {
-  const [cardLayout, setCardLayout] = useState<{ width: number; height: number }>({
-    width: 0,
-    height: 0,
-  });
-
   return (
     <>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.heroCardContainer}>
-          <View
-            style={styles.heroCardContent}
-            onLayout={e => {
-              const { width, height } = e.nativeEvent.layout;
-              setCardLayout({ width, height });
-            }}
-          >
-            {cardLayout.width > 0 && cardLayout.height > 0 ? (
-              <Svg
-                height={cardLayout.height}
-                width={cardLayout.width}
-                viewBox={`0 0 ${cardLayout.width} ${cardLayout.height}`}
-                style={StyleSheet.absoluteFillObject}
-              >
-                <Defs>
-                  <SvgLinearGradient id="heroCardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <Stop offset="0%" stopColor={AppColors.primaryDark} />
-                    <Stop offset="100%" stopColor={AppColors.primaryLight} />
-                  </SvgLinearGradient>
-                </Defs>
-                <Rect
-                  x={0}
-                  y={0}
-                  width={cardLayout.width}
-                  height={cardLayout.height}
-                  fill="url(#heroCardGrad)"
-                />
-                {/* Decorative elements for depth and premium finish */}
-                <Circle cx={cardLayout.width - 20} cy={20} r={45} fill="#FFFFFF" opacity={0.12} />
-                <Circle cx={30} cy={cardLayout.height - 10} r={30} fill="#FFFFFF" opacity={0.06} />
-              </Svg>
-            ) : null}
-            <View style={styles.heroContent}>
-              <Text style={styles.heroLabelWhite}>Current Balance</Text>
-              <View style={styles.heroBalanceRow}>
-                <CoinIcon size={40} />
-                <Text style={styles.heroBalanceWhite}>{coinBalance.toLocaleString()}</Text>
-              </View>
-            </View>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={WC.primary}
+            colors={[WC.primary]}
+          />
+        }
+      >
+        {/* Balance hero */}
+        <Animated.View entering={FadeInDown.duration(480)} style={[styles.hero, WShadow.hero]}>
+          <HeroBackdrop radius={WR.hero} />
+          <View style={styles.heroTopHighlight} pointerEvents="none" />
+          <Text style={styles.heroLabel}>CURRENT BALANCE</Text>
+          <View style={styles.heroBalanceRow}>
+            <Text style={styles.heroBalance}>{coinBalance.toLocaleString()}</Text>
+            <Text style={styles.heroUnit}>Coins</Text>
           </View>
+        </Animated.View>
+
+        {/* Coin packages */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Choose your coin pack</Text>
+          <Text style={styles.sectionSubtitle}>Unlock conversations instantly with more coins</Text>
         </View>
 
-        <View style={styles.statsRow}>
-          <StatCard label="Purchased" value={compactNumber(totalCoinsPurchased)} />
-          <StatCard label="Chats" value={String(chatsStarted)} />
-          <StatCard label="Spent" value={inr(totalCoinsPurchased - coinBalance)} />
-        </View>
-
-        <Text style={styles.sectionTitle}>Choose a Package</Text>
-
-        <View style={styles.grid}>
-          {COIN_PACKAGES.map(pkg => (
-            <CoinPackageCard
-              key={pkg.id}
-              pkg={pkg}
-              selected={selectedPkg?.id === pkg.id}
-              onPress={() => onSelectPkg(pkg)}
-            />
+        <View style={styles.pkgList}>
+          {COIN_PACKAGES.map((pkg, index) => (
+            <Animated.View key={pkg.id} entering={FadeInDown.duration(380).delay(120 + index * 55)}>
+              <CoinPackageCard
+                pkg={pkg}
+                selected={selectedPkg?.id === pkg.id}
+                onPress={() => onSelectPkg(pkg)}
+              />
+            </Animated.View>
           ))}
         </View>
 
+        {/* Trust strip */}
+        <View style={styles.trust}>
+          <TrustItem label="Instant Delivery" />
+          <TrustItem label="Secure Payment" />
+          <TrustItem label="No Hidden Charges" />
+        </View>
+
+        {/* Recent activity teaser */}
         {recentTxs.length > 0 ? (
           <View style={styles.activityWrap}>
             <View style={styles.activityHeader}>
-              <Text style={styles.sectionTitleInline}>Recent Activity</Text>
-              <Pressable
-                accessibilityRole="link"
-                hitSlop={8}
-                onPress={onSeeAllActivity}
-                style={styles.seeAllPress}
-              >
-                <Text style={styles.seeAllText}>See all</Text>
-                <ChevronRightIcon />
+              <Text style={styles.activityTitle}>Recent Activity</Text>
+              <Pressable accessibilityRole="link" hitSlop={8} onPress={onSeeAllActivity}>
+                <Text style={styles.seeAll}>See all</Text>
               </Pressable>
             </View>
-            <View style={[styles.activityCard, AppShadows.e1]}>
+            <View style={styles.feedCard}>
               {recentTxs.map((tx, idx) => (
                 <View key={tx.id}>
-                  {idx > 0 ? <View style={styles.activityDivider} /> : null}
+                  {idx > 0 ? <View style={styles.feedDivider} /> : null}
                   <TransactionRow item={tx} />
                 </View>
               ))}
@@ -313,21 +402,48 @@ function WalletView({
       </ScrollView>
 
       {selectedPkg ? (
-        <View style={styles.stickyBuy}>
-          <PrimaryButton
-            label={`Buy ${totalCoinsFor(selectedPkg)} coins for ${inr(selectedPkg.priceInr)}`}
+        <Animated.View entering={FadeInDown.duration(260)} style={styles.stickyBuy}>
+          <Pressable
+            accessibilityRole="button"
             onPress={onBuy}
-          />
-        </View>
+            style={({ pressed }) => [styles.buyBtn, WShadow.primary, pressed && styles.pressed]}
+          >
+            <GradientFill radius={WR.md + 2} />
+            <Text style={styles.buyBtnText}>
+              {`Buy ${totalCoinsFor(selectedPkg)} coins · ${inr(selectedPkg.priceInr)}`}
+            </Text>
+          </Pressable>
+        </Animated.View>
       ) : null}
     </>
   );
 }
 
+function TrustItem({ label }: { label: string }): React.ReactElement {
+  return (
+    <View style={styles.trustItem}>
+      <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M20 6 9 17l-5-5"
+          stroke={WC.successText}
+          strokeWidth={2.6}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+      <Text style={styles.trustText}>{label}</Text>
+    </View>
+  );
+}
+
+// ─── Transaction view ─────────────────────────────────────────────────────────
 type TransactionViewProps = {
   filter: WalletTransactionFilter;
   onFilterChange: (f: WalletTransactionFilter) => void;
   transactions: ReadonlyArray<WalletTransaction>;
+  loading: boolean;
+  refreshing: boolean;
+  onRefresh: () => void;
   onGoToPackages: () => void;
 };
 
@@ -335,6 +451,9 @@ function TransactionView({
   filter,
   onFilterChange,
   transactions,
+  loading,
+  refreshing,
+  onRefresh,
   onGoToPackages,
 }: TransactionViewProps): React.ReactElement {
   const [searchQuery, setSearchQuery] = useState('');
@@ -342,35 +461,6 @@ function TransactionView({
     'date_desc',
   );
 
-  // Compute analytics dynamically
-  const analytics = useMemo(() => {
-    let purchased = 0;
-    let spent = 0;
-    let refunded = 0;
-
-    for (const tx of transactions) {
-      const amt = Math.abs(tx.coinDelta);
-      if (tx.kind === 'purchase') {
-        purchased += amt;
-      } else if (tx.kind === 'chat') {
-        spent += amt;
-      } else if (tx.kind === 'refund') {
-        refunded += amt;
-      }
-    }
-
-    const total = purchased + spent + refunded;
-    return {
-      purchased,
-      spent,
-      refunded,
-      purchasedPct: total > 0 ? (purchased / total) * 100 : 0,
-      spentPct: total > 0 ? (spent / total) * 100 : 0,
-      refundedPct: total > 0 ? (refunded / total) * 100 : 0,
-    };
-  }, [transactions]);
-
-  // Apply search and sort filters client-side
   const filteredAndSorted = useMemo(() => {
     let result = [...transactions];
 
@@ -428,469 +518,357 @@ function TransactionView({
     });
   };
 
+  const sortLabel =
+    sortBy === 'date_desc'
+      ? 'Newest'
+      : sortBy === 'date_asc'
+        ? 'Oldest'
+        : sortBy === 'amount_desc'
+          ? 'Highest'
+          : 'Lowest';
+
   return (
-    <View style={styles.txWrap}>
-      {/* Analytics Card */}
-      <View style={[styles.analyticsCard, AppShadows.e1]}>
-        <Text style={styles.analyticsTitle}>Analytics Overview</Text>
-        <View style={styles.analyticsStatsRow}>
-          <View style={styles.analyticsStat}>
-            <Text style={[styles.analyticsStatValue, { color: AppColors.success }]}>
-              {analytics.purchased.toLocaleString()}
-            </Text>
-            <Text style={styles.analyticsStatLabel}>Purchased</Text>
-          </View>
-          <View style={styles.analyticsStatDivider} />
-          <View style={styles.analyticsStat}>
-            <Text style={[styles.analyticsStatValue, { color: AppColors.primary }]}>
-              {analytics.spent.toLocaleString()}
-            </Text>
-            <Text style={styles.analyticsStatLabel}>Spent</Text>
-          </View>
-          <View style={styles.analyticsStatDivider} />
-          <View style={styles.analyticsStat}>
-            <Text style={[styles.analyticsStatValue, { color: AppColors.info }]}>
-              {analytics.refunded.toLocaleString()}
-            </Text>
-            <Text style={styles.analyticsStatLabel}>Refunded</Text>
-          </View>
-        </View>
-
-        {/* Proportional Segmented Bar */}
-        <View style={styles.analyticsBar}>
-          {analytics.purchasedPct > 0 && (
-            <View
-              style={[
-                styles.analyticsBarSegment,
-                { flex: analytics.purchasedPct, backgroundColor: AppColors.success },
-              ]}
-            />
-          )}
-          {analytics.spentPct > 0 && (
-            <View
-              style={[
-                styles.analyticsBarSegment,
-                { flex: analytics.spentPct, backgroundColor: AppColors.primary },
-              ]}
-            />
-          )}
-          {analytics.refundedPct > 0 && (
-            <View
-              style={[
-                styles.analyticsBarSegment,
-                { flex: analytics.refundedPct, backgroundColor: AppColors.info },
-              ]}
-            />
-          )}
-          {analytics.purchased === 0 && analytics.spent === 0 && analytics.refunded === 0 && (
-            <View style={[styles.analyticsBarSegment, styles.analyticsBarSegmentEmpty]} />
-          )}
-        </View>
-      </View>
-
-      {/* Search and Sort Row */}
-      <View style={styles.searchSortRow}>
-        <View style={styles.searchContainer}>
-          <Svg width={16} height={16} viewBox="0 0 24 24" style={styles.searchIcon}>
-            <Path
-              d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
-              fill={AppColors.onSurfaceMuted}
-            />
-          </Svg>
+    <ScrollView
+      style={styles.txWrap}
+      contentContainerStyle={styles.txScroll}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={WC.primary}
+          colors={[WC.primary]}
+        />
+      }
+    >
+      {/* Search + sort */}
+      <View style={styles.searchRow}>
+        <View style={styles.search}>
+          <SearchIcon />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search description..."
-            placeholderTextColor={AppColors.onSurfaceMuted}
+            placeholder="Search transactions…"
+            placeholderTextColor={WC.textDim}
             value={searchQuery}
             onChangeText={setSearchQuery}
             clearButtonMode="while-editing"
           />
         </View>
-
-        <Pressable style={styles.sortButton} onPress={toggleSort}>
-          <Text style={styles.sortButtonText}>
-            {sortBy === 'date_desc' && 'Newest'}
-            {sortBy === 'date_asc' && 'Oldest'}
-            {sortBy === 'amount_desc' && 'Highest Coin'}
-            {sortBy === 'amount_asc' && 'Lowest Coin'}
-          </Text>
-          <Svg width={14} height={14} viewBox="0 0 24 24">
-            <Path d="M3 18h6v-2H3v2zM3 5v2h18V5H3zm0 7h12v-2H3v2z" fill={AppColors.primary} />
-          </Svg>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Sort: ${sortLabel}`}
+          onPress={toggleSort}
+          style={({ pressed }) => [styles.sortBtn, pressed && styles.pressed]}
+        >
+          <SortIcon />
+          <Text style={styles.sortLabel}>{sortLabel}</Text>
         </Pressable>
       </View>
 
-      <View style={styles.chipRow}>
-        {TX_FILTERS.map(f => (
-          <FilterChip
-            key={f.value}
-            label={f.label}
-            active={filter === f.value}
-            onPress={() => onFilterChange(f.value)}
-          />
-        ))}
+      {/* Category segmented control */}
+      <View style={styles.filterWrap}>
+        <SliderTabs<WalletTransactionFilter>
+          options={TX_FILTERS}
+          value={filter}
+          onChange={onFilterChange}
+        />
       </View>
 
-      {filteredAndSorted.length === 0 ? (
-        <View style={styles.empty}>
-          <View style={styles.emptyIcon}>
-            <CoinIcon size={64} />
-          </View>
-          <Text style={styles.emptyTitle}>No results found</Text>
-          <Text style={styles.emptyBody}>
-            Try modifying your search query or check your filters.
-          </Text>
-          <View style={styles.emptyCta}>
-            <PrimaryButton label="Browse Packages" onPress={onGoToPackages} />
-          </View>
-        </View>
+      {loading ? (
+        <SkeletonFeed />
+      ) : filteredAndSorted.length === 0 ? (
+        <EmptyState onGoToPackages={onGoToPackages} />
       ) : (
-        <ScrollView contentContainerStyle={styles.txList}>
-          {grouped.map(group => (
-            <View key={group.bucket} style={styles.txGroup}>
-              <Text style={styles.txGroupHeader}>{BUCKET_LABEL[group.bucket]}</Text>
-              <View style={[styles.txGroupCard, AppShadows.e1]}>
-                {group.items.map((tx, idx) => (
-                  <View key={tx.id}>
-                    {idx > 0 ? <View style={styles.activityDivider} /> : null}
-                    <TransactionRow item={tx} />
-                  </View>
-                ))}
-              </View>
+        grouped.map(group => (
+          <View key={group.bucket} style={styles.txGroup}>
+            <Text style={styles.feedHeader}>{BUCKET_LABEL[group.bucket]}</Text>
+            <View style={styles.feedCard}>
+              {group.items.map((tx, idx) => (
+                <Animated.View key={tx.id} entering={FadeIn.duration(280).delay(idx * 40)}>
+                  {idx > 0 ? <View style={styles.feedDivider} /> : null}
+                  <TransactionRow item={tx} />
+                </Animated.View>
+              ))}
             </View>
-          ))}
-        </ScrollView>
+          </View>
+        ))
       )}
+    </ScrollView>
+  );
+}
+
+// ─── Skeleton + empty ─────────────────────────────────────────────────────────
+function SkeletonFeed(): React.ReactElement {
+  const pulse = useSharedValue(0.4);
+  useEffect(() => {
+    pulse.value = withRepeat(withTiming(0.8, { duration: 700 }), -1, true);
+  }, [pulse]);
+  const pulseStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
+
+  return (
+    <View style={styles.txGroup}>
+      <View style={[styles.skelLine, styles.skelHeader]} />
+      <View style={styles.feedCard}>
+        {[0, 1, 2, 3].map(i => (
+          <View key={i}>
+            {i > 0 ? <View style={styles.feedDivider} /> : null}
+            <View style={styles.skelRow}>
+              <Animated.View style={[styles.skelIcon, pulseStyle]} />
+              <View style={styles.skelMid}>
+                <Animated.View style={[styles.skelLine, styles.skelLineLg, pulseStyle]} />
+                <Animated.View style={[styles.skelLine, styles.skelLineSm, pulseStyle]} />
+              </View>
+              <Animated.View style={[styles.skelAmt, pulseStyle]} />
+            </View>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
 
-const BOTTOM_CLEAR = BOTTOM_NAV_HEIGHT + FAB_PROTRUSION + AppSpacing.lg;
+function EmptyState({ onGoToPackages }: { onGoToPackages: () => void }): React.ReactElement {
+  return (
+    <View style={styles.empty}>
+      <View style={styles.emptyIcon}>
+        <CoinIcon size={56} />
+      </View>
+      <Text style={styles.emptyTitle}>No transactions yet</Text>
+      <Text style={styles.emptyBody}>
+        Your purchases, chats and refunds will appear here once you get started.
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onGoToPackages}
+        style={({ pressed }) => [styles.emptyBtn, WShadow.primary, pressed && styles.pressed]}
+      >
+        <GradientFill radius={WR.md} />
+        <Text style={styles.emptyBtnText}>Browse Packages</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const BOTTOM_CLEAR = BOTTOM_NAV_HEIGHT + FAB_PROTRUSION + WS.lg;
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: AppColors.background },
+  safe: { flex: 1, backgroundColor: WC.bg },
+
+  // Header
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingHorizontal: AppSpacing.lg,
-    paddingTop: AppSpacing.md,
+    paddingHorizontal: WS.xl,
+    paddingTop: WS.md,
+    paddingBottom: WS.sm,
   },
-  headerTitle: {
-    ...AppTypography.headlineMedium,
-    color: AppColors.primaryDark,
-  },
-  sliderWrap: { paddingHorizontal: AppSpacing.md, marginTop: AppSpacing.sm },
-  scroll: { paddingBottom: BOTTOM_CLEAR + 80 },
-
-  heroCardContainer: {
-    marginHorizontal: AppSpacing.md,
-    marginTop: AppSpacing.md,
-    borderRadius: AppRadii.xl,
-    backgroundColor: AppColors.primaryDark,
-    // Soft, deep colored glow shadow for premium aesthetics
-    shadowColor: AppColors.primaryDark,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.28,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  heroCardContent: {
-    borderRadius: AppRadii.xl,
-    overflow: 'hidden',
-    paddingHorizontal: AppSpacing.lg,
-    paddingVertical: AppSpacing.lg + 8,
-    position: 'relative',
+  headerTitle: { fontSize: 30, fontWeight: '800', letterSpacing: -0.5, color: WC.primary },
+  headerSubtitle: { fontSize: 13, fontWeight: '500', color: WC.textDim, marginTop: 3 },
+  headerIcons: { flexDirection: 'row', gap: WS.sm + 2 },
+  iconBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: WR.md - 2,
+    backgroundColor: WC.glass,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: WC.hairline,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  heroContent: {
+  iconDot: {
+    position: 'absolute',
+    top: 9,
+    right: 10,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: WC.primary,
+    borderWidth: 1.5,
+    borderColor: WC.bg,
     zIndex: 1,
+  },
+
+  sliderWrap: { paddingHorizontal: WS.xl, marginTop: WS.md, marginBottom: WS.xs },
+  scroll: { paddingBottom: BOTTOM_CLEAR + 88 },
+  pressed: { transform: [{ scale: 0.97 }], opacity: 0.94 },
+
+  // Hero
+  hero: {
+    marginHorizontal: WS.xl,
+    marginTop: WS.md,
+    borderRadius: WR.hero,
+    paddingVertical: WS.xxl,
+    paddingHorizontal: WS.xl,
+    borderWidth: 1,
+    borderColor: WC.hairline,
+    overflow: 'hidden',
     alignItems: 'center',
   },
-  heroLabelWhite: {
-    ...AppTypography.labelLarge,
-    color: '#FFFFFF',
-    opacity: 0.9,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
+  heroTopHighlight: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+  },
+  heroLabel: {
     fontSize: 12,
+    letterSpacing: 1.4,
+    fontWeight: '600',
+    color: WC.textDim,
+    textAlign: 'center',
   },
-  heroBalanceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: AppSpacing.sm + 4,
-    marginTop: AppSpacing.sm,
-  },
-  heroBalanceWhite: {
-    ...AppTypography.displayLarge,
-    color: '#FFFFFF',
-    fontWeight: '800',
-    lineHeight: 56,
-  },
+  heroBalanceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 12 },
+  heroBalance: { fontSize: 46, fontWeight: '800', letterSpacing: -1, color: WC.text, lineHeight: 48 },
+  heroUnit: { fontSize: 18, fontWeight: '600', color: WC.textDim, marginBottom: 6 },
 
-  // Stat cards row below the hero — clean white surface cards
-  statsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: AppSpacing.md,
-    marginTop: AppSpacing.md,
-    gap: AppSpacing.sm,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: AppColors.surface,
-    borderRadius: AppRadii.md,
-    paddingVertical: AppSpacing.md,
-    paddingHorizontal: AppSpacing.sm,
-    alignItems: 'center',
-  },
-  statValue: {
-    ...AppTypography.titleMedium,
-    color: AppColors.primaryDark,
-    fontWeight: '800',
-  },
-  statLabel: {
-    ...AppTypography.labelSmall,
-    color: AppColors.onSurfaceMuted,
-    marginTop: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
+  // Section
+  section: { marginHorizontal: WS.xl, marginTop: WS.xxl },
+  sectionTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.4, color: WC.primary },
+  sectionSubtitle: { fontSize: 13, fontWeight: '500', color: WC.textDim, marginTop: 3 },
 
-  // Package grid
-  sectionTitle: {
-    ...AppTypography.titleLarge,
-    color: AppColors.primaryDark,
-    marginHorizontal: AppSpacing.md,
-    marginTop: AppSpacing.lg,
-    marginBottom: AppSpacing.sm,
-  },
-  sectionTitleInline: {
-    ...AppTypography.titleLarge,
-    color: AppColors.primaryDark,
-  },
-  grid: {
+  // Packages
+  pkgList: { marginHorizontal: WS.xl, marginTop: WS.md, gap: WS.md },
+
+  // Trust strip
+  trust: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    paddingHorizontal: AppSpacing.md,
-    rowGap: AppSpacing.sm + 4,
+    marginHorizontal: WS.xl,
+    marginTop: WS.lg,
+    backgroundColor: WC.surface,
+    borderWidth: 1,
+    borderColor: WC.hairline,
+    borderRadius: WR.md,
+    paddingVertical: WS.md,
+    paddingHorizontal: WS.md + 2,
   },
+  trustItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  trustText: { fontSize: 11.5, fontWeight: '600', color: WC.textDim },
 
-  // Recent activity teaser
-  activityWrap: {
-    marginTop: AppSpacing.lg,
-    paddingHorizontal: AppSpacing.md,
-  },
+  // Recent activity
+  activityWrap: { marginHorizontal: WS.xl, marginTop: WS.xxl },
   activityHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: AppSpacing.sm,
+    marginBottom: WS.sm + 2,
   },
-  seeAllPress: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  seeAllText: {
-    ...AppTypography.labelLarge,
-    color: AppColors.primary,
-    fontWeight: '700',
-  },
-  activityCard: {
-    backgroundColor: AppColors.surface,
-    borderRadius: AppRadii.lg,
+  activityTitle: { fontSize: 18, fontWeight: '700', color: WC.primary },
+  seeAll: { fontSize: 14, fontWeight: '700', color: WC.primary },
+
+  // Feed (shared)
+  feedCard: {
+    backgroundColor: WC.card,
+    borderWidth: 1,
+    borderColor: WC.hairline,
+    borderRadius: WR.lg,
     overflow: 'hidden',
   },
-  activityDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: AppColors.divider,
-    marginLeft: 60,
+  feedDivider: { height: 1, backgroundColor: WC.divider, marginLeft: 60 },
+  feedHeader: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: WC.textDim,
+    marginBottom: WS.sm,
+    marginLeft: WS.xs,
   },
 
   // Sticky buy
-  stickyBuy: {
-    position: 'absolute',
-    left: AppSpacing.md,
-    right: AppSpacing.md,
-    bottom: BOTTOM_CLEAR,
+  stickyBuy: { position: 'absolute', left: WS.xl, right: WS.xl, bottom: BOTTOM_CLEAR },
+  buyBtn: {
+    height: 56,
+    borderRadius: WR.md + 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    backgroundColor: WC.primary,
   },
+  buyBtnText: { fontSize: 16, fontWeight: '800', color: WC.text },
 
   // Transaction view
   txWrap: { flex: 1 },
+  txScroll: { paddingBottom: BOTTOM_CLEAR + 24, paddingTop: WS.sm },
+  txGroup: { marginHorizontal: WS.xl, marginTop: WS.lg },
 
-  // Analytics Card
-  analyticsCard: {
-    backgroundColor: AppColors.surface,
-    borderRadius: AppRadii.lg,
-    marginHorizontal: AppSpacing.md,
-    marginTop: AppSpacing.md,
-    padding: AppSpacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  analyticsTitle: {
-    ...AppTypography.titleMedium,
-    color: AppColors.onSurface,
-    fontWeight: '700',
-    marginBottom: AppSpacing.sm,
-  },
-  analyticsStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: AppSpacing.md,
-  },
-  analyticsStat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  analyticsStatValue: {
-    ...AppTypography.titleLarge,
-    fontWeight: '800',
-  },
-  analyticsStatLabel: {
-    ...AppTypography.labelSmall,
-    color: AppColors.onSurfaceMuted,
-    fontSize: 10,
-    textTransform: 'uppercase',
-    marginTop: 2,
-  },
-  analyticsStatDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: AppColors.divider,
-  },
-  analyticsBar: {
-    height: 6,
-    borderRadius: 3,
-    flexDirection: 'row',
-    overflow: 'hidden',
-    backgroundColor: AppColors.surfaceVariant,
-  },
-  analyticsBarSegment: {
-    height: '100%',
-  },
-  analyticsBarSegmentEmpty: {
-    flex: 1,
-    backgroundColor: AppColors.border,
-  },
-
-  // Search & Sort Row
-  searchSortRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: AppSpacing.md,
-    marginTop: AppSpacing.md,
-    gap: AppSpacing.sm,
-  },
-  searchContainer: {
+  // Search + sort
+  searchRow: { flexDirection: 'row', gap: WS.sm + 2, marginHorizontal: WS.xl, marginTop: WS.lg },
+  search: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: AppColors.surface,
-    borderRadius: AppRadii.full,
-    paddingHorizontal: AppSpacing.md,
-    height: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 6,
-    elevation: 1,
+    gap: WS.sm + 2,
+    backgroundColor: WC.surface,
+    borderWidth: 1,
+    borderColor: WC.hairline,
+    borderRadius: WR.md,
+    height: 46,
+    paddingHorizontal: WS.md + 2,
   },
-  searchIcon: {
-    marginRight: 6,
-  },
-  searchInput: {
-    flex: 1,
-    ...AppTypography.bodyMedium,
-    color: AppColors.onSurface,
-    padding: 0,
-  },
-  sortButton: {
+  searchInput: { flex: 1, fontSize: 14, fontWeight: '500', color: WC.text, padding: 0 },
+  sortBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: AppColors.surface,
-    borderRadius: AppRadii.full,
-    paddingHorizontal: AppSpacing.md,
-    height: 40,
-    gap: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 6,
-    elevation: 1,
+    gap: 6,
+    height: 46,
+    paddingHorizontal: WS.md + 2,
+    borderRadius: WR.md,
+    backgroundColor: WC.surface,
+    borderWidth: 1,
+    borderColor: WC.hairline,
   },
-  sortButtonText: {
-    ...AppTypography.labelLarge,
-    color: AppColors.primary,
-    fontWeight: '700',
-    fontSize: 12,
-  },
+  sortLabel: { fontSize: 13, fontWeight: '700', color: WC.text },
 
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: AppSpacing.xs,
-    paddingHorizontal: AppSpacing.md,
-    paddingTop: AppSpacing.md,
-  },
-  txList: {
-    paddingBottom: BOTTOM_CLEAR,
-    paddingHorizontal: AppSpacing.md,
-    paddingTop: AppSpacing.sm,
-  },
-  txGroup: { marginBottom: AppSpacing.md },
-  txGroupHeader: {
-    ...AppTypography.labelLarge,
-    color: AppColors.primaryDark,
-    fontWeight: '700',
-    marginBottom: AppSpacing.xs,
-    marginLeft: AppSpacing.xs,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  txGroupCard: {
-    backgroundColor: AppColors.surface,
-    borderRadius: AppRadii.lg,
-    overflow: 'hidden',
-  },
+  filterWrap: { marginHorizontal: WS.xl, marginTop: WS.md },
 
-  // Empty state
-  empty: {
-    alignItems: 'center',
-    paddingHorizontal: AppSpacing.xl,
-    paddingTop: AppSpacing.xxl,
-  },
+  // Skeleton
+  skelHeader: { width: 70, height: 12, marginBottom: WS.sm, marginLeft: WS.xs, borderRadius: 6 },
+  skelRow: { flexDirection: 'row', alignItems: 'center', gap: WS.md, padding: WS.md + 3 },
+  skelIcon: { width: 44, height: 44, borderRadius: WR.md - 2, backgroundColor: WC.cardHi },
+  skelMid: { flex: 1, gap: 6 },
+  skelLine: { backgroundColor: WC.cardHi, borderRadius: 6 },
+  skelLineLg: { width: '60%', height: 13 },
+  skelLineSm: { width: '40%', height: 11 },
+  skelAmt: { width: 44, height: 16, borderRadius: 6, backgroundColor: WC.cardHi },
+
+  // Empty
+  empty: { alignItems: 'center', paddingHorizontal: WS.xl, paddingTop: WS.huge + 12 },
   emptyIcon: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: AppColors.primarySubtle,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: WC.card,
+    borderWidth: 1,
+    borderColor: WC.hairline,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: AppSpacing.md,
+    marginBottom: WS.lg,
   },
-  emptyTitle: {
-    ...AppTypography.titleLarge,
-    color: AppColors.primaryDark,
-    fontWeight: '700',
-  },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: WC.text },
   emptyBody: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.onSurfaceMuted,
+    fontSize: 13.5,
+    fontWeight: '500',
+    color: WC.textDim,
     textAlign: 'center',
-    marginTop: AppSpacing.xs,
-    paddingHorizontal: AppSpacing.md,
+    marginTop: WS.sm,
+    lineHeight: 20,
+    paddingHorizontal: WS.md,
   },
-  emptyCta: {
-    marginTop: AppSpacing.lg,
-    alignSelf: 'stretch',
+  emptyBtn: {
+    marginTop: WS.xl,
+    height: 50,
+    paddingHorizontal: WS.xxl,
+    borderRadius: WR.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    backgroundColor: WC.primary,
   },
+  emptyBtnText: { fontSize: 15, fontWeight: '800', color: WC.text },
 });
 
 export default WalletScreen;

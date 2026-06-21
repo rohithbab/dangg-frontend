@@ -17,6 +17,7 @@ export type AuthStackParamList = {
   MaleSignupBasicInfo: undefined;
   MaleSignupOtp: { phone: string };
 
+  CommonLogin: undefined;
   FemaleLogin: undefined;
   MaleLogin: undefined;
 

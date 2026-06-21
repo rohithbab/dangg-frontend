@@ -1,8 +1,13 @@
 import { type ViewStyle } from 'react-native';
 
+import { AppColors } from './colors';
+
 /**
  * Elevation tokens — combines iOS shadow props and Android `elevation` so a
  * single spread works on both platforms.
+ *
+ * v2 "Neon Glow": instead of black drop shadows, elevated surfaces cast a
+ * vibrant pink (#FF66C4) under-glow so cards, sheets and modals feel lit.
  *
  *   <View style={[styles.card, AppShadows.e1]} />
  */
@@ -21,31 +26,31 @@ export const AppShadows = {
     elevation: 0,
   } satisfies Elevation,
 
-  /** Light surface lift — cards, tappable tiles. */
+  /** Light neon glow — cards, tags, tappable tiles. */
   e1: {
-    shadowColor: '#000',
+    shadowColor: AppColors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 12,
-    elevation: 2,
-  } satisfies Elevation,
-
-  /** Sheets, popovers. */
-  e2: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 24,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
     elevation: 4,
   } satisfies Elevation,
 
-  /** Modals, full-screen overlays. */
+  /** Medium neon glow — bottom sheets, buttons, status segments. */
+  e2: {
+    shadowColor: AppColors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    elevation: 6,
+  } satisfies Elevation,
+
+  /** High intense glow — confirmation overlays, active modals, active profiles. */
   e3: {
-    shadowColor: '#000',
+    shadowColor: AppColors.primary,
     shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.08,
-    shadowRadius: 32,
-    elevation: 8,
+    shadowOpacity: 0.28,
+    shadowRadius: 30,
+    elevation: 10,
   } satisfies Elevation,
 } as const;
 

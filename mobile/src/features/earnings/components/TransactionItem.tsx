@@ -2,10 +2,7 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { AppColors } from '@theme/colors';
-import { AppRadii } from '@theme/radii';
-import { AppSpacing } from '@theme/spacing';
-import { AppTypography } from '@theme/typography';
+import { FC, FR, FS } from '@features/femaleHome/femaleTheme';
 
 import { type Transaction } from '../api/earningsApi';
 
@@ -14,8 +11,6 @@ export type TransactionItemProps = {
 };
 
 function relativeShort(input: Date | string | number): string {
-  // Defensive: callers should pass a Date, but data crossing the API boundary
-  // can arrive as an ISO string — coerce so the render can never crash.
   const date = input instanceof Date ? input : new Date(input);
   const ms = date.getTime();
   if (Number.isNaN(ms)) {
@@ -38,7 +33,7 @@ function relativeShort(input: Date | string | number): string {
 
 function iconArrowDown(color: string): React.ReactElement {
   return (
-    <Svg width={20} height={20} viewBox="0 0 24 24">
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <Path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z" fill={color} />
     </Svg>
   );
@@ -46,7 +41,7 @@ function iconArrowDown(color: string): React.ReactElement {
 
 function iconArrowUp(color: string): React.ReactElement {
   return (
-    <Svg width={20} height={20} viewBox="0 0 24 24">
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <Path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z" fill={color} />
     </Svg>
   );
@@ -54,7 +49,7 @@ function iconArrowUp(color: string): React.ReactElement {
 
 function iconReplay(color: string): React.ReactElement {
   return (
-    <Svg width={20} height={20} viewBox="0 0 24 24">
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <Path
         d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"
         fill={color}
@@ -75,39 +70,38 @@ function visualFor(item: Transaction): Visual {
   switch (item.kind) {
     case 'earning':
       return {
-        bgColor: AppColors.successLight,
-        iconColor: AppColors.success,
-        amountColor: AppColors.success,
+        bgColor: FC.successSoft,
+        iconColor: FC.successText,
+        amountColor: FC.successText,
         amountPrefix: '+',
         renderIcon: iconArrowDown,
       };
     case 'payout':
       return {
-        bgColor: AppColors.warningLight,
-        iconColor: AppColors.warning,
-        amountColor: AppColors.onSurface,
+        bgColor: FC.primarySoft,
+        iconColor: FC.primary,
+        amountColor: FC.text,
         amountPrefix: '-',
         renderIcon: iconArrowUp,
       };
     case 'refund':
       return {
-        bgColor: AppColors.errorLight,
-        iconColor: AppColors.error,
-        amountColor: AppColors.onSurface,
+        bgColor: FC.secondarySoft,
+        iconColor: FC.secondary,
+        amountColor: FC.text,
         amountPrefix: '-',
         renderIcon: iconReplay,
       };
   }
 }
 
-/** Row in the Earnings transaction list. */
 function TransactionItem({ item }: TransactionItemProps): React.ReactElement {
   const visual = useMemo(() => visualFor(item), [item]);
   const time = useMemo(() => relativeShort(item.occurredAt), [item.occurredAt]);
 
   return (
     <View style={styles.row}>
-      <View style={[styles.iconCircle, { backgroundColor: visual.bgColor }]}>
+      <View style={[styles.iconWrap, { backgroundColor: visual.bgColor }]}>
         {visual.renderIcon(visual.iconColor)}
       </View>
       <View style={styles.middle}>
@@ -139,7 +133,7 @@ function TransactionItem({ item }: TransactionItemProps): React.ReactElement {
           )}
         </View>
       </View>
-      <View style={styles.amountWrap}>
+      <View style={styles.right}>
         <Text style={[styles.amount, { color: visual.amountColor }]}>
           {`${visual.amountPrefix}₹${item.amountInr.toLocaleString()}`}
         </Text>
@@ -152,70 +146,75 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: AppSpacing.md,
-    paddingVertical: AppSpacing.sm + 4,
+    paddingHorizontal: FS.lg,
+    paddingVertical: FS.md + 2,
+    gap: FS.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: AppColors.divider,
-    gap: AppSpacing.sm,
+    borderBottomColor: FC.border,
   },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  iconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: FR.md - 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  middle: { flex: 1 },
+  middle: { flex: 1, minWidth: 0 },
   title: {
-    ...AppTypography.bodyLarge,
-    color: AppColors.onSurface,
+    fontSize: 15,
+    fontWeight: '700',
+    fontFamily: 'Nunito',
+    color: FC.text,
   },
   subtitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: AppSpacing.xs,
+    gap: FS.xs,
     marginTop: 2,
   },
   subtitle: {
-    ...AppTypography.bodySmall,
-    color: AppColors.onSurfaceMuted,
+    fontSize: 12,
+    fontWeight: '500',
+    fontFamily: 'Nunito',
+    color: FC.textDim,
     flexShrink: 1,
   },
   statusBadge: {
     paddingHorizontal: 6,
     paddingVertical: 1,
-    borderRadius: AppRadii.sm,
-    borderWidth: 1,
+    borderRadius: FR.sm,
+    borderWidth: 1.5,
+    backgroundColor: 'transparent',
   },
   statusProcessing: {
-    backgroundColor: AppColors.warningLight,
-    borderColor: AppColors.warning,
+    borderColor: FC.warning,
   },
   statusFailed: {
-    backgroundColor: AppColors.errorLight,
-    borderColor: AppColors.error,
+    borderColor: FC.error,
   },
   statusBadgeText: {
-    ...AppTypography.labelSmall,
     fontSize: 9,
     fontWeight: '800',
+    fontFamily: 'Nunito',
     textTransform: 'uppercase',
     letterSpacing: 0.2,
   },
   statusTextProcessing: {
-    color: AppColors.warning,
+    color: FC.warning,
   },
   statusTextFailed: {
-    color: AppColors.error,
+    color: FC.error,
   },
-  amountWrap: {
+  right: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
   amount: {
-    ...AppTypography.bodyLarge,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
+    fontFamily: 'Poppins',
+    letterSpacing: -0.3,
   },
 });
 

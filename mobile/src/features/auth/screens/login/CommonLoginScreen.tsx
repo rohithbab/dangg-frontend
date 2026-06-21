@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigation } from '@react-navigation/native';
-import React, { useCallback, useEffect, useState } from 'react';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React, { useCallback, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   ActivityIndicator,
@@ -21,22 +22,27 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, G, Line, Path, Rect, Stop, LinearGradient } from 'react-native-svg';
+import { z } from 'zod';
 
+import { USE_MOCK_DATA } from '@core/config/env';
 import { AppException } from '@core/network/apiException';
+import { getSupabaseClient } from '@core/network/supabaseClient';
 import { logger } from '@core/utils/logger';
+import { ZodSchemas } from '@core/utils/validators';
 
-import { UserRole } from '@app-types/domain';
+import { type AuthStackParamList } from '@navigation/types';
 
-import { sendOtp } from '../api/authApi';
-import { basicInfoSchema, type BasicInfoInput } from '../schemas/signupSchema';
-import { useSignupDraftStore } from '../store/signupDraftStore';
+import { parseUserRole, UserRole } from '@app-types/domain';
 
-import PasswordStrengthMeter from './PasswordStrengthMeter';
+import { signInWithPassword, signInWithPasswordDev } from '../../api/authApi';
 
-export type BasicInfoFormProps = {
-  role: UserRole.Female | UserRole.Male;
-  onOtpRequested: (phone: string) => void;
-};
+type Nav = NativeStackNavigationProp<AuthStackParamList, 'CommonLogin'>;
+
+const loginSchema = z.object({
+  phone: ZodSchemas.phoneIndian,
+  password: z.string().min(1, 'Enter your password'),
+});
+type LoginInput = z.infer<typeof loginSchema>;
 
 // ─── Premium Color Tokens ─────────────────────────────────────────────────────
 
@@ -52,9 +58,6 @@ const $ = {
   inputBg: 'rgba(255,255,255,0.03)',
   borderActive: 'rgba(255,255,255,0.12)',
 };
-
-const GENDER_LABEL = { [UserRole.Female]: 'Female', [UserRole.Male]: 'Male' } as const;
-const ROLE_SUBTITLE = { [UserRole.Female]: 'Female', [UserRole.Male]: 'Male' } as const;
 
 // ─── Eye Icons ────────────────────────────────────────────────────────────────
 
@@ -227,26 +230,24 @@ function GradientCTA({
   );
 }
 
-// ─── Decorative Gender Icon ───────────────────────────────────────────────────
+// ─── Decorative Login Icon ────────────────────────────────────────────────────
 
-function GenderBadge({ isFemale }: { isFemale: boolean }): React.ReactElement {
+function LoginBadge(): React.ReactElement {
   return (
-    <View style={styles.genderBadge}>
+    <View style={styles.badge}>
       <Svg width={32} height={32} viewBox="0 0 48 48">
-        {isFemale ? (
-          <G>
-            <Circle cx={24} cy={18} r={7} stroke={$.primary} strokeWidth={2.5} fill="none" />
-            <Line x1={24} y1={25} x2={24} y2={37} stroke={$.primary} strokeWidth={2.5} strokeLinecap="round" />
-            <Line x1={19} y1={31} x2={29} y2={31} stroke={$.primary} strokeWidth={2.5} strokeLinecap="round" />
-          </G>
-        ) : (
-          <G>
-            <Circle cx={19} cy={29} r={7} stroke={$.secondary} strokeWidth={2.5} fill="none" />
-            <Line x1={24} y1={24} x2={35} y2={13} stroke={$.secondary} strokeWidth={2.5} strokeLinecap="round" />
-            <Line x1={28} y1={13} x2={35} y2={13} stroke={$.secondary} strokeWidth={2.5} strokeLinecap="round" />
-            <Line x1={35} y1={13} x2={35} y2={20} stroke={$.secondary} strokeWidth={2.5} strokeLinecap="round" />
-          </G>
-        )}
+        <G>
+          <Circle cx={24} cy={16} r={6} stroke="#FF4FA3" strokeWidth={2.5} fill="none" />
+          <Path
+            d="M 12 38 C 12 28 18 22 24 22 C 30 22 36 28 36 38"
+            stroke="#FF4FA3"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            fill="none"
+          />
+          <Line x1={38} y1={14} x2={38} y2={6} stroke="#9D5CFF" strokeWidth={2.5} strokeLinecap="round" />
+          <Line x1={34} y1={10} x2={42} y2={10} stroke="#9D5CFF" strokeWidth={2.5} strokeLinecap="round" />
+        </G>
       </Svg>
     </View>
   );
@@ -265,76 +266,88 @@ function BackChevron(): React.ReactElement {
   );
 }
 
-// ─── Main Form ────────────────────────────────────────────────────────────────
+// ─── DEV_MODE: resolve role from DB ──────────────────────────────────────────
 
-function BasicInfoForm({
-  role,
-  onOtpRequested,
-}: BasicInfoFormProps): React.ReactElement {
-  const navigation = useNavigation();
-  const setBasicInfo = useSignupDraftStore(s => s.setBasicInfo);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+async function resolveUserRole(phone: string): Promise<UserRole> {
+  const cleanedPhone = phone.replace(/\D/g, '').slice(-10);
+  try {
+    const { data, error } = await getSupabaseClient()
+      .from('users')
+      .select('role')
+      .eq('phone', `+91${cleanedPhone}`)
+      .maybeSingle();
+    if (error) {
+      logger.warn('resolveUserRole query failed', error);
+    }
+    if (data?.role) {
+      const role = parseUserRole(data.role);
+      if (role) return role;
+    }
+  } catch (e) {
+    logger.warn('resolveUserRole exception', e);
+  }
+  throw new AppException(
+    'NOT_FOUND',
+    'Account not found. Please sign up first.',
+  );
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
+
+function CommonLoginScreen(): React.ReactElement {
+  const navigation = useNavigation<Nav>();
+  const [inlineError, setInlineError] = useState<string | null>(null);
 
   const {
     control,
     handleSubmit,
     formState: { isSubmitting, isValid },
-    watch,
-  } = useForm<BasicInfoInput>({
-    resolver: zodResolver(basicInfoSchema),
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
     mode: 'onChange',
-    defaultValues: { name: '', age: '', password: '', confirmPassword: '', phone: '' },
+    defaultValues: { phone: '', password: '' },
   });
-
-  const passwordValue = watch('password');
 
   // ── Entrance animation ──────────────────────────────────────────────────────
   const fadeOpacity = useSharedValue(0);
-  useEffect(() => {
-    fadeOpacity.value = withTiming(1, { duration: 600 });
-  }, [fadeOpacity]);
-
   const fadeStyle = useAnimatedStyle(() => ({
     opacity: fadeOpacity.value,
   }));
+  React.useEffect(() => {
+    fadeOpacity.value = withTiming(1, { duration: 600 });
+  }, [fadeOpacity]);
 
-  const onSubmit = useCallback(
-    async (data: BasicInfoInput): Promise<void> => {
-      setSubmitError(null);
-      try {
-        const ageNum = Number.parseInt(data.age, 10);
-        const cleanedPhone = data.phone.replace(/\D/g, '').slice(-10);
-        setBasicInfo({
-          role,
-          name: data.name.trim(),
-          age: ageNum,
-          password: data.password,
-          phone: cleanedPhone,
-        });
-        await sendOtp(cleanedPhone, 'signup');
-        onOtpRequested(cleanedPhone);
-      } catch (e) {
-        if (e instanceof AppException) {
-          setSubmitError(e.message);
-        } else {
-          logger.error('BasicInfoForm.onSubmit failed', e);
-          setSubmitError('Something went wrong, try again');
-        }
+  const onSubmit = useCallback(async (data: LoginInput): Promise<void> => {
+    setInlineError(null);
+    const cleanedPhone = data.phone.replace(/\D/g, '').slice(-10);
+    try {
+      if (USE_MOCK_DATA) {
+        const role = await resolveUserRole(cleanedPhone);
+        await signInWithPasswordDev(cleanedPhone, data.password, role);
+      } else {
+        await signInWithPassword(cleanedPhone, data.password);
       }
-    },
-    [onOtpRequested, role, setBasicInfo],
-  );
+    } catch (e) {
+      if (e instanceof AppException) {
+        setInlineError(e.message);
+      } else {
+        logger.error('CommonLoginScreen.onSubmit failed', e);
+        setInlineError('Could not sign in, try again');
+      }
+    }
+  }, []);
 
-  const isFemale = role === UserRole.Female;
-  const accentColor = isFemale ? $.primary : $.secondary;
+  const handleForgotPassword = useCallback(() => {
+    navigation.navigate('ForgotPasswordPhone', { role: UserRole.Male });
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <Animated.View style={[styles.flex, fadeStyle]}>
-        {/* ── Header ────────────────────────────────────────────────────────── */}
+        {/* ── Header ───────────────────────────────────────────────────── */}
         <View style={styles.header}>
           <Pressable
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('AccountType')}
             hitSlop={12}
             style={styles.backGlass}
             accessibilityRole="button"
@@ -345,13 +358,11 @@ function BasicInfoForm({
         </View>
 
         <View style={styles.titleBlock}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={[styles.subtitle, { color: accentColor }]}>
-            {ROLE_SUBTITLE[role]}
-          </Text>
+          <Text style={styles.title}>Welcome Back</Text>
+          <Text style={styles.subtitle}>Sign in to your account</Text>
         </View>
 
-        {/* ── Form ──────────────────────────────────────────────────────────── */}
+        {/* ── Form ─────────────────────────────────────────────────────── */}
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -363,115 +374,8 @@ function BasicInfoForm({
             alwaysBounceVertical={false}
             showsVerticalScrollIndicator={false}
           >
-            {/* Decorative icon */}
-            <GenderBadge isFemale={isFemale} />
+            <LoginBadge />
 
-            {/* Personal Details heading */}
-            <Text style={styles.formHeading}>Personal Details</Text>
-            <Text style={styles.formSubheading}>
-              {isFemale
-                ? 'Complete your profile to start earning'
-                : 'Set up your profile to start chatting'}
-            </Text>
-
-            {/* Full Name */}
-            <Controller
-              control={control}
-              name="name"
-              render={({ field: { onChange, onBlur, value }, fieldState }) => (
-                <GlassInput
-                  label="Full Name"
-                  hint="Enter your full name"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  autoCapitalize="words"
-                  errorText={fieldState.error?.message}
-                />
-              )}
-            />
-
-            {/* Age + Gender row */}
-            <View style={styles.rowField}>
-              <View style={styles.halfField}>
-                <Controller
-                  control={control}
-                  name="age"
-                  render={({ field: { onChange, onBlur, value }, fieldState }) => (
-                    <GlassInput
-                      label="Age"
-                      hint="18 or older"
-                      value={value}
-                      onChangeText={onChange}
-                      onBlur={onBlur}
-                      keyboardType="number-pad"
-                      maxLength={3}
-                      errorText={fieldState.error?.message}
-                    />
-                  )}
-                />
-              </View>
-              <View style={styles.halfField}>
-                <Text style={styles.inputLabel}>Gender</Text>
-                <View
-                  style={[
-                    styles.genderTag,
-                    isFemale ? styles.genderTagFemale : styles.genderTagMale,
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.genderDot,
-                      { backgroundColor: accentColor },
-                    ]}
-                  />
-                  <Text style={styles.genderTagText}>{GENDER_LABEL[role]}</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Password */}
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, onBlur, value }, fieldState }) => (
-                <View>
-                  <GlassInput
-                    label="Password"
-                    hint="At least 8 characters with a letter and a number"
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    passwordToggle
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    errorText={fieldState.error?.message}
-                  />
-                  {passwordValue ? <PasswordStrengthMeter password={passwordValue} /> : null}
-                </View>
-              )}
-            />
-
-            {/* Confirm Password */}
-            <Controller
-              control={control}
-              name="confirmPassword"
-              render={({ field: { onChange, onBlur, value }, fieldState }) => (
-                <GlassInput
-                  label="Confirm Password"
-                  hint="Re-enter password"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  passwordToggle
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  errorText={fieldState.error?.message}
-                />
-              )}
-            />
-
-            {/* Mobile Number */}
             <Controller
               control={control}
               name="phone"
@@ -490,22 +394,49 @@ function BasicInfoForm({
               )}
             />
 
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, onBlur, value }, fieldState }) => (
+                <GlassInput
+                  label="Password"
+                  hint="Enter your password"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  passwordToggle
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  errorText={inlineError ?? fieldState.error?.message}
+                />
+              )}
+            />
+
+            {/* Forgot Password */}
+            <View style={styles.forgotRow}>
+              <Pressable onPress={handleForgotPassword} hitSlop={8} style={styles.forgotButton}>
+                <Text style={styles.forgotText}>Forgot Password?</Text>
+              </Pressable>
+            </View>
+
             {/* Submit error */}
-            {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
+            {inlineError && !control._formState?.errors?.password ? (
+              <Text style={styles.submitError}>{inlineError}</Text>
+            ) : null}
 
             {/* CTA */}
             <GradientCTA
-              label="Send OTP"
+              label="Login"
               onPress={handleSubmit(onSubmit)}
               loading={isSubmitting}
               disabled={!isValid}
             />
 
-            {/* Login link */}
-            <View style={styles.loginRow}>
-              <Text style={styles.footerText}>Already have an account? </Text>
-              <Pressable onPress={() => navigation.navigate('CommonLogin' as never)} hitSlop={8}>
-                <Text style={[styles.footerLink, { color: accentColor }]}>Login</Text>
+            {/* Sign up link */}
+            <View style={styles.signupRow}>
+              <Text style={styles.footerText}>Don't have an account? </Text>
+              <Pressable onPress={() => navigation.navigate('AccountType')} hitSlop={8}>
+                <Text style={styles.footerLink}>Sign up</Text>
               </Pressable>
             </View>
           </ScrollView>
@@ -558,6 +489,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 15,
     fontWeight: '500',
+    color: $.textSecondary,
     marginTop: 4,
     letterSpacing: 0.2,
   },
@@ -569,8 +501,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // ── Decorative badge ────────────────────────────────────────────────────────
-  genderBadge: {
+  // ── Badge ───────────────────────────────────────────────────────────────────
+  badge: {
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -579,26 +511,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 28,
   },
 
-  // ── Form heading ────────────────────────────────────────────────────────────
-  formHeading: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: $.text,
-    textAlign: 'center',
-    marginBottom: 6,
-  },
-  formSubheading: {
-    fontSize: 14,
-    color: $.textSecondary,
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 20,
-  },
-
-  // ── GlassInput ──────────────────────────────────────────────────────────────
+  // ── Input ──────────────────────────────────────────────────────────────────
   inputOuter: {
     width: '100%',
     marginBottom: 20,
@@ -653,45 +569,25 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 
-  // ── Age + Gender row ────────────────────────────────────────────────────────
-  rowField: {
-    flexDirection: 'row',
-    gap: 14,
+  // ── Forgot Password ─────────────────────────────────────────────────────────
+  forgotRow: {
     width: '100%',
+    alignItems: 'flex-end',
+    marginTop: -8,
+    marginBottom: 8,
   },
-  halfField: {
-    flex: 1,
+  forgotButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
-
-  // ── Gender tag ──────────────────────────────────────────────────────────────
-  genderTag: {
-    height: 58,
-    borderRadius: 20,
-    borderWidth: 1,
-    backgroundColor: $.inputBg,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  genderTagFemale: {
-    borderColor: 'rgba(255,79,163,0.2)',
-  },
-  genderTagMale: {
-    borderColor: 'rgba(157,92,255,0.2)',
-  },
-  genderDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  genderTagText: {
-    fontSize: 16,
+  forgotText: {
+    fontSize: 14,
     fontWeight: '600',
-    color: $.text,
+    color: '#FF4FA3',
+    letterSpacing: 0.2,
   },
 
-  // ── Phone prefix ────────────────────────────────────────────────────────────
+  // ── Prefix ──────────────────────────────────────────────────────────────────
   prefix: {
     fontSize: 16,
     fontWeight: '600',
@@ -703,7 +599,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#EF4444',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
     width: '100%',
   },
 
@@ -739,7 +635,7 @@ const styles = StyleSheet.create({
   },
 
   // ── Footer ──────────────────────────────────────────────────────────────────
-  loginRow: {
+  signupRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -752,7 +648,8 @@ const styles = StyleSheet.create({
   footerLink: {
     fontSize: 14,
     fontWeight: '700',
+    color: '#FF4FA3',
   },
 });
 
-export default BasicInfoForm;
+export default CommonLoginScreen;
