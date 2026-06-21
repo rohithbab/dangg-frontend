@@ -23,8 +23,6 @@ import Animated, {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
-
-
 import { logger } from '@core/utils/logger';
 
 import { type MaleAppStackParamList } from '@navigation/types';
@@ -165,7 +163,7 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
   /* ── Scroll tracking for header transition ── */
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler({
-    onScroll: (event) => {
+    onScroll: event => {
       scrollY.value = event.contentOffset.y;
     },
   });
@@ -175,8 +173,18 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
   }));
 
   const heroImageStyle = useAnimatedStyle(() => {
-    const scale = interpolate(scrollY.value, [-HERO_HEIGHT * 0.3, 0, HERO_HEIGHT * 0.3], [1.15, 1, 0.95], 'clamp');
-    const translateY = interpolate(scrollY.value, [0, HERO_HEIGHT * 0.3], [0, HERO_HEIGHT * 0.08], 'clamp');
+    const scale = interpolate(
+      scrollY.value,
+      [-HERO_HEIGHT * 0.3, 0, HERO_HEIGHT * 0.3],
+      [1.15, 1, 0.95],
+      'clamp',
+    );
+    const translateY = interpolate(
+      scrollY.value,
+      [0, HERO_HEIGHT * 0.3],
+      [0, HERO_HEIGHT * 0.08],
+      'clamp',
+    );
     return {
       transform: [{ scale }, { translateY }],
     };
@@ -321,15 +329,11 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
                   style={[
                     styles.statusDot,
                     {
-                      backgroundColor: female.isOnline
-                        ? P.onlineGreen
-                        : P.offlineGray,
+                      backgroundColor: female.isOnline ? P.onlineGreen : P.offlineGray,
                     },
                   ]}
                 />
-                <Text style={styles.statusText}>
-                  {female.isOnline ? 'Online now' : 'Offline'}
-                </Text>
+                <Text style={styles.statusText}>{female.isOnline ? 'Online now' : 'Offline'}</Text>
               </View>
               <View style={styles.ratingBadge}>
                 <StarIcon size={14} color={P.coinGold} />
@@ -358,10 +362,7 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
           <Text style={styles.bioText}>{female.bio}</Text>
 
           {/* ── Statistics Card (Glassmorphism) ── */}
-          <Animated.View
-            entering={FadeIn.duration(500).delay(400)}
-            style={styles.statsCard}
-          >
+          <Animated.View entering={FadeIn.duration(500).delay(400)} style={styles.statsCard}>
             <StatCol value={String(female.totalChats)} label="Chats" />
             <View style={styles.statDivider} />
             <StatCol value={female.rating.toFixed(1)} label="Rating" />
@@ -427,7 +428,13 @@ function StatCol({ value, label }: { value: string; label: string }): React.Reac
 
 /* ─────────────────────── Premium CTA Button ─────────────────────── */
 
-function PremiumCTA({ label, onPress }: { label: string; onPress: () => void }): React.ReactElement {
+function PremiumCTA({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}): React.ReactElement {
   const scale = useSharedValue(1);
   const gradientId = React.useId();
 
@@ -557,8 +564,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop:
-      Platform.OS === 'android' ? 12 + (StatusBar.currentHeight ?? 0) : 8,
+    paddingTop: Platform.OS === 'android' ? 12 + (StatusBar.currentHeight ?? 0) : 8,
   },
 
   /* ── Frosted glass icon buttons ── */

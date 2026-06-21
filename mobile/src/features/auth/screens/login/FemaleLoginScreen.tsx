@@ -211,9 +211,7 @@ function FemaleLoginScreen(): React.ReactElement {
   }, [step, navigation]);
 
   const appBarTitle =
-    step === 'password' && statusInfo?.name
-      ? `Welcome back, ${statusInfo.name}`
-      : 'Welcome back';
+    step === 'password' && statusInfo?.name ? `Welcome back, ${statusInfo.name}` : 'Welcome back';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -306,11 +304,7 @@ function FemaleLoginScreen(): React.ReactElement {
               disabled={!isPhoneValid}
             />
           ) : (
-            <PrimaryButton
-              label="Login"
-              onPress={handleSubmit(onSubmit)}
-              loading={isSubmitting}
-            />
+            <PrimaryButton label="Login" onPress={handleSubmit(onSubmit)} loading={isSubmitting} />
           )}
           <View style={styles.signupRow}>
             <Text style={styles.footerText}>Don't have an account? </Text>

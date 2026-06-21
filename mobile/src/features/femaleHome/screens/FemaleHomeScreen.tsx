@@ -69,8 +69,7 @@ function firstNameFromSession(fullName: string | undefined): string {
 }
 
 function mixHexColor(a: string, b: string, amount: number): string {
-  const parse = (hex: string) =>
-    [1, 3, 5].map(pos => Number.parseInt(hex.slice(pos, pos + 2), 16));
+  const parse = (hex: string) => [1, 3, 5].map(pos => Number.parseInt(hex.slice(pos, pos + 2), 16));
   const [r1, g1, b1] = parse(a);
   const [r2, g2, b2] = parse(b);
   const mix = (x: number, y: number) => Math.round(x + (y - x) * amount);
@@ -304,9 +303,7 @@ function FemaleHomeScreen(): React.ReactElement {
                 style={[
                   styles.statusDot,
                   {
-                    backgroundColor: availability?.online
-                      ? FC.onlineGreen
-                      : FC.offlineGray,
+                    backgroundColor: availability?.online ? FC.onlineGreen : FC.offlineGray,
                   },
                 ]}
               />
@@ -465,7 +462,7 @@ function VerificationBanner({ status }: { status: VerificationStatus }): React.R
       ? 'Verification rejected'
       : 'Account not verified';
   const body = pending
-    ? 'Our team is reviewing your photo. You can go online once it\'s approved (usually within 2 days).'
+    ? "Our team is reviewing your photo. You can go online once it's approved (usually within 2 days)."
     : rejected
       ? 'Your previous photo was rejected. Please re-submit a clear face photo to get verified.'
       : 'Submit a verification photo to get approved. You can go online and earn once verified.';

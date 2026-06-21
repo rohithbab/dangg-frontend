@@ -33,11 +33,7 @@ function AvailabilityToggle({
   }, [progress, value]);
 
   const trackStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(
-      progress.value,
-      [0, 1],
-      [FC.border, FC.primary],
-    ),
+    backgroundColor: interpolateColor(progress.value, [0, 1], [FC.border, FC.primary]),
   }));
 
   const thumbStyle = useAnimatedStyle(() => ({

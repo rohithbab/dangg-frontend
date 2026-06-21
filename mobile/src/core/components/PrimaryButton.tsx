@@ -65,7 +65,11 @@ function PrimaryButton({
   const isBlocked = disabled || loading;
   const isFilled = variant === 'filled';
   const flatBackground =
-    variant === 'danger' ? AppColors.error : variant === 'success' ? AppColors.success : AppColors.primary;
+    variant === 'danger'
+      ? AppColors.error
+      : variant === 'success'
+        ? AppColors.success
+        : AppColors.primary;
 
   return (
     <Pressable

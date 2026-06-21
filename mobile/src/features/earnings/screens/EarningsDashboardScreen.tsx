@@ -244,10 +244,7 @@ function EarningsDashboardScreen(): React.ReactElement {
                   style={[styles.sheetOption, f === filter && styles.sheetOptionActive]}
                 >
                   <Text
-                    style={[
-                      styles.sheetOptionLabel,
-                      f === filter && styles.sheetOptionLabelActive,
-                    ]}
+                    style={[styles.sheetOptionLabel, f === filter && styles.sheetOptionLabelActive]}
                   >
                     {FILTER_LABEL[f]}
                   </Text>

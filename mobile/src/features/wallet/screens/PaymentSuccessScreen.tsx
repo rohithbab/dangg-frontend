@@ -1,14 +1,7 @@
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  BackHandler,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Animated, BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -42,17 +35,9 @@ function AnimatedCheckmark(): React.ReactElement {
   });
 
   return (
-    <Animated.View
-      style={[
-        styles.checkCircle,
-        { transform: [{ scale: circleScale }] },
-      ]}
-    >
+    <Animated.View style={[styles.checkCircle, { transform: [{ scale: circleScale }] }]}>
       <Svg width={28} height={28} viewBox="0 0 24 24">
-        <Path
-          d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
-          fill={AppColors.success}
-        />
+        <Path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill={AppColors.success} />
       </Svg>
     </Animated.View>
   );
@@ -86,11 +71,7 @@ function AnimatedFadeSlide({
     ]).start();
   }, [delay, opacity, translateY]);
 
-  return (
-    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
-      {children}
-    </Animated.View>
-  );
+  return <Animated.View style={{ opacity, transform: [{ translateY }] }}>{children}</Animated.View>;
 }
 
 function PaymentSuccessScreen(): React.ReactElement {
@@ -186,20 +167,14 @@ function PaymentSuccessScreen(): React.ReactElement {
           <Pressable
             accessibilityRole="button"
             onPress={() => navigation.replace('MaleTabs', { screen: 'Home' })}
-            style={({ pressed }) => [
-              styles.primaryCta,
-              { opacity: pressed ? 0.85 : 1 },
-            ]}
+            style={({ pressed }) => [styles.primaryCta, { opacity: pressed ? 0.85 : 1 }]}
           >
             <Text style={styles.primaryCtaLabel}>Continue Browsing</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
             onPress={() => navigation.replace('MaleTabs', { screen: 'Wallet' })}
-            style={({ pressed }) => [
-              styles.secondaryCta,
-              { opacity: pressed ? 0.6 : 1 },
-            ]}
+            style={({ pressed }) => [styles.secondaryCta, { opacity: pressed ? 0.6 : 1 }]}
           >
             <Text style={styles.secondaryCtaLabel}>View Wallet</Text>
           </Pressable>

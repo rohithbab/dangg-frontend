@@ -122,12 +122,7 @@ function SearchIcon(): React.ReactElement {
 function SortIcon(): React.ReactElement {
   return (
     <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M4 6h16M7 12h10M10 18h4"
-        stroke={WC.text}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-      />
+      <Path d="M4 6h16M7 12h10M10 18h4" stroke={WC.text} strokeWidth={1.8} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -721,7 +716,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   heroBalanceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 12 },
-  heroBalance: { fontSize: 46, fontWeight: '800', letterSpacing: -1, color: WC.text, lineHeight: 48 },
+  heroBalance: {
+    fontSize: 46,
+    fontWeight: '800',
+    letterSpacing: -1,
+    color: WC.text,
+    lineHeight: 48,
+  },
   heroUnit: { fontSize: 18, fontWeight: '600', color: WC.textDim, marginBottom: 6 },
 
   // Section

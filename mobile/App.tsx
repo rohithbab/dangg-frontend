@@ -36,7 +36,6 @@ import IncomingChatRequestListener from '@features/chatRequests/components/Incom
 import IncomingChatRequestModal from '@features/chatRequests/components/IncomingChatRequestModal';
 import OfflineOverlay from '@features/common/OfflineOverlay';
 
-
 const MyLightTheme = {
   ...DefaultTheme,
   colors: {

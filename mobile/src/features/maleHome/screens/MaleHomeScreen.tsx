@@ -123,7 +123,9 @@ function mixHexColor(from: string, to: string, amount: number): string {
   const start = Number.parseInt(from.replace('#', ''), 16);
   const end = Number.parseInt(to.replace('#', ''), 16);
   const mix = (shift: number): number => {
+    // eslint-disable-next-line no-bitwise
     const a = (start >> shift) & 255;
+    // eslint-disable-next-line no-bitwise
     const b = (end >> shift) & 255;
     return Math.round(a + (b - a) * amount);
   };
@@ -700,10 +702,10 @@ function MaleHomeScreen(): React.ReactElement {
         ListHeaderComponent={
           <>
             {favorites.length > 0 ? (
-                <View style={styles.favSection}>
-                  <View style={styles.favHeader}>
-                    <Text style={styles.favTitle}>Your Favorites</Text>
-                  </View>
+              <View style={styles.favSection}>
+                <View style={styles.favHeader}>
+                  <Text style={styles.favTitle}>Your Favorites</Text>
+                </View>
                 <FlatList
                   horizontal
                   showsHorizontalScrollIndicator={false}

@@ -178,7 +178,9 @@ export type FemaleVerificationStatusInfo = {
   profilePictureUrl: string | null;
 };
 
-export async function getFemaleVerificationStatus(phone: string): Promise<FemaleVerificationStatusInfo> {
+export async function getFemaleVerificationStatus(
+  phone: string,
+): Promise<FemaleVerificationStatusInfo> {
   if (USE_MOCK_DATA) {
     await sleep(DEV_DELAY_MS / 2);
     const last = phone.charAt(phone.length - 1);
@@ -193,11 +195,13 @@ export async function getFemaleVerificationStatus(phone: string): Promise<Female
     return {
       status,
       name: 'Simulated Name',
-      profilePictureUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200',
+      profilePictureUrl:
+        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200',
     };
   }
-  const { data, error } = await getSupabaseClient()
-    .rpc('get_female_verification_status', { p_phone: toE164(phone) });
+  const { data, error } = await getSupabaseClient().rpc('get_female_verification_status', {
+    p_phone: toE164(phone),
+  });
   if (error) {
     throw mapSupabaseError(error);
   }

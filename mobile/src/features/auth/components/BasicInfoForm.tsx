@@ -196,9 +196,7 @@ function GradientCTA({
         if (!isBlocked) scale.value = withSpring(1, { damping: 15, stiffness: 200 });
       }}
     >
-      <Animated.View
-        style={[styles.cta, animatedStyle, isBlocked && styles.ctaBlocked]}
-      >
+      <Animated.View style={[styles.cta, animatedStyle, isBlocked && styles.ctaBlocked]}>
         <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
           <Defs>
             <LinearGradient id={gradId} x1="0" y1="0" x2="1" y2="0">
@@ -206,14 +204,7 @@ function GradientCTA({
               <Stop offset="1" stopColor="#E84393" />
             </LinearGradient>
           </Defs>
-          <Rect
-            x="0"
-            y="0"
-            width="100%"
-            height="100%"
-            rx={20}
-            fill={`url(#${gradId})`}
-          />
+          <Rect x="0" y="0" width="100%" height="100%" rx={20} fill={`url(#${gradId})`} />
         </Svg>
         {loading ? (
           <ActivityIndicator size="small" color="#fff" />
@@ -236,15 +227,55 @@ function GenderBadge({ isFemale }: { isFemale: boolean }): React.ReactElement {
         {isFemale ? (
           <G>
             <Circle cx={24} cy={18} r={7} stroke={$.primary} strokeWidth={2.5} fill="none" />
-            <Line x1={24} y1={25} x2={24} y2={37} stroke={$.primary} strokeWidth={2.5} strokeLinecap="round" />
-            <Line x1={19} y1={31} x2={29} y2={31} stroke={$.primary} strokeWidth={2.5} strokeLinecap="round" />
+            <Line
+              x1={24}
+              y1={25}
+              x2={24}
+              y2={37}
+              stroke={$.primary}
+              strokeWidth={2.5}
+              strokeLinecap="round"
+            />
+            <Line
+              x1={19}
+              y1={31}
+              x2={29}
+              y2={31}
+              stroke={$.primary}
+              strokeWidth={2.5}
+              strokeLinecap="round"
+            />
           </G>
         ) : (
           <G>
             <Circle cx={19} cy={29} r={7} stroke={$.secondary} strokeWidth={2.5} fill="none" />
-            <Line x1={24} y1={24} x2={35} y2={13} stroke={$.secondary} strokeWidth={2.5} strokeLinecap="round" />
-            <Line x1={28} y1={13} x2={35} y2={13} stroke={$.secondary} strokeWidth={2.5} strokeLinecap="round" />
-            <Line x1={35} y1={13} x2={35} y2={20} stroke={$.secondary} strokeWidth={2.5} strokeLinecap="round" />
+            <Line
+              x1={24}
+              y1={24}
+              x2={35}
+              y2={13}
+              stroke={$.secondary}
+              strokeWidth={2.5}
+              strokeLinecap="round"
+            />
+            <Line
+              x1={28}
+              y1={13}
+              x2={35}
+              y2={13}
+              stroke={$.secondary}
+              strokeWidth={2.5}
+              strokeLinecap="round"
+            />
+            <Line
+              x1={35}
+              y1={13}
+              x2={35}
+              y2={20}
+              stroke={$.secondary}
+              strokeWidth={2.5}
+              strokeLinecap="round"
+            />
           </G>
         )}
       </Svg>
@@ -257,20 +288,14 @@ function GenderBadge({ isFemale }: { isFemale: boolean }): React.ReactElement {
 function BackChevron(): React.ReactElement {
   return (
     <Svg width={20} height={20} viewBox="0 0 24 24">
-      <Path
-        d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-        fill={$.text}
-      />
+      <Path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" fill={$.text} />
     </Svg>
   );
 }
 
 // ─── Main Form ────────────────────────────────────────────────────────────────
 
-function BasicInfoForm({
-  role,
-  onOtpRequested,
-}: BasicInfoFormProps): React.ReactElement {
+function BasicInfoForm({ role, onOtpRequested }: BasicInfoFormProps): React.ReactElement {
   const navigation = useNavigation();
   const setBasicInfo = useSignupDraftStore(s => s.setBasicInfo);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -346,9 +371,7 @@ function BasicInfoForm({
 
         <View style={styles.titleBlock}>
           <Text style={styles.title}>Create Account</Text>
-          <Text style={[styles.subtitle, { color: accentColor }]}>
-            {ROLE_SUBTITLE[role]}
-          </Text>
+          <Text style={[styles.subtitle, { color: accentColor }]}>{ROLE_SUBTITLE[role]}</Text>
         </View>
 
         {/* ── Form ──────────────────────────────────────────────────────────── */}
@@ -419,12 +442,7 @@ function BasicInfoForm({
                     isFemale ? styles.genderTagFemale : styles.genderTagMale,
                   ]}
                 >
-                  <View
-                    style={[
-                      styles.genderDot,
-                      { backgroundColor: accentColor },
-                    ]}
-                  />
+                  <View style={[styles.genderDot, { backgroundColor: accentColor }]} />
                   <Text style={styles.genderTagText}>{GENDER_LABEL[role]}</Text>
                 </View>
               </View>

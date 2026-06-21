@@ -21,12 +21,7 @@ function MaleSignupBasicInfoScreen(): React.ReactElement {
     [navigation],
   );
 
-  return (
-    <BasicInfoForm
-      role={UserRole.Male}
-      onOtpRequested={handleOtpRequested}
-    />
-  );
+  return <BasicInfoForm role={UserRole.Male} onOtpRequested={handleOtpRequested} />;
 }
 
 export default MaleSignupBasicInfoScreen;

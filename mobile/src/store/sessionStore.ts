@@ -84,9 +84,13 @@ export function subscribeSupabaseAuth(client: SupabaseClient): { unsubscribe: ()
 
     // CRITICAL: Clear persisted mock session if we are running against real database (USE_MOCK_DATA === false)
     if (session && !USE_MOCK_DATA) {
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(session.user.id);
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        session.user.id,
+      );
       if (!isUuid) {
-        logger.info('Detected persisted mock session while USE_MOCK_DATA is false. Clearing session...');
+        logger.info(
+          'Detected persisted mock session while USE_MOCK_DATA is false. Clearing session...',
+        );
         setTimeout(() => {
           client.auth.signOut().catch(err => {
             logger.error('Failed to sign out mock session', err);

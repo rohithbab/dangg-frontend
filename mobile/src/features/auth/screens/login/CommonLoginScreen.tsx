@@ -199,9 +199,7 @@ function GradientCTA({
         if (!isBlocked) scale.value = withSpring(1, { damping: 15, stiffness: 200 });
       }}
     >
-      <Animated.View
-        style={[styles.cta, animatedStyle, isBlocked && styles.ctaBlocked]}
-      >
+      <Animated.View style={[styles.cta, animatedStyle, isBlocked && styles.ctaBlocked]}>
         <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
           <Defs>
             <LinearGradient id={gradId} x1="0" y1="0" x2="1" y2="0">
@@ -209,14 +207,7 @@ function GradientCTA({
               <Stop offset="1" stopColor="#E84393" />
             </LinearGradient>
           </Defs>
-          <Rect
-            x="0"
-            y="0"
-            width="100%"
-            height="100%"
-            rx={20}
-            fill={`url(#${gradId})`}
-          />
+          <Rect x="0" y="0" width="100%" height="100%" rx={20} fill={`url(#${gradId})`} />
         </Svg>
         {loading ? (
           <ActivityIndicator size="small" color="#fff" />
@@ -245,8 +236,24 @@ function LoginBadge(): React.ReactElement {
             strokeLinecap="round"
             fill="none"
           />
-          <Line x1={38} y1={14} x2={38} y2={6} stroke="#9D5CFF" strokeWidth={2.5} strokeLinecap="round" />
-          <Line x1={34} y1={10} x2={42} y2={10} stroke="#9D5CFF" strokeWidth={2.5} strokeLinecap="round" />
+          <Line
+            x1={38}
+            y1={14}
+            x2={38}
+            y2={6}
+            stroke="#9D5CFF"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+          />
+          <Line
+            x1={34}
+            y1={10}
+            x2={42}
+            y2={10}
+            stroke="#9D5CFF"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+          />
         </G>
       </Svg>
     </View>
@@ -258,10 +265,7 @@ function LoginBadge(): React.ReactElement {
 function BackChevron(): React.ReactElement {
   return (
     <Svg width={20} height={20} viewBox="0 0 24 24">
-      <Path
-        d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-        fill={$.text}
-      />
+      <Path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" fill={$.text} />
     </Svg>
   );
 }
@@ -286,10 +290,7 @@ async function resolveUserRole(phone: string): Promise<UserRole> {
   } catch (e) {
     logger.warn('resolveUserRole exception', e);
   }
-  throw new AppException(
-    'NOT_FOUND',
-    'Account not found. Please sign up first.',
-  );
+  throw new AppException('NOT_FOUND', 'Account not found. Please sign up first.');
 }
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -347,7 +348,9 @@ function CommonLoginScreen(): React.ReactElement {
         {/* ── Header ───────────────────────────────────────────────────── */}
         <View style={styles.header}>
           <Pressable
-            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('AccountType')}
+            onPress={() =>
+              navigation.canGoBack() ? navigation.goBack() : navigation.navigate('AccountType')
+            }
             hitSlop={12}
             style={styles.backGlass}
             accessibilityRole="button"

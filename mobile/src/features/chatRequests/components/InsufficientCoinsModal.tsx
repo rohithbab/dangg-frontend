@@ -1,12 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  Animated,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
@@ -85,14 +78,7 @@ function GradientCtaButton({
                   <Stop offset="1" stopColor="#D946EF" />
                 </LinearGradient>
               </Defs>
-              <Rect
-                x="0"
-                y="0"
-                width="100%"
-                height="100%"
-                rx={16}
-                fill={`url(#${gradientId})`}
-              />
+              <Rect x="0" y="0" width="100%" height="100%" rx={16} fill={`url(#${gradientId})`} />
             </Svg>
           </View>
           <Text style={styles.gradientCtaLabel}>{label}</Text>
@@ -152,11 +138,7 @@ function InsufficientCoinsModal({
       <Animated.View style={[styles.scrim, { opacity: fadeAnim }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
         <Animated.View
-          style={[
-            styles.sheet,
-            AppShadows.e3,
-            { transform: [{ translateY: slideTransform }] },
-          ]}
+          style={[styles.sheet, AppShadows.e3, { transform: [{ translateY: slideTransform }] }]}
         >
           <View style={styles.handle} />
           <Pressable style={styles.closeBtn} onPress={onCancel} hitSlop={12}>
@@ -174,10 +156,8 @@ function InsufficientCoinsModal({
             </View>
             <Text style={styles.title}>Unlock Chat Access</Text>
             <Text style={styles.subtitle}>
-              You need{' '}
-              <Text style={styles.bold}>{coinCost} coins</Text> to chat with{' '}
-              {femaleName}, but you{' '}
-              <Text style={styles.bold}>only have {currentBalance}</Text>.
+              You need <Text style={styles.bold}>{coinCost} coins</Text> to chat with {femaleName},
+              but you <Text style={styles.bold}>only have {currentBalance}</Text>.
             </Text>
           </View>
 
@@ -205,10 +185,7 @@ function InsufficientCoinsModal({
           <Pressable
             accessibilityRole="button"
             onPress={onGoToWallet}
-            style={({ pressed }) => [
-              styles.walletBtn,
-              { opacity: pressed ? 0.7 : 1 },
-            ]}
+            style={({ pressed }) => [styles.walletBtn, { opacity: pressed ? 0.7 : 1 }]}
           >
             <Text style={styles.walletBtnLabel}>Go to Wallet</Text>
           </Pressable>
@@ -216,10 +193,7 @@ function InsufficientCoinsModal({
           <Pressable
             accessibilityRole="button"
             onPress={onCancel}
-            style={({ pressed }) => [
-              styles.cancelBtn,
-              { opacity: pressed ? 0.5 : 1 },
-            ]}
+            style={({ pressed }) => [styles.cancelBtn, { opacity: pressed ? 0.5 : 1 }]}
           >
             <Text style={styles.cancelBtnLabel}>Cancel</Text>
           </Pressable>
