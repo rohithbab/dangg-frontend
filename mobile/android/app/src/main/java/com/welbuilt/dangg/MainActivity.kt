@@ -21,15 +21,6 @@ class MainActivity : ReactActivity() {
   override fun createReactActivityDelegate(): ReactActivityDelegate =
       DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
 
-  /**
-   * Required by react-native-gesture-handler — must call super(null) on Android to disable state
-   * restoration that would otherwise re-create gesture handlers in the wrong order.
-   */
-  override fun getMainComponentName(): String = "Dangg"
-
-  override fun createReactActivityDelegate(): ReactActivityDelegate =
-      DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
-
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(null)
   }
