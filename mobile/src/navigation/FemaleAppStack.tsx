@@ -10,7 +10,6 @@ import PayoutInReviewScreen from '@features/earnings/screens/PayoutInReviewScree
 import PayoutRequestScreen from '@features/earnings/screens/PayoutRequestScreen';
 import NotificationsScreen from '@features/notifications/screens/NotificationsScreen';
 import AboutAppScreen from '@features/profile/screens/AboutAppScreen';
-import ChangePasswordScreen from '@features/profile/screens/ChangePasswordScreen';
 import DeleteAccountConfirmScreen from '@features/profile/screens/DeleteAccountConfirmScreen';
 import DeleteAccountWarningScreen from '@features/profile/screens/DeleteAccountWarningScreen';
 import HelpSupportScreen from '@features/profile/screens/HelpSupportScreen';
@@ -33,7 +32,6 @@ function FemaleAppStack(): React.ReactElement {
       <Stack.Screen name="FemaleTabs" component={FemaleTabNavigator} />
       <Stack.Screen name="ChatsInbox" component={ChatsInboxScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
-      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <Stack.Screen name="BankUpiUpdate" component={FemaleBankUpiUpdateScreen} />
       <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
       <Stack.Screen name="ReportIssue" component={ReportIssueScreen} />

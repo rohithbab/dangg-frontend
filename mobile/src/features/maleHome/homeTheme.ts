@@ -1,42 +1,41 @@
 import { type ViewStyle } from 'react-native';
 
 /**
- * Premium fintech/dating design tokens — SCOPED TO THE MALE-HOME FEATURE ONLY.
- *
- * Kept separate from the global `@theme` so this visual refresh doesn't touch
- * the rest of the app. Matte obsidian surfaces, soft glass, restrained pink↔
- * violet accents (no neon glow).
+ * Male-home feature tokens — now reconciled onto the global "DANGG · Neue"
+ * palette (see src/theme/colors.ts). Kept as a local alias object so the
+ * feature's existing call sites keep compiling; values mirror the central
+ * tokens. New work should import from `@theme` directly.
  */
 export const HC = {
-  bg: '#09090B',
-  surface: '#121217',
-  card: '#18181F',
-  cardHi: '#20202A',
+  bg: '#000000',
+  surface: '#101013',
+  card: '#141417',
+  cardHi: '#1C1C20',
 
-  primary: '#FF4FA3',
+  primary: '#DC308F',
   secondary: '#9D5CFF',
-  success: '#22C55E',
+  success: '#34D399',
   successText: '#4ADE80',
 
   text: '#FFFFFF',
-  textDim: '#A1A1AA',
-  textFaint: '#71717A',
+  textDim: '#8E8E96',
+  textFaint: '#5A5A62',
 
   border: 'rgba(255,255,255,0.06)',
   hairline: 'rgba(255,255,255,0.08)',
-  glass: 'rgba(255,255,255,0.06)',
+  glass: 'rgba(255,255,255,0.05)',
   glassStrong: 'rgba(0,0,0,0.45)',
 
-  primarySoft: 'rgba(255,79,163,0.14)',
+  primarySoft: 'rgba(220,48,143,0.14)',
   secondarySoft: 'rgba(157,92,255,0.14)',
   scrim: 'rgba(0,0,0,0.72)',
   overlay: 'rgba(0,0,0,0.78)',
 } as const;
 
-export const HR = { sm: 12, md: 16, lg: 20, xl: 24, card: 24, pill: 999 } as const;
+export const HR = { sm: 12, md: 16, lg: 20, xl: 24, card: 22, pill: 999 } as const;
 export const HS = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28 } as const;
 
-/** Soft dark elevation (no neon glow). */
+/** Soft dark elevation (flat — no neon glow). */
 export const HShadow = {
   card: {
     shadowColor: '#000000',

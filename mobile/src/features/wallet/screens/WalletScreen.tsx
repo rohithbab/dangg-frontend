@@ -21,6 +21,8 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { InterFont } from '@theme/typography';
+
 import CoinIcon from '@core/components/CoinIcon';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
 import { inr } from '@core/utils/formatters';
@@ -658,8 +660,8 @@ const styles = StyleSheet.create({
     paddingTop: WS.md,
     paddingBottom: WS.sm,
   },
-  headerTitle: { fontSize: 30, fontWeight: '800', letterSpacing: -0.5, color: WC.primary },
-  headerSubtitle: { fontSize: 13, fontWeight: '500', color: WC.textDim, marginTop: 3 },
+  headerTitle: { fontFamily: InterFont.light, fontSize: 30, letterSpacing: -0.75, color: WC.text },
+  headerSubtitle: { fontFamily: InterFont.light, fontSize: 13, color: WC.textDim, marginTop: 3 },
   headerIcons: { flexDirection: 'row', gap: WS.sm + 2 },
   iconBtn: {
     width: 42,
@@ -717,18 +719,23 @@ const styles = StyleSheet.create({
   },
   heroBalanceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 12 },
   heroBalance: {
-    fontSize: 46,
-    fontWeight: '800',
-    letterSpacing: -1,
+    fontFamily: InterFont.light,
+    fontSize: 52,
+    letterSpacing: -1.4,
     color: WC.text,
-    lineHeight: 48,
+    lineHeight: 58,
   },
-  heroUnit: { fontSize: 18, fontWeight: '600', color: WC.textDim, marginBottom: 6 },
+  heroUnit: { fontFamily: InterFont.regular, fontSize: 16, color: WC.textDim, marginBottom: 8 },
 
   // Section
   section: { marginHorizontal: WS.xl, marginTop: WS.xxl },
-  sectionTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.4, color: WC.primary },
-  sectionSubtitle: { fontSize: 13, fontWeight: '500', color: WC.textDim, marginTop: 3 },
+  sectionTitle: {
+    fontFamily: InterFont.regular,
+    fontSize: 22,
+    letterSpacing: -0.3,
+    color: WC.text,
+  },
+  sectionSubtitle: { fontFamily: InterFont.light, fontSize: 13, color: WC.textDim, marginTop: 3 },
 
   // Packages
   pkgList: { marginHorizontal: WS.xl, marginTop: WS.md, gap: WS.md },

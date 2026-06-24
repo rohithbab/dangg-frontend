@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     marginBottom: AppSpacing.md,
   },
   title: {
-    fontFamily: 'Poppins',
+    fontFamily: 'Inter-SemiBold',
     fontSize: 28,
     fontWeight: '700',
     color: AppColors.onSurface,
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   coinsAdded: {
-    fontFamily: 'Plus Jakarta Sans',
+    fontFamily: 'Inter-Regular',
     fontSize: 18,
     fontWeight: '600',
     color: AppColors.onSurfaceMuted,
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     minWidth: 200,
   },
   balanceLabel: {
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     fontSize: 12,
     fontWeight: '600',
     color: AppColors.onSurfaceMuted,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   balanceValue: {
-    fontFamily: 'Poppins',
+    fontFamily: 'Inter-SemiBold',
     fontSize: 32,
     fontWeight: '700',
     color: AppColors.onSurface,
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     paddingVertical: AppSpacing.sm,
   },
   detailsToggleText: {
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     fontSize: 13,
     fontWeight: '500',
     color: AppColors.onSurfaceMuted,
@@ -276,26 +276,26 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   detailLabel: {
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     fontSize: 13,
     fontWeight: '500',
     color: AppColors.onSurfaceMuted,
   },
   detailValue: {
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     fontSize: 14,
     fontWeight: '600',
     color: AppColors.onSurface,
   },
   detailValueMono: {
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     fontSize: 12,
     fontWeight: '500',
     color: AppColors.onSurfaceMuted,
     maxWidth: 180,
   },
   detailValueBonus: {
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     fontSize: 14,
     fontWeight: '600',
     color: AppColors.success,
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.primary,
   },
   primaryCtaLabel: {
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     fontSize: 17,
     fontWeight: '700',
     color: AppColors.onPrimary,
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   secondaryCtaLabel: {
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     fontSize: 15,
     fontWeight: '600',
     color: AppColors.onSurfaceMuted,

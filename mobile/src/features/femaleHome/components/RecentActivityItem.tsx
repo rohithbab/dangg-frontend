@@ -82,13 +82,13 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 15,
     fontWeight: '700',
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     color: FC.text,
   },
   description: {
     fontSize: 12.5,
     fontWeight: '500',
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     color: FC.textDim,
     marginTop: 2,
   },
@@ -101,14 +101,14 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 15,
     fontWeight: '800',
-    fontFamily: 'Poppins',
+    fontFamily: 'Inter-SemiBold',
     color: FC.successText,
     letterSpacing: -0.2,
   },
   time: {
     fontSize: 11,
     fontWeight: '600',
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     color: FC.textFaint,
     marginTop: 2,
   },

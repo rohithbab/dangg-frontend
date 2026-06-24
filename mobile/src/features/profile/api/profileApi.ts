@@ -200,29 +200,6 @@ export async function removeAvatar(): Promise<void> {
   }
 }
 
-/** Updates the user's password. */
-export async function changePassword(current: string, next: string): Promise<void> {
-  if (USE_MOCK_DATA) {
-    if (!current) {
-      throw new AuthException('Current password is required');
-    }
-    if (!next) {
-      throw new AuthException('New password is required');
-    }
-    return;
-  }
-  const { error: verifyErr } = await getSupabaseClient().rpc('verify_current_password', {
-    current_password: current,
-  });
-  if (verifyErr) {
-    throw mapSupabaseError(verifyErr);
-  }
-  const { error } = await getSupabaseClient().auth.updateUser({ password: next });
-  if (error) {
-    throw mapSupabaseError(error);
-  }
-}
-
 /**
  * True when a Supabase error just means "there's no session to revoke" — the
  * user is effectively already signed out. supabase-js surfaces this as
@@ -266,23 +243,15 @@ export async function signOut(): Promise<void> {
 }
 
 /**
- * Permanently deletes the user's account. Re-auths with the supplied password
- * first; on success, clears the session and routes the app back to the auth
- * flow. In dev mode this is a stub that only clears the session.
+ * Permanently deletes the user's account, then clears the session so the app
+ * routes back to the auth flow. The user already passed the typed-phrase gate
+ * and is authenticated — the app is OTP-only, so there is no password re-auth.
+ * In dev mode this is a stub that only clears the session.
  */
-export async function deleteAccount(password: string): Promise<void> {
+export async function deleteAccount(): Promise<void> {
   if (USE_MOCK_DATA) {
-    if (!password) {
-      throw new AuthException('Password is required to delete your account');
-    }
     useSessionStore.getState().clear();
     return;
-  }
-  const { error: verifyErr } = await getSupabaseClient().rpc('verify_current_password', {
-    current_password: password,
-  });
-  if (verifyErr) {
-    throw mapSupabaseError(verifyErr);
   }
   const { error } = await getSupabaseClient().rpc('delete_self_account');
   if (error) {

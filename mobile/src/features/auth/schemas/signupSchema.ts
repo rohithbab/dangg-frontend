@@ -19,23 +19,11 @@ const ageString = z
   .refine(n => n >= MIN_AGE && n <= MAX_AGE, `Age must be between ${MIN_AGE} and ${MAX_AGE}`);
 
 /** Female / male signup share the same basic-info shape. Role is set by caller. */
-export const basicInfoSchema = z
-  .object({
-    name: ZodSchemas.name,
-    age: ageString,
-    password: ZodSchemas.password,
-    confirmPassword: z.string().min(1, 'Confirm your password'),
-    phone: ZodSchemas.phoneIndian,
-  })
-  .superRefine((data, ctx) => {
-    if (data.password !== data.confirmPassword) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['confirmPassword'],
-        message: 'Passwords do not match',
-      });
-    }
-  });
+export const basicInfoSchema = z.object({
+  name: ZodSchemas.name,
+  age: ageString,
+  phone: ZodSchemas.phoneIndian,
+});
 
 export type BasicInfoInput = z.input<typeof basicInfoSchema>;
 export type BasicInfoOutput = z.output<typeof basicInfoSchema>;
@@ -70,34 +58,9 @@ export const upiSchema = z.object({
 
 export type UpiInput = z.infer<typeof upiSchema>;
 
-/** Phone-only schema, used by login + forgot-password phone entry. */
+/** Phone-only schema, used by OTP login phone entry. */
 export const phoneOnlySchema = z.object({
   phone: ZodSchemas.phoneIndian,
 });
 
 export type PhoneOnlyInput = z.infer<typeof phoneOnlySchema>;
-
-/** Password-only schema, used by login. */
-export const passwordOnlySchema = z.object({
-  password: z.string().min(1, 'Enter your password'),
-});
-
-export type PasswordOnlyInput = z.infer<typeof passwordOnlySchema>;
-
-/** New-password schema for forgot-password reset. */
-export const newPasswordSchema = z
-  .object({
-    newPassword: ZodSchemas.password,
-    confirmNewPassword: z.string().min(1, 'Confirm the new password'),
-  })
-  .superRefine((data, ctx) => {
-    if (data.newPassword !== data.confirmNewPassword) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['confirmNewPassword'],
-        message: 'Passwords do not match',
-      });
-    }
-  });
-
-export type NewPasswordInput = z.infer<typeof newPasswordSchema>;

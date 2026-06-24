@@ -1,4 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
+import { ChevronLeft } from 'lucide-react-native';
 import React from 'react';
 import { Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 
@@ -52,7 +53,7 @@ function AppBar({
             accessibilityRole="button"
             accessibilityLabel="Back"
           >
-            <Text style={styles.backChevron}>{'‹'}</Text>
+            <ChevronLeft size={26} color={AppColors.onSurface} strokeWidth={2} />
           </Pressable>
         ) : (
           <View style={styles.backSpacer} />
@@ -81,25 +82,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: AppSpacing.md,
     backgroundColor: AppColors.background,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: AppColors.divider,
   },
   leading: { width: 40, alignItems: 'flex-start' },
-  backChevron: {
-    fontSize: 30,
-    lineHeight: 30,
-    color: AppColors.primary,
-    fontWeight: '500',
-  },
   backSpacer: { width: 40 },
   titleBlock: { flex: 1, marginHorizontal: AppSpacing.sm },
   title: {
     ...AppTypography.titleLarge,
-    color: AppColors.primaryDark,
+    color: AppColors.onSurface,
   },
   subtitle: {
     ...AppTypography.labelSmall,
-    color: AppColors.primary,
+    color: AppColors.onSurfaceMuted,
   },
   actions: { flexDirection: 'row', alignItems: 'center' },
 });

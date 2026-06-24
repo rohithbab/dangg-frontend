@@ -3,128 +3,135 @@ import { type TextStyle } from 'react-native';
 import { AppColors } from './colors';
 
 /**
- * Type-scale tokens.
+ * Type-scale tokens — "DANGG · Neue".
  *
- * Color contract (v2 "Vibrant Splash"): primary text is high-contrast white
- * (`onSurface` #FFFFFF), muted metadata is `onSurfaceMuted` #A0A0A8, and accent
- * headings use `headlineAccent` which resolves to the bright splash pink
- * (`primary` #FF66C4) — perfectly legible on the obsidian #0B0B0C background.
+ * Font: Inter, bundled as five static weights (see src/assets/fonts +
+ * react-native.config.js). Inter's Light/Medium/SemiBold cuts each ship under
+ * their OWN family name, so weight selection by `fontWeight` is unreliable on
+ * Android. We therefore select the cut explicitly via its PostScript name
+ * (`Inter-Light`, `Inter-Regular`, …) which resolves on both iOS (PostScript
+ * name) and Android (asset filename). Do NOT also set `fontWeight` — the
+ * explicit family already carries the weight.
  *
- * `fontFamily` is left undefined (system default) for v1. To swap to Inter
- * later, drop `assets/fonts/Inter-*.ttf` files, link them, and set
- * `fontFamily: 'Inter'` here. Explicit `lineHeight` + `letterSpacing` are
- * set on every style so layout stays deterministic across devices.
+ * Neue leans on the Light cut for large display text (page titles, balances)
+ * with negative tracking, Medium for titles/labels/buttons, Regular for body.
  */
-const fontFamilyHeadings = 'Poppins';
-const fontFamilyBody = 'Plus Jakarta Sans';
-const fontFamilyUI = 'Nunito';
+export const InterFont = {
+  light: 'Inter-Light',
+  regular: 'Inter-Regular',
+  medium: 'Inter-Medium',
+  semibold: 'Inter-SemiBold',
+  bold: 'Inter-Bold',
+} as const;
 
 const base: Pick<TextStyle, 'color'> = {
   color: AppColors.onSurface,
 };
 
 export const AppTypography = {
-  // Page Title (H1)
+  // Hero / page title (H1) — light + tight tracking
   displayLarge: {
     ...base,
-    fontFamily: fontFamilyHeadings,
+    fontFamily: InterFont.light,
     fontSize: 34,
-    fontWeight: '700',
-    lineHeight: 40,
-    letterSpacing: -0.5,
+    lineHeight: 41,
+    letterSpacing: -0.8,
   } satisfies TextStyle,
 
+  // Large screen title ("Discover", "Wallet")
   headlineLarge: {
     ...base,
-    fontFamily: fontFamilyHeadings,
-    fontSize: 34,
-    fontWeight: '700',
-    lineHeight: 40,
-    letterSpacing: -0.5,
+    fontFamily: InterFont.light,
+    fontSize: 30,
+    lineHeight: 36,
+    letterSpacing: -0.6,
   } satisfies TextStyle,
 
-  // Section Title (H2)
+  // Giant thin numerals — coin balance / earnings ("8,420")
+  displayNumeric: {
+    ...base,
+    fontFamily: InterFont.light,
+    fontSize: 56,
+    lineHeight: 62,
+    letterSpacing: -1.6,
+  } satisfies TextStyle,
+
+  // Section title (H2)
   headlineMedium: {
     ...base,
-    fontFamily: fontFamilyHeadings,
-    fontSize: 24,
-    fontWeight: '600',
-    lineHeight: 30,
+    fontFamily: InterFont.regular,
+    fontSize: 22,
+    lineHeight: 28,
+    letterSpacing: -0.3,
   } satisfies TextStyle,
 
-  // Accent heading — bright splash pink, legible on obsidian (#0B0B0C).
+  // Accent heading — magenta-pink, legible on black
   headlineAccent: {
     ...base,
-    fontFamily: fontFamilyHeadings,
-    fontSize: 24,
-    fontWeight: '700',
-    lineHeight: 30,
+    fontFamily: InterFont.medium,
+    fontSize: 22,
+    lineHeight: 28,
     letterSpacing: -0.3,
     color: AppColors.primary,
   } satisfies TextStyle,
 
-  // Card Title (H3)
+  // Card title (H3)
   titleLarge: {
     ...base,
-    fontFamily: fontFamilyHeadings,
+    fontFamily: InterFont.medium,
     fontSize: 18,
-    fontWeight: '600',
     lineHeight: 24,
+    letterSpacing: -0.2,
   } satisfies TextStyle,
 
   titleMedium: {
     ...base,
-    fontFamily: fontFamilyHeadings,
+    fontFamily: InterFont.medium,
     fontSize: 16,
-    fontWeight: '500',
     lineHeight: 22,
+    letterSpacing: -0.1,
   } satisfies TextStyle,
 
-  // Body Text
+  // Body text
   bodyLarge: {
     ...base,
-    fontFamily: fontFamilyBody,
+    fontFamily: InterFont.regular,
     fontSize: 16,
-    fontWeight: '400',
     lineHeight: 24,
   } satisfies TextStyle,
 
   // Caption (14px)
   bodyMedium: {
     ...base,
-    fontFamily: fontFamilyUI,
+    fontFamily: InterFont.regular,
     fontSize: 14,
-    fontWeight: '400',
     lineHeight: 20,
   } satisfies TextStyle,
 
-  // Small Text
+  // Small text
   bodySmall: {
     ...base,
-    fontFamily: fontFamilyUI,
+    fontFamily: InterFont.regular,
     fontSize: 12,
-    fontWeight: '400',
     lineHeight: 16,
     color: AppColors.onSurfaceMuted,
   } satisfies TextStyle,
 
-  // UI labels & badges
+  // UI labels & buttons
   labelLarge: {
     ...base,
-    fontFamily: fontFamilyUI,
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 18,
-    letterSpacing: 0.1,
+    fontFamily: InterFont.medium,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
   } satisfies TextStyle,
 
   labelSmall: {
     ...base,
-    fontFamily: fontFamilyUI,
+    fontFamily: InterFont.medium,
     fontSize: 12,
-    fontWeight: '500',
     lineHeight: 16,
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
     color: AppColors.onSurfaceMuted,
   } satisfies TextStyle,
 } as const;

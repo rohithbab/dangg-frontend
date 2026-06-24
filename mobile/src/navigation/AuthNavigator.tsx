@@ -5,16 +5,12 @@ import { useIsAuthenticated, useSessionRole, useVerificationStatus } from '@stor
 
 import BankUpiDetailsScreen from '@features/auth/screens/female/BankUpiDetailsScreen';
 import FaceCaptureScreen from '@features/auth/screens/female/FaceCaptureScreen';
-import FemaleSignupBasicInfoScreen from '@features/auth/screens/female/FemaleSignupBasicInfoScreen';
 import VerificationInfoScreen from '@features/auth/screens/female/VerificationInfoScreen';
 import VerificationSubmittedScreen from '@features/auth/screens/female/VerificationSubmittedScreen';
-import ForgotPasswordNewScreen from '@features/auth/screens/forgotPassword/ForgotPasswordNewScreen';
-import ForgotPasswordPhoneScreen from '@features/auth/screens/forgotPassword/ForgotPasswordPhoneScreen';
-import CommonLoginScreen from '@features/auth/screens/login/CommonLoginScreen';
-import FemaleLoginScreen from '@features/auth/screens/login/FemaleLoginScreen';
-import MaleLoginScreen from '@features/auth/screens/login/MaleLoginScreen';
-import MaleSignupBasicInfoScreen from '@features/auth/screens/male/MaleSignupBasicInfoScreen';
+import LoginPhoneScreen from '@features/auth/screens/login/LoginPhoneScreen';
 import OtpVerificationScreen from '@features/auth/screens/shared/OtpVerificationScreen';
+import SignupPhoneScreen from '@features/auth/screens/signup/SignupPhoneScreen';
+import SignupProfileScreen from '@features/auth/screens/signup/SignupProfileScreen';
 import AccountTypeScreen from '@features/onboarding/screens/AccountTypeScreen';
 import MaleOnboardingCarousel from '@features/onboarding/screens/MaleOnboardingCarousel';
 import SplashScreen from '@features/splash/screens/SplashScreen';
@@ -67,8 +63,10 @@ function AuthNavigator(): React.ReactElement {
       />
       <Stack.Screen name="MaleOnboardingCarousel" component={MaleOnboardingCarousel} />
 
-      <Stack.Screen name="FemaleSignupBasicInfo" component={FemaleSignupBasicInfoScreen} />
-      <Stack.Screen name="FemaleSignupOtp" component={OtpVerificationScreen} />
+      <Stack.Screen name="SignupPhone" component={SignupPhoneScreen} />
+      <Stack.Screen name="SignupOtp" component={OtpVerificationScreen} />
+      <Stack.Screen name="SignupProfile" component={SignupProfileScreen} />
+
       <Stack.Screen name="FemaleSignupBankUpi" component={BankUpiDetailsScreen} />
       <Stack.Screen name="FemaleSignupVerificationInfo" component={VerificationInfoScreen} />
       <Stack.Screen name="FemaleSignupFaceCapture" component={FaceCaptureScreen} />
@@ -78,20 +76,8 @@ function AuthNavigator(): React.ReactElement {
         options={{ animation: 'fade', gestureEnabled: false }}
       />
 
-      <Stack.Screen name="MaleSignupBasicInfo" component={MaleSignupBasicInfoScreen} />
-      <Stack.Screen name="MaleSignupOtp" component={OtpVerificationScreen} />
-
-      <Stack.Screen name="CommonLogin" component={CommonLoginScreen} />
-      <Stack.Screen name="FemaleLogin" component={FemaleLoginScreen} />
-      <Stack.Screen name="MaleLogin" component={MaleLoginScreen} />
-
-      <Stack.Screen name="ForgotPasswordPhone" component={ForgotPasswordPhoneScreen} />
-      <Stack.Screen name="ForgotPasswordOtp" component={OtpVerificationScreen} />
-      <Stack.Screen
-        name="ForgotPasswordNew"
-        component={ForgotPasswordNewScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
-      />
+      <Stack.Screen name="LoginPhone" component={LoginPhoneScreen} />
+      <Stack.Screen name="LoginOtp" component={OtpVerificationScreen} />
     </Stack.Navigator>
   );
 }

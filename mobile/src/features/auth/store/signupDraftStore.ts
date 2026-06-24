@@ -29,21 +29,15 @@ type SignupDraftFields = {
   phone: string;
   name: string;
   age: number | null;
-  /** Plain text. Cleared from memory on `clear()` — never persisted. */
-  password: string;
   payout: PayoutDetails | null;
   verificationPhotoPath: string | null;
   currentStep: SignupStep;
 };
 
 type SignupDraftActions = {
-  setBasicInfo(data: {
-    role: UserRole;
-    name: string;
-    age: number;
-    password: string;
-    phone: string;
-  }): void;
+  setBasicInfo(data: { role: UserRole; name: string; age: number; phone: string }): void;
+  /** Phone → OTP → Profile flow: stash the phone at the Phone step. */
+  setPhone(phone: string): void;
   setPayoutDetails(data: PayoutDetails): void;
   skipPayoutDetails(): void;
   setVerificationPhoto(path: string): void;
@@ -58,7 +52,6 @@ const EMPTY: SignupDraftFields = {
   phone: '',
   name: '',
   age: null,
-  password: '',
   payout: null,
   verificationPhotoPath: null,
   currentStep: 'idle',
@@ -79,8 +72,10 @@ export const useSignupDraftStore = create<SignupDraftState>()(
   subscribeWithSelector(set => ({
     ...EMPTY,
 
-    setBasicInfo: ({ role, name, age, password, phone }): void =>
-      set({ role, name, age, password, phone, currentStep: 'otp' }),
+    setBasicInfo: ({ role, name, age, phone }): void =>
+      set({ role, name, age, phone, currentStep: 'otp' }),
+
+    setPhone: (phone): void => set({ phone, currentStep: 'otp' }),
 
     setPayoutDetails: (data): void => set({ payout: data, currentStep: 'verificationInfo' }),
 

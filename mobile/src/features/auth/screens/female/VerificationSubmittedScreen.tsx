@@ -39,7 +39,7 @@ function VerificationSubmittedScreen(): React.ReactElement {
     clearDraft();
     markOnboardingSeen();
     void signOut().catch(() => undefined);
-    navigation.reset({ index: 0, routes: [{ name: 'FemaleLogin' }] });
+    navigation.reset({ index: 0, routes: [{ name: 'LoginPhone' }] });
   }, [clearDraft, navigation]);
 
   return (

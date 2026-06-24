@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     color: FC.text,
   },
   subtitleRow: {
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 12,
     fontWeight: '500',
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     color: FC.textDim,
     flexShrink: 1,
   },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 9,
     fontWeight: '800',
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     textTransform: 'uppercase',
     letterSpacing: 0.2,
   },
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 16,
     fontWeight: '800',
-    fontFamily: 'Poppins',
+    fontFamily: 'Inter-SemiBold',
     letterSpacing: -0.3,
   },
 });

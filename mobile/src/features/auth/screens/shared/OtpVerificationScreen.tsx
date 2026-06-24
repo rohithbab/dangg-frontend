@@ -1,57 +1,36 @@
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ChevronLeft } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
 import { AppSpacing } from '@theme/spacing';
-import { AppTypography } from '@theme/typography';
+import { InterFont } from '@theme/typography';
 
-import AppBar from '@core/components/AppBar';
-import Card from '@core/components/Card';
 import OtpInput, { type OtpInputHandle } from '@core/components/OtpInput';
-import TextButton from '@core/components/TextButton';
-import { OTP_LOCKOUT_S, OTP_MAX_ATTEMPTS, OTP_RESEND_COOLDOWN_S } from '@core/config/constants';
+import PrimaryButton from '@core/components/PrimaryButton';
+import {
+  OTP_LENGTH,
+  OTP_LOCKOUT_S,
+  OTP_MAX_ATTEMPTS,
+  OTP_RESEND_COOLDOWN_S,
+} from '@core/config/constants';
 import { AppException, InvalidOtpException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
 
 import { type AuthStackParamList } from '@navigation/types';
 
-import { type AuthIntent, sendOtp, setInitialPassword, verifyOtp } from '../../api/authApi';
+import { type AuthIntent, finishLogin, sendOtp, verifyOtp } from '../../api/authApi';
 import { useSignupDraftStore } from '../../store/signupDraftStore';
 
-type OtpRouteName = 'FemaleSignupOtp' | 'MaleSignupOtp' | 'ForgotPasswordOtp';
+type OtpRouteName = 'SignupOtp' | 'LoginOtp';
 type OtpRoute = RouteProp<AuthStackParamList, OtpRouteName>;
 type OtpNav = NativeStackNavigationProp<AuthStackParamList>;
 
-/** Where to go on successful verification, derived from the current route. */
-function nextRouteFor(
-  name: OtpRouteName,
-  params: AuthStackParamList[OtpRouteName],
-): { route: keyof AuthStackParamList; params?: object } {
-  switch (name) {
-    case 'FemaleSignupOtp':
-      return { route: 'FemaleSignupBankUpi' };
-    case 'MaleSignupOtp':
-      return { route: 'MaleOnboardingCarousel' };
-    case 'ForgotPasswordOtp': {
-      const fp = params as AuthStackParamList['ForgotPasswordOtp'];
-      return { route: 'ForgotPasswordNew', params: { role: fp.role, phone: fp.phone } };
-    }
-  }
-}
-
 function intentFor(name: OtpRouteName): AuthIntent {
-  return name === 'ForgotPasswordOtp' ? 'forgotPassword' : 'signup';
+  return name === 'LoginOtp' ? 'login' : 'signup';
 }
 
 /** Masks all but the last 3 digits: 9876543210 → +91 ••••• ••210. */
@@ -62,8 +41,8 @@ function maskPhone(phone: string): string {
 }
 
 /**
- * Shared 6-digit OTP screen used by Female Signup, Male Signup, and Forgot
- * Password. Auto-submits on 6 digits, supports paste, shake on invalid
+ * Shared 6-digit OTP screen (Neue) used by Female Signup, Male Signup, and
+ * Forgot Password. Auto-submits on 6 digits, supports paste, shake on invalid
  * code, 30s resend cooldown, and 3-failed-attempts → 60s lockout.
  */
 function OtpVerificationScreen(): React.ReactElement {
@@ -152,24 +131,19 @@ function OtpVerificationScreen(): React.ReactElement {
       setVerifying(true);
       try {
         await verifyOtp(phone, code, intent);
-        // The OTP only proves phone ownership — it is NOT the password.
-        // Set the signup password exactly once, here, on the session that
-        // verifyOtp just created. (Male sets it here too now; the duplicate
-        // set at the end of MaleOnboardingCarousel was removed to avoid a
-        // `same_password` error.) setInitialPassword is idempotent, so a
-        // re-run with the same password is a no-op rather than an error.
-        if (routeName === 'FemaleSignupOtp' || routeName === 'MaleSignupOtp') {
-          const { password } = useSignupDraftStore.getState();
-          if (password) {
-            await setInitialPassword(password);
+        if (routeName === 'LoginOtp') {
+          const { needsProfile } = await finishLogin(phone);
+          if (needsProfile) {
+            // Phone verified but the account never finished signup — send the
+            // user to the Profile setup screen to complete it.
+            useSignupDraftStore.getState().setPhone(phone);
+            navigation.reset({ index: 0, routes: [{ name: 'SignupProfile' }] });
           }
+          // Otherwise the session is established and RootNavigator routes by role.
+          return;
         }
-        const next = nextRouteFor(routeName, route.params);
-        // Reset the stack so users can't swipe back into the OTP screen.
-        navigation.reset({
-          index: 0,
-          routes: [{ name: next.route, params: next.params } as never],
-        });
+        // Signup: phone proven → collect the profile (Phone → OTP → Profile).
+        navigation.reset({ index: 0, routes: [{ name: 'SignupProfile' }] });
       } catch (e) {
         if (e instanceof InvalidOtpException) {
           const lockNow = recordFailure();
@@ -192,17 +166,7 @@ function OtpVerificationScreen(): React.ReactElement {
         setVerifying(false);
       }
     },
-    [
-      intent,
-      lockoutIn,
-      navigation,
-      phone,
-      recordFailure,
-      route.params,
-      routeName,
-      startLockoutTimer,
-      verifying,
-    ],
+    [intent, lockoutIn, navigation, phone, recordFailure, routeName, startLockoutTimer, verifying],
   );
 
   const handleResend = useCallback(async (): Promise<void> => {
@@ -224,60 +188,81 @@ function OtpVerificationScreen(): React.ReactElement {
     }
   }, [intent, lockoutIn, phone, resendIn, startResendTimer]);
 
-  const handleChangeNumber = useCallback((): void => {
-    navigation.goBack();
-  }, [navigation]);
+  const handleVerifyPress = useCallback((): void => {
+    const value = otpRef.current?.value() ?? '';
+    if (value.length === OTP_LENGTH) {
+      void handleCompleted(value);
+    }
+  }, [handleCompleted]);
 
   const inputLocked = lockoutIn > 0;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <AppBar title="Verify Mobile" />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <Card padding={AppSpacing.lg} containerStyle={styles.card}>
-            <Text style={styles.heading}>Enter verification code</Text>
-            <Text style={styles.subtitle}>We sent a 6-digit code to {maskPhone(phone)}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          hitSlop={12}
+          onPress={() => navigation.goBack()}
+          style={styles.back}
+        >
+          <ChevronLeft size={26} color={AppColors.onSurface} strokeWidth={2} />
+        </Pressable>
 
-            <View style={styles.otpWrap}>
-              <OtpInput
-                key={inputLocked ? 'locked' : 'open'}
-                ref={otpRef}
-                hasError={error !== null}
-                autoFocus={!inputLocked}
-                onCompleted={handleCompleted}
-              />
-            </View>
+        <View style={styles.body}>
+          <Text style={styles.title}>Verify your{'\n'}number</Text>
+          <Text style={styles.subtitle}>
+            {`Sent to ${maskPhone(phone)}  `}
+            <Text style={styles.change} onPress={() => navigation.goBack()}>
+              Change
+            </Text>
+          </Text>
 
-            {verifying ? (
-              <View style={styles.verifyingRow}>
-                <ActivityIndicator color={AppColors.primary} />
-                <Text style={styles.verifyingText}>Verifying…</Text>
-              </View>
-            ) : error ? (
-              <Text style={styles.error}>{error}</Text>
-            ) : (
-              <View style={styles.errorSpacer} />
-            )}
+          <View style={styles.otpWrap}>
+            <OtpInput
+              key={inputLocked ? 'locked' : 'open'}
+              ref={otpRef}
+              hasError={error !== null}
+              autoFocus={!inputLocked}
+              onCompleted={handleCompleted}
+            />
+          </View>
 
-            <View style={styles.resendRow}>
-              {inputLocked ? (
-                <Text style={styles.muted}>{`Locked — wait ${lockoutIn}s`}</Text>
-              ) : resendIn > 0 ? (
-                <Text style={styles.muted}>{`Resend in ${resendIn}s`}</Text>
-              ) : (
-                <TextButton label="Resend OTP" onPress={handleResend} />
-              )}
-            </View>
+          {error ? (
+            <Text style={styles.error}>{error}</Text>
+          ) : (
+            <Text style={styles.resend}>
+              {inputLocked
+                ? `Locked — wait ${lockoutIn}s`
+                : resendIn > 0
+                  ? `Resend code in 0:${String(resendIn).padStart(2, '0')}`
+                  : ''}
+            </Text>
+          )}
+          {!error && !inputLocked && resendIn === 0 ? (
+            <Text
+              style={styles.resendAction}
+              onPress={() => {
+                void handleResend();
+              }}
+            >
+              Resend code
+            </Text>
+          ) : null}
+        </View>
 
-            <View style={styles.changeRow}>
-              <TextButton label="Change Number" onPress={handleChangeNumber} />
-            </View>
-          </Card>
-        </ScrollView>
+        <View style={styles.ctaWrap}>
+          <PrimaryButton
+            label="Verify"
+            variant="white"
+            loading={verifying}
+            onPress={handleVerifyPress}
+          />
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -286,33 +271,52 @@ function OtpVerificationScreen(): React.ReactElement {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: AppColors.background },
   flex: { flex: 1 },
-  scroll: { padding: AppSpacing.md, paddingTop: AppSpacing.lg, flexGrow: 1 },
-  card: { gap: AppSpacing.md },
-  heading: {
-    ...AppTypography.headlineMedium,
-    color: AppColors.primaryDark,
+  back: {
+    width: 44,
+    height: 44,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    marginLeft: 16,
+  },
+  body: { flex: 1, paddingHorizontal: AppSpacing.lg, paddingTop: AppSpacing.xl },
+  title: {
+    fontFamily: InterFont.light,
+    fontSize: 33,
+    lineHeight: 40,
+    letterSpacing: -0.825,
+    color: AppColors.onSurface,
   },
   subtitle: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.onSurfaceMuted,
+    fontFamily: InterFont.light,
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#8C8C94',
+    marginTop: AppSpacing.md,
   },
-  otpWrap: { marginTop: AppSpacing.sm },
-  verifyingRow: { flexDirection: 'row', alignItems: 'center', gap: AppSpacing.sm },
-  verifyingText: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.onSurfaceMuted,
+  change: { fontFamily: InterFont.medium, color: AppColors.primary },
+  otpWrap: { marginTop: AppSpacing.xl },
+  resend: {
+    fontFamily: InterFont.light,
+    fontSize: 14,
+    color: '#73737A',
+    textAlign: 'center',
+    marginTop: AppSpacing.lg,
+  },
+  resendAction: {
+    fontFamily: InterFont.medium,
+    fontSize: 14,
+    color: AppColors.primary,
+    textAlign: 'center',
+    marginTop: AppSpacing.sm,
   },
   error: {
-    ...AppTypography.bodyMedium,
+    fontFamily: InterFont.medium,
+    fontSize: 14,
     color: AppColors.error,
+    textAlign: 'center',
+    marginTop: AppSpacing.lg,
   },
-  errorSpacer: { height: AppTypography.bodyMedium.lineHeight },
-  resendRow: { alignItems: 'center' },
-  changeRow: { alignItems: 'center' },
-  muted: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.onSurfaceMuted,
-  },
+  ctaWrap: { paddingHorizontal: AppSpacing.lg, paddingBottom: AppSpacing.md },
 });
 
 export default OtpVerificationScreen;

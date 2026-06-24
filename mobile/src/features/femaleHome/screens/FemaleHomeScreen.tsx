@@ -1,5 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { MessageCircle } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -10,12 +11,11 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
-import { AppTypography } from '@theme/typography';
+import { InterFont } from '@theme/typography';
 
-import CoinIcon from '@core/components/CoinIcon';
-import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
+import GradientAvatar from '@core/components/GradientAvatar';
+import { BOTTOM_NAV_HEIGHT } from '@core/config/constants';
 import { Env } from '@core/config/env';
 import { AppException, ConflictException } from '@core/network/apiException';
 import { getSupabaseClient } from '@core/network/supabaseClient';
@@ -35,7 +35,6 @@ import {
   type Availability,
   type HomeStats,
   type RecentActivity,
-  type Trend,
   getAvailability,
   getHomeStats,
   getRecentActivity,
@@ -43,23 +42,12 @@ import {
 } from '../api/femaleHomeApi';
 import AvailabilityToggle from '../components/AvailabilityToggle';
 import RecentActivityItem from '../components/RecentActivityItem';
-import { FC, FGradient, FR, FS, FShadow } from '../femaleTheme';
+import { FC, FS } from '../femaleTheme';
 import { useAvailabilityHeartbeat } from '../hooks/useAvailabilityHeartbeat';
 
 type Nav = NativeStackNavigationProp<FemaleAppStackParamList>;
 
-function relativeOnline(date: Date): string {
-  const minutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
-  if (minutes < 1) {
-    return 'just now';
-  }
-  if (minutes < 60) {
-    return `${minutes}m ago`;
-  }
-  const hours = Math.floor(minutes / 60);
-  const remMin = minutes % 60;
-  return `${hours}h ${remMin}m`;
-}
+const BOTTOM_CLEAR = BOTTOM_NAV_HEIGHT + 48;
 
 function firstNameFromSession(fullName: string | undefined): string {
   if (!fullName) {
@@ -68,74 +56,15 @@ function firstNameFromSession(fullName: string | undefined): string {
   return fullName.split(/\s+/)[0] ?? fullName;
 }
 
-function mixHexColor(a: string, b: string, amount: number): string {
-  const parse = (hex: string) => [1, 3, 5].map(pos => Number.parseInt(hex.slice(pos, pos + 2), 16));
-  const [r1, g1, b1] = parse(a);
-  const [r2, g2, b2] = parse(b);
-  const mix = (x: number, y: number) => Math.round(x + (y - x) * amount);
-  return `#${[mix(r1, r2), mix(g1, g2), mix(b1, b2)].map(v => v.toString(16).padStart(2, '0')).join('')}`;
-}
-
-function GradientGreetingName({ name }: { name: string }): React.ReactElement {
-  const letters = Array.from(name);
-  const denominator = Math.max(letters.length - 1, 1);
-  return (
-    <Text>
-      {letters.map((letter, index) => (
-        <Text
-          key={`${letter}-${index}`}
-          style={{ color: mixHexColor(FGradient[0], FGradient[1], index / denominator) }}
-        >
-          {letter}
-        </Text>
-      ))}
-    </Text>
-  );
-}
-
-function trendColor(trend: Trend): string {
-  if (trend.kind === 'up') {
-    return FC.success;
+function greetingForNow(): string {
+  const h = new Date().getHours();
+  if (h < 12) {
+    return 'Good morning';
   }
-  if (trend.kind === 'down') {
-    return FC.error;
+  if (h < 17) {
+    return 'Good afternoon';
   }
-  return FC.textDim;
-}
-
-type IconColor = string;
-
-function ChatIcon({ color }: { color: IconColor }): React.ReactElement {
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24">
-      <Path
-        d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"
-        fill={color}
-      />
-    </Svg>
-  );
-}
-
-function StarIcon({ color }: { color: IconColor }): React.ReactElement {
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24">
-      <Path
-        d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
-        fill={color}
-      />
-    </Svg>
-  );
-}
-
-function ChatsHeaderIcon(): React.ReactElement {
-  return (
-    <Svg width={24} height={24} viewBox="0 0 24 24">
-      <Path
-        d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"
-        fill={FC.primary}
-      />
-    </Svg>
-  );
+  return 'Good evening';
 }
 
 function FemaleHomeScreen(): React.ReactElement {
@@ -213,14 +142,7 @@ function FemaleHomeScreen(): React.ReactElement {
 
   const handleToggleAvailability = useCallback(
     (next: boolean): void => {
-      logger.info('Availability toggle tapped', {
-        next,
-        toggling,
-        isVerified,
-        hasAvailability: availability !== null,
-      });
       if (toggling) {
-        logger.debug('Availability toggle ignored: request already in flight');
         return;
       }
       if (next && !isVerified) {
@@ -234,7 +156,6 @@ function FemaleHomeScreen(): React.ReactElement {
         .then(() => logger.info('Availability toggle committed', { next }))
         .catch(e => {
           if (e instanceof ConflictException) {
-            logger.warn('Availability toggle blocked: payout details missing');
             setNotice('Add payment details to go online');
           } else if (e instanceof AppException) {
             logger.warn('Availability toggle failed', e.message);
@@ -250,10 +171,13 @@ function FemaleHomeScreen(): React.ReactElement {
     [availability, toggling, isVerified],
   );
 
+  const online = availability?.online === true;
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -263,101 +187,101 @@ function FemaleHomeScreen(): React.ReactElement {
           />
         }
       >
+        {/* Header */}
         <View style={styles.header}>
+          <GradientAvatar
+            initials={firstName}
+            seed={session?.user.id ?? firstName}
+            size={46}
+            shape="squircle"
+          />
           <View style={styles.headerText}>
-            <Text style={styles.greeting}>
-              Hi, <GradientGreetingName name={firstName} />!
-            </Text>
-            <Text style={styles.subgreeting}>Welcome back</Text>
+            <Text style={styles.greeting}>{greetingForNow()}</Text>
+            <Text style={styles.name}>{firstName}</Text>
           </View>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Chats"
-            hitSlop={12}
+            hitSlop={10}
             onPress={() => navigation.navigate('ChatsInbox')}
-            style={styles.chatsButton}
+            style={styles.chatBtn}
           >
-            <ChatsHeaderIcon />
+            <MessageCircle size={20} color={FC.text} strokeWidth={1.9} />
           </Pressable>
         </View>
 
-        {!isVerified ? <VerificationBanner status={verificationStatus} /> : null}
+        {!isVerified ? (
+          <VerificationBanner
+            status={verificationStatus}
+            onVerify={() => navigation.navigate('FemaleTabs', { screen: 'Profile' })}
+          />
+        ) : null}
 
-        <View
-          style={[
-            styles.availabilityCard,
-            availability?.online ? styles.availabilityCardOnline : null,
-          ]}
-        >
-          <View style={styles.availabilityInner}>
-            <View style={styles.availabilityHeader}>
-              <Text style={styles.availabilityTitle}>Available for chats</Text>
-              <AvailabilityToggle
-                value={isVerified ? (availability?.online ?? false) : false}
-                onValueChange={handleToggleAvailability}
-                disabled={availability === null || !isVerified}
-              />
-            </View>
-            <View style={styles.statusRow}>
-              <View
-                style={[
-                  styles.statusDot,
-                  {
-                    backgroundColor: availability?.online ? FC.onlineGreen : FC.offlineGray,
-                  },
-                ]}
-              />
-              <Text style={styles.statusText}>
-                {availability?.online ? 'You are online and visible' : 'You are offline'}
-              </Text>
-            </View>
-            {availability ? (
-              <Text style={styles.lastToggled}>
-                {availability.online
-                  ? `Online since ${relativeOnline(availability.lastToggledAt)}`
-                  : `Last online ${relativeOnline(availability.lastToggledAt)}`}
-              </Text>
-            ) : null}
+        {/* Online toggle card */}
+        <View style={[styles.onlineCard, online && styles.onlineCardActive]}>
+          <View style={styles.onlineDotCol}>
+            <View
+              style={[
+                styles.onlineDot,
+                { backgroundColor: online ? FC.onlineGreen : FC.offlineGray },
+              ]}
+            />
           </View>
-        </View>
-
-        <View style={styles.statsGrid}>
-          <StatCell
-            label="Today's Earnings"
-            value={stats ? stats.todayEarningsInr.toLocaleString() : '—'}
-            trend={stats?.todayTrend ?? null}
-            renderIcon={() => <CoinIcon size={20} />}
-          />
-          <StatCell
-            label="This Week"
-            value={stats ? stats.weekEarningsInr.toLocaleString() : '—'}
-            trend={stats?.weekTrend ?? null}
-            renderIcon={() => <CoinIcon size={20} />}
-          />
-          <StatCell
-            label="Chats Today"
-            value={stats ? String(stats.chatsToday) : '—'}
-            trend={null}
-            renderIcon={c => <ChatIcon color={c} />}
-          />
-          <StatCell
-            label="Rating"
-            value={stats ? stats.ratingAvg.toFixed(1) : '—'}
-            trend={null}
-            footnote={stats ? `from ${stats.ratingCount} chats` : undefined}
-            renderIcon={c => <StarIcon color={c} />}
+          <View style={styles.onlineText}>
+            <Text style={styles.onlineTitle}>{online ? "You're online" : "You're offline"}</Text>
+            <Text style={styles.onlineSub}>
+              {online ? 'Visible to users — accepting requests' : 'Go online to receive requests'}
+            </Text>
+          </View>
+          <AvailabilityToggle
+            value={isVerified ? online : false}
+            onValueChange={handleToggleAvailability}
+            disabled={availability === null || !isVerified}
           />
         </View>
 
-        <View style={styles.activityHeader}>
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
+        {/* Earnings */}
+        <Text style={styles.earningsLabel}>TODAY'S EARNINGS</Text>
+        <View style={styles.earningsRow}>
+          <View style={styles.earningsLeft}>
+            <Text style={styles.earningsValue}>
+              {`₹${(stats?.todayEarningsInr ?? 0).toLocaleString()}`}
+            </Text>
+            <Text style={styles.earningsSub}>
+              {`≈ ₹${(stats?.weekEarningsInr ?? 0).toLocaleString()} this week`}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Withdraw earnings"
+            onPress={() => navigation.navigate('PayoutRequest')}
+            style={({ pressed }) => [styles.withdraw, pressed && styles.pressed]}
+          >
+            <Text style={styles.withdrawText}>Withdraw</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.divider} />
+
+        {/* Stat triplet */}
+        <View style={styles.triplet}>
+          <StatCol value={stats ? String(stats.chatsToday) : '—'} label="Chats today" />
+          <View style={styles.tripletDivider} />
+          <StatCol
+            value={stats ? `₹${stats.weekEarningsInr.toLocaleString()}` : '—'}
+            label="This week"
+          />
+          <View style={styles.tripletDivider} />
+          <StatCol value={stats ? stats.ratingAvg.toFixed(1) : '—'} label="Rating" />
+        </View>
+
+        {/* Recent activity */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent activity</Text>
         </View>
 
         {activity.length === 0 ? (
           <View style={styles.empty}>
-            <View style={styles.emptyIcon}>
-              <ChatIcon color={FC.primary} />
-            </View>
             <Text style={styles.emptyTitle}>No activity yet</Text>
             <Text style={styles.emptyBody}>
               Turn on availability to start receiving chat requests.
@@ -366,10 +290,7 @@ function FemaleHomeScreen(): React.ReactElement {
         ) : (
           <View style={styles.activityCard}>
             {activity.slice(0, 5).map((item, idx) => (
-              <View
-                key={item.id}
-                style={idx < activity.length - 1 ? styles.activityRow : undefined}
-              >
+              <View key={item.id} style={idx > 0 ? styles.activityRow : undefined}>
                 <RecentActivityItem item={item} />
               </View>
             ))}
@@ -378,6 +299,37 @@ function FemaleHomeScreen(): React.ReactElement {
       </ScrollView>
       <ShakeToast message={notice} onHide={clearNotice} />
     </SafeAreaView>
+  );
+}
+
+function StatCol({ value, label }: { value: string; label: string }): React.ReactElement {
+  return (
+    <View style={styles.statCol}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function VerificationBanner({
+  status,
+  onVerify,
+}: {
+  status: VerificationStatus;
+  onVerify: () => void;
+}): React.ReactElement {
+  const pending = status === VerificationStatus.Pending;
+  const title = pending
+    ? 'Verification under review — finish to start earning'
+    : 'Verify your account to start earning';
+  return (
+    <Pressable style={styles.verifyBanner} onPress={onVerify} accessibilityRole="button">
+      <View style={styles.verifyDot} />
+      <Text style={styles.verifyText} numberOfLines={2}>
+        {title}
+      </Text>
+      <Text style={styles.verifyAction}>Verify</Text>
+    </Pressable>
   );
 }
 
@@ -425,90 +377,119 @@ function ShakeToast({
   );
 }
 
-type StatCellProps = {
-  label: string;
-  value: string;
-  trend: Trend | null;
-  footnote?: string;
-  renderIcon: (color: string) => React.ReactElement;
-};
-
-function StatCell({
-  label,
-  value,
-  trend,
-  footnote,
-  renderIcon,
-}: StatCellProps): React.ReactElement {
-  return (
-    <View style={styles.statCell}>
-      <View style={styles.statIcon}>{renderIcon(FC.primary)}</View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-      {trend ? (
-        <Text style={[styles.statTrend, { color: trendColor(trend) }]}>{trend.label}</Text>
-      ) : null}
-      {footnote ? <Text style={styles.statFootnote}>{footnote}</Text> : null}
-    </View>
-  );
-}
-
-function VerificationBanner({ status }: { status: VerificationStatus }): React.ReactElement {
-  const pending = status === VerificationStatus.Pending;
-  const rejected = status === VerificationStatus.Rejected;
-  const title = pending
-    ? 'Verification under review'
-    : rejected
-      ? 'Verification rejected'
-      : 'Account not verified';
-  const body = pending
-    ? "Our team is reviewing your photo. You can go online once it's approved (usually within 2 days)."
-    : rejected
-      ? 'Your previous photo was rejected. Please re-submit a clear face photo to get verified.'
-      : 'Submit a verification photo to get approved. You can go online and earn once verified.';
-  return (
-    <View style={styles.verifyBanner}>
-      <Text style={styles.verifyTitle}>{title}</Text>
-      <Text style={styles.verifyBody}>{body}</Text>
-    </View>
-  );
-}
-
-const BOTTOM_CLEAR = BOTTOM_NAV_HEIGHT + FAB_PROTRUSION + FS.lg;
-
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: FC.bg },
-  scroll: { paddingBottom: BOTTOM_CLEAR },
-  header: {
+  scroll: { paddingHorizontal: FS.md + 4, paddingBottom: BOTTOM_CLEAR },
+
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: FS.sm },
+  headerText: { flex: 1 },
+  greeting: { fontFamily: InterFont.light, fontSize: 13, color: '#8C8C94' },
+  name: {
+    fontFamily: InterFont.regular,
+    fontSize: 20,
+    color: FC.text,
+    letterSpacing: -0.4,
+    marginTop: 2,
+  },
+
+  verifyBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: FS.lg,
+    backgroundColor: '#0E0E10',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(245,165,36,0.35)',
+    paddingHorizontal: FS.md,
+    paddingVertical: FS.md,
+  },
+  verifyDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: FC.warning },
+  verifyText: {
+    flex: 1,
+    fontFamily: InterFont.regular,
+    fontSize: 13.5,
+    color: FC.text,
+    lineHeight: 18,
+  },
+  verifyAction: { fontFamily: InterFont.medium, fontSize: 13.5, color: FC.primary },
+
+  onlineCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: FS.lg,
+    backgroundColor: '#0E0E10',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: FC.hairline,
+    paddingHorizontal: 17,
+    paddingVertical: 15,
+  },
+  onlineCardActive: { borderColor: 'rgba(51,199,89,0.3)' },
+  onlineDotCol: { justifyContent: 'flex-start', alignSelf: 'flex-start', paddingTop: 5 },
+  onlineDot: { width: 10, height: 10, borderRadius: 5 },
+  onlineText: { flex: 1, marginLeft: 10 },
+  onlineTitle: { fontFamily: InterFont.medium, fontSize: 16, color: FC.text },
+  onlineSub: { fontFamily: InterFont.light, fontSize: 12.5, color: '#8C8C94', marginTop: 3 },
+
+  earningsLabel: {
+    fontFamily: InterFont.medium,
+    fontSize: 11.5,
+    letterSpacing: 0.7,
+    color: '#73737A',
+    marginTop: FS.xl,
+  },
+  earningsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: FS.lg,
-    paddingTop: FS.md,
+    marginTop: FS.sm,
   },
-  headerText: { flex: 1 },
-  chatsButton: {
-    width: 40,
-    height: 40,
-    borderRadius: FR.sm,
+  earningsLeft: { flex: 1 },
+  earningsValue: { fontFamily: InterFont.light, fontSize: 52, letterSpacing: -1.6, color: FC.text },
+  earningsSub: { fontFamily: InterFont.light, fontSize: 14, color: '#8C8C94', marginTop: 6 },
+  withdraw: {
+    height: 46,
+    paddingHorizontal: 26,
+    borderRadius: 15,
+    backgroundColor: FC.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: FC.glass,
   },
-  greeting: {
-    fontSize: 24,
-    fontWeight: '700',
-    fontFamily: 'Poppins',
-    color: FC.text,
-    lineHeight: 30,
+  withdrawText: { fontFamily: InterFont.medium, fontSize: 15, color: '#FFFFFF' },
+  pressed: { opacity: 0.9 },
+
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginTop: FS.xl },
+
+  triplet: { flexDirection: 'row', alignItems: 'center', marginTop: FS.lg },
+  tripletDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.07)' },
+  statCol: { flex: 1, alignItems: 'center' },
+  statValue: { fontFamily: InterFont.light, fontSize: 24, color: FC.text },
+  statLabel: { fontFamily: InterFont.light, fontSize: 12, color: '#8C8C94', marginTop: 8 },
+
+  sectionHeader: { marginTop: FS.xl, marginBottom: FS.md },
+  sectionTitle: { fontFamily: InterFont.medium, fontSize: 15, color: FC.text },
+
+  activityCard: {
+    backgroundColor: '#0E0E10',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    overflow: 'hidden',
   },
-  subgreeting: {
-    fontSize: 14,
-    fontWeight: '500',
-    fontFamily: 'Nunito',
-    color: FC.textDim,
-    marginTop: 2,
+  activityRow: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
+
+  empty: { alignItems: 'center', paddingVertical: FS.xxl },
+  emptyTitle: { fontFamily: InterFont.medium, fontSize: 16, color: FC.text },
+  emptyBody: {
+    fontFamily: InterFont.light,
+    fontSize: 13.5,
+    color: '#8C8C94',
+    textAlign: 'center',
+    marginTop: 6,
+    paddingHorizontal: FS.lg,
   },
+
   toast: {
     position: 'absolute',
     top: FS.sm,
@@ -517,198 +498,11 @@ const styles = StyleSheet.create({
     backgroundColor: FC.card,
     paddingVertical: FS.sm,
     paddingHorizontal: FS.md,
-    borderRadius: FR.sm,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: FC.hairline,
-    ...FShadow.float,
   },
-  toastText: {
-    ...AppTypography.bodyMedium,
-    color: FC.text,
-    textAlign: 'center',
-  },
-  verifyBanner: {
-    marginHorizontal: FS.md,
-    marginTop: FS.lg,
-    backgroundColor: FC.card,
-    borderRadius: FR.lg,
-    padding: FS.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.3)',
-    gap: FS.xs,
-  },
-  verifyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    fontFamily: 'Poppins',
-    color: FC.error,
-  },
-  verifyBody: {
-    fontSize: 13,
-    fontWeight: '500',
-    fontFamily: 'Nunito',
-    color: FC.textDim,
-    lineHeight: 18,
-  },
-  availabilityCard: {
-    marginHorizontal: FS.md,
-    marginTop: FS.lg,
-    backgroundColor: FC.card,
-    borderRadius: FR.lg,
-    borderWidth: 1,
-    borderColor: FC.hairline,
-    overflow: 'hidden',
-    ...FShadow.card,
-  },
-  availabilityCardOnline: {
-    borderColor: FC.primaryEdge,
-  },
-  availabilityInner: {
-    padding: FS.lg,
-  },
-  availabilityHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  availabilityTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    fontFamily: 'Poppins',
-    color: FC.text,
-    flex: 1,
-    marginRight: FS.sm,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: FS.sm,
-    marginTop: FS.sm,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusText: {
-    fontSize: 13,
-    fontWeight: '500',
-    fontFamily: 'Nunito',
-    color: FC.textDim,
-  },
-  lastToggled: {
-    fontSize: 12,
-    fontWeight: '500',
-    fontFamily: 'Nunito',
-    color: FC.textFaint,
-    marginTop: 4,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginHorizontal: FS.md,
-    marginTop: FS.lg,
-    rowGap: FS.sm,
-  },
-  statCell: {
-    width: '48.5%',
-    backgroundColor: FC.card,
-    borderRadius: FR.lg,
-    padding: FS.lg,
-    borderWidth: 1,
-    borderColor: FC.hairline,
-    ...FShadow.card,
-  },
-  statIcon: { marginBottom: FS.sm },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    fontFamily: 'Poppins',
-    color: FC.primary,
-    letterSpacing: -0.3,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    fontFamily: 'Nunito',
-    color: FC.textDim,
-    marginTop: 2,
-    letterSpacing: 0.2,
-    textTransform: 'uppercase',
-  },
-  statTrend: {
-    fontSize: 11,
-    fontWeight: '700',
-    fontFamily: 'Nunito',
-    marginTop: 4,
-  },
-  statFootnote: {
-    fontSize: 11,
-    fontWeight: '500',
-    fontFamily: 'Nunito',
-    color: FC.textFaint,
-    marginTop: 4,
-  },
-  activityHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginHorizontal: FS.md,
-    marginTop: FS.xl,
-    marginBottom: FS.sm,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    fontFamily: 'Poppins',
-    color: FC.text,
-  },
-  activityCard: {
-    marginHorizontal: FS.md,
-    backgroundColor: FC.card,
-    borderRadius: FR.lg,
-    borderWidth: 1,
-    borderColor: FC.hairline,
-    overflow: 'hidden',
-    ...FShadow.card,
-  },
-  activityRow: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: FC.border,
-  },
-  empty: {
-    alignItems: 'center',
-    marginHorizontal: FS.lg,
-    marginTop: FS.lg,
-    padding: FS.lg,
-  },
-  emptyIcon: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: FC.card,
-    borderWidth: 1,
-    borderColor: FC.hairline,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    fontFamily: 'Poppins',
-    color: FC.text,
-    marginTop: FS.md,
-  },
-  emptyBody: {
-    fontSize: 13,
-    fontWeight: '500',
-    fontFamily: 'Nunito',
-    color: FC.textDim,
-    textAlign: 'center',
-    marginTop: FS.xs,
-    lineHeight: 18,
-  },
+  toastText: { fontFamily: InterFont.regular, fontSize: 14, color: FC.text, textAlign: 'center' },
 });
 
 export default FemaleHomeScreen;

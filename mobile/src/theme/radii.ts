@@ -4,6 +4,10 @@ export const AppRadii = {
   md: 12,
   lg: 16,
   xl: 24,
+  /** Neue card corner. */
+  card: 22,
+  /** Neue CTA / button corner. */
+  button: 18,
   full: 999,
 } as const;
 

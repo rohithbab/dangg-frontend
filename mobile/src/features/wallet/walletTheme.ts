@@ -1,41 +1,38 @@
 import { type ViewStyle } from 'react-native';
 
 /**
- * Premium fintech design tokens — SCOPED TO THE WALLET FEATURE ONLY.
- *
- * Deliberately separate from the global `@theme` so this redesign does not
- * touch Home / Profile / auth etc. Matte obsidian surfaces, soft glass,
- * restrained accents (no neon glow), large radii — a Revolut / Coinbase /
- * Apple-Wallet aesthetic.
+ * Wallet feature tokens — reconciled onto the global "DANGG · Neue" palette
+ * (see src/theme/colors.ts). Local alias object kept so existing call sites
+ * keep compiling; values mirror the central tokens.
  */
 export const WC = {
-  bg: '#0B0B0F',
-  surface: '#13131A',
-  card: '#181820',
-  cardHi: '#1F1F29',
+  bg: '#000000',
+  surface: '#101013',
+  card: '#141417',
+  cardHi: '#1C1C20',
 
-  primary: '#FF4FA3',
-  secondary: '#A855F7',
-  success: '#22C55E',
+  primary: '#DC308F',
+  secondary: '#9D5CFF',
+  success: '#34D399',
   successText: '#4ADE80',
-  warning: '#F59E0B',
-  blue: '#60A5FA',
+  warning: '#F5A524',
+  blue: '#457BF1',
 
   text: '#FFFFFF',
-  textDim: '#A1A1AA',
-  textFaint: '#71717A',
+  textDim: '#8E8E96',
+  textFaint: '#5A5A62',
 
   divider: 'rgba(255,255,255,0.06)',
   hairline: 'rgba(255,255,255,0.08)',
   glass: 'rgba(255,255,255,0.05)',
 
-  primarySoft: 'rgba(255,79,163,0.12)',
-  primaryEdge: 'rgba(255,79,163,0.55)',
-  successSoft: 'rgba(34,197,94,0.12)',
-  successEdge: 'rgba(34,197,94,0.25)',
-  secondarySoft: 'rgba(168,85,247,0.14)',
-  blueSoft: 'rgba(96,165,250,0.14)',
-  warnSoft: 'rgba(245,158,11,0.14)',
+  primarySoft: 'rgba(220,48,143,0.12)',
+  primaryEdge: 'rgba(220,48,143,0.55)',
+  successSoft: 'rgba(52,211,153,0.12)',
+  successEdge: 'rgba(52,211,153,0.25)',
+  secondarySoft: 'rgba(157,92,255,0.14)',
+  blueSoft: 'rgba(69,123,241,0.14)',
+  warnSoft: 'rgba(245,165,36,0.14)',
   scrim: 'rgba(0,0,0,0.72)',
 } as const;
 
@@ -45,7 +42,7 @@ export const WR = { sm: 12, md: 16, lg: 20, xl: 24, hero: 28, xxl: 32, pill: 999
 /** Spacing scale. */
 export const WS = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28, huge: 36 } as const;
 
-/** Subtle dark elevation presets (no neon glow). */
+/** Subtle dark elevation presets (flat — no neon glow). */
 export const WShadow = {
   card: {
     shadowColor: '#000000',
@@ -62,7 +59,7 @@ export const WShadow = {
     elevation: 10,
   },
   primary: {
-    shadowColor: WC.primary,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 18,

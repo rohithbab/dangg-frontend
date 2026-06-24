@@ -1,13 +1,13 @@
 import { type ViewStyle } from 'react-native';
 
-import { AppColors } from './colors';
-
 /**
  * Elevation tokens — combines iOS shadow props and Android `elevation` so a
  * single spread works on both platforms.
  *
- * v2 "Neon Glow": instead of black drop shadows, elevated surfaces cast a
- * vibrant pink (#FF66C4) under-glow so cards, sheets and modals feel lit.
+ * "DANGG · Neue" is FLAT: surfaces are defined by hairline borders (see
+ * colors.ts `border`), not glows. Shadows are reserved for genuinely floating
+ * chrome — the bottom nav, bottom sheets, and modals — and are neutral black,
+ * not pink.
  *
  *   <View style={[styles.card, AppShadows.e1]} />
  */
@@ -17,7 +17,7 @@ type Elevation = Pick<
 >;
 
 export const AppShadows = {
-  /** No shadow. */
+  /** No shadow — the default for bordered cards. */
   e0: {
     shadowColor: 'transparent',
     shadowOffset: { width: 0, height: 0 },
@@ -26,31 +26,31 @@ export const AppShadows = {
     elevation: 0,
   } satisfies Elevation,
 
-  /** Light neon glow — cards, tags, tappable tiles. */
+  /** Subtle lift — tappable tiles that sit slightly above the canvas. */
   e1: {
-    shadowColor: AppColors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 2,
   } satisfies Elevation,
 
-  /** Medium neon glow — bottom sheets, buttons, status segments. */
+  /** Soft float — buttons, bottom sheets. */
   e2: {
-    shadowColor: AppColors.primary,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    elevation: 6,
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 8,
   } satisfies Elevation,
 
-  /** High intense glow — confirmation overlays, active modals, active profiles. */
+  /** Strong float — floating nav, active modals, overlays. */
   e3: {
-    shadowColor: AppColors.primary,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.28,
-    shadowRadius: 30,
-    elevation: 10,
+    shadowOpacity: 0.5,
+    shadowRadius: 28,
+    elevation: 16,
   } satisfies Elevation,
 } as const;
 

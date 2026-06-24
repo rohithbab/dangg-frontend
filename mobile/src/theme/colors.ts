@@ -3,146 +3,87 @@
  * outside this file — keep every color literal here so the theme stays
  * swappable from one place.
  *
- * v2 "Vibrant Splash" palette: the splash pink (#FF66C4) is now the brand
- * primary, layered over a deep obsidian surface stack so neon-pink glows and
- * gradients pop.
+ * "DANGG · Neue" palette: a pure-black canvas (#000000) with #101012 cards
+ * outlined by hairline white borders, a deep saturated magenta-pink accent
+ * (#DC308F), and restrained semantic + feature-tint colors. Elevation is flat
+ * (borders, not glows) — see shadows.ts.
  */
 
 export const lightColors = {
-  // Brand — vibrant splash pink accent
-  primary: '#FF66C4',
-  primaryDark: '#E64DB0',
-  primaryLight: '#FF8EC6',
-  primarySubtle: '#1F0E16',
+  // Brand — Neue magenta-pink accent
+  primary: '#DC308F',
+  primaryDark: '#B81F74',
+  primaryLight: '#F25BAE',
+  primarySubtle: '#1A0A12',
 
   // Glow / translucent pink helpers (rgba so they layer over dark surfaces)
-  primaryGlow: 'rgba(255, 102, 196, 0.25)',
-  primaryOutline: 'rgba(255, 102, 196, 0.3)',
-  primaryBorderSoft: 'rgba(255, 102, 196, 0.15)',
-  primaryBorderSubtle: 'rgba(255, 102, 196, 0.08)',
+  primaryGlow: 'rgba(220, 48, 143, 0.22)',
+  primaryOutline: 'rgba(220, 48, 143, 0.35)',
+  primaryBorderSoft: 'rgba(220, 48, 143, 0.18)',
+  primaryBorderSubtle: 'rgba(220, 48, 143, 0.10)',
 
-  // Background hierarchy — deep obsidian so surfaces & glows stand out.
-  background: '#0B0B0C',
-  surface: '#141416',
-  surfaceVariant: '#1D1D21',
-  surfaceHigh: '#202024',
+  // Background hierarchy — pure-black canvas, near-black raised surfaces.
+  background: '#000000',
+  surface: '#101012',
+  surfaceVariant: '#161618',
+  surfaceHigh: '#1C1C20',
 
   // Text
   onPrimary: '#FFFFFF',
   onSurface: '#FFFFFF',
-  onSurfaceMuted: '#A0A0A8',
-  onSurfaceDisabled: '#4A4A55',
+  onSurfaceMuted: '#8E8E96',
+  onSurfaceDisabled: '#5A5A62',
   onError: '#FFFFFF',
 
-  // Borders & dividers — high-contrast boundary lines
-  border: '#242429',
-  borderStrong: '#2E2E34',
-  divider: '#242429',
-
-  // Semantic — modern fintech/social status colors
-  success: '#10B981',
-  successLight: '#062E21',
-  warning: '#FF8020',
-  warningLight: '#2D1E0C',
-  error: '#EF4444',
-  errorLight: '#3B1212',
-  info: '#3B82F6',
-  infoLight: '#0E2347',
-
-  // Status indicators
-  onlineGreen: '#10B981',
-  offlineGray: '#4A4A55',
-  availableYellow: '#EAB308',
-  neonGreen: '#39FF8B',
-
-  // Coin / gold palette
-  coinGold: '#F59E0B',
-  coinGoldLight: '#FDE047',
-  coinGoldDark: '#D97706',
-
-  // Gradient anchors
-  gradientRoseStart: '#FF66C4',
-  gradientRoseEnd: '#FF8EC6',
-  gradientRoseSubtleStart: '#1F0E16',
-  gradientRoseSubtleEnd: '#0B0B0C',
-  gradientVioletStart: '#FF66C4',
-  gradientVioletEnd: '#7B2CBF',
-  splashBackground: '#FF66C4',
-
-  // Utility
-  scrim: 'rgba(0,0,0,0.7)',
-  shimmerBase: '#1D1D21',
-  shimmerHighlight: '#2A2A30',
-  transparent: 'transparent',
-} as const;
-
-export const darkColors = {
-  // Brand — vibrant splash pink accent
-  primary: '#FF66C4',
-  primaryDark: '#E64DB0',
-  primaryLight: '#FF8EC6',
-  primarySubtle: '#1F0E16',
-
-  // Glow / translucent pink helpers (rgba so they layer over dark surfaces)
-  primaryGlow: 'rgba(255, 102, 196, 0.25)',
-  primaryOutline: 'rgba(255, 102, 196, 0.3)',
-  primaryBorderSoft: 'rgba(255, 102, 196, 0.15)',
-  primaryBorderSubtle: 'rgba(255, 102, 196, 0.08)',
-
-  // Background hierarchy — deep obsidian so surfaces & glows stand out.
-  background: '#0B0B0C',
-  surface: '#141416',
-  surfaceVariant: '#1D1D21',
-  surfaceHigh: '#202024',
-
-  // Text
-  onPrimary: '#FFFFFF',
-  onSurface: '#FFFFFF',
-  onSurfaceMuted: '#A0A0A8',
-  onSurfaceDisabled: '#4A4A55',
-  onError: '#FFFFFF',
-
-  // Borders & dividers — high-contrast boundary lines
-  border: '#242429',
-  borderStrong: '#2E2E34',
-  divider: '#242429',
+  // Borders & dividers — hairline white lines (matches Neue cards)
+  border: 'rgba(255, 255, 255, 0.08)',
+  borderStrong: 'rgba(255, 255, 255, 0.14)',
+  divider: 'rgba(255, 255, 255, 0.07)',
 
   // Semantic
   success: '#34D399',
-  successLight: '#062E21',
-  warning: '#FF8020',
-  warningLight: '#2D1E0C',
+  successLight: '#06241B',
+  warning: '#F5A524',
+  warningLight: '#2A1E08',
   error: '#EF4444',
-  errorLight: '#3B1212',
-  info: '#3B82F6',
-  infoLight: '#0E2347',
+  errorLight: '#2A1012',
+  info: '#457BF1',
+  infoLight: '#0C1B38',
 
   // Status indicators
   onlineGreen: '#34D399',
-  offlineGray: '#4A4A55',
-  availableYellow: '#EAB308',
-  neonGreen: '#39FF8B',
+  offlineGray: '#5A5A62',
+  availableYellow: '#F5A524',
+  neonGreen: '#34D399',
 
   // Coin / gold palette
-  coinGold: '#F59E0B',
-  coinGoldLight: '#FDE047',
-  coinGoldDark: '#D97706',
+  coinGold: '#F5B53D',
+  coinGoldLight: '#FCD34D',
+  coinGoldDark: '#D9920B',
+
+  // Feature-card tint anchors (Welcome cards — horizontal fade over surface)
+  featureGreen: '#A6CFB8',
+  featureMauve: '#D0A8C9',
+  featureBlue: '#457BF1',
 
   // Gradient anchors
-  gradientRoseStart: '#FF66C4',
-  gradientRoseEnd: '#FF8EC6',
-  gradientRoseSubtleStart: '#1F0E16',
-  gradientRoseSubtleEnd: '#0B0B0C',
-  gradientVioletStart: '#FF66C4',
+  gradientRoseStart: '#F25BAE',
+  gradientRoseEnd: '#DC308F',
+  gradientRoseSubtleStart: '#160A11',
+  gradientRoseSubtleEnd: '#000000',
+  gradientVioletStart: '#DC308F',
   gradientVioletEnd: '#7B2CBF',
   splashBackground: '#FF66C4',
 
   // Utility
   scrim: 'rgba(0,0,0,0.7)',
-  shimmerBase: '#1D1D21',
-  shimmerHighlight: '#2A2A30',
+  shimmerBase: '#141416',
+  shimmerHighlight: '#1F1F22',
   transparent: 'transparent',
 } as const;
+
+// App is dark-only; dark === light so the proxy below always has a value.
+export const darkColors = lightColors;
 
 let themeScheme: 'light' | 'dark' = 'dark';
 

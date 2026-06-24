@@ -1,82 +1,83 @@
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Lock, ShieldCheck, Sparkles } from 'lucide-react-native';
 import React, { useCallback } from 'react';
 import { ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
 import { AppSpacing } from '@theme/spacing';
-import { AppTypography } from '@theme/typography';
+import { InterFont } from '@theme/typography';
 
-import DanggLogo from '@core/components/DanggLogo';
+import FeatureCard from '@core/components/FeatureCard';
+import LogoMark from '@core/components/LogoMark';
+import PrimaryButton from '@core/components/PrimaryButton';
 
 import { type AuthStackParamList } from '@navigation/types';
-
-import { UserRole } from '@app-types/domain';
-
-import { markOnboardingSeen } from '../../auth/api/authApi';
-import AccountTypeCard from '../../auth/components/AccountTypeCard';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'AccountType'>;
 
 /**
- * Role-selection screen. First-time users land here after Splash and pick
- * Female or Male — the choice routes them into the appropriate signup
- * flow. Returning users tap "Login" to pop a role-picker bottom sheet.
+ * Welcome / account-type screen — "DANGG · Neue".
  *
- * Layout anchors DanggLogo at the top center, places the headlines and selection cards
- * higher up on the screen, and positions the inline footer link at the bottom.
+ * Marketing hero + three feature tiles + a single "Get started" CTA into the
+ * signup flow (Phone → OTP → Profile, where role is chosen). Returning users
+ * tap "Log in".
  */
 function AccountTypeScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
 
-  const handlePickFemale = useCallback((): void => {
-    markOnboardingSeen();
-    navigation.navigate('FemaleSignupBasicInfo');
-  }, [navigation]);
-
-  const handlePickMale = useCallback((): void => {
-    markOnboardingSeen();
-    navigation.navigate('MaleSignupBasicInfo');
+  const handleGetStarted = useCallback((): void => {
+    navigation.navigate('SignupPhone');
   }, [navigation]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.logoHeader}>
-          <DanggLogo width={140} showTagline={false} />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <View style={styles.wordmarkRow}>
+          <LogoMark size={28} />
+          <Text style={styles.wordmark}>Dangg</Text>
         </View>
 
-        <View style={styles.mainContent}>
-          <Text style={styles.headlineText}>How will you use the app?</Text>
-          <Text style={styles.subheadline}>Choose your account type to continue</Text>
+        <Text style={styles.hero}>Real talk.{'\n'}Real connection.</Text>
+        <Text style={styles.subtitle}>
+          Verified people. Private, text-only chats. You only spend on conversations that matter.
+        </Text>
 
-          <View style={styles.cards}>
-            <AccountTypeCard
-              role={UserRole.Female}
-              title="I'm a Female"
-              subtitle="Chat with users and earn"
-              onPress={handlePickFemale}
-            />
-            <View style={styles.cardGap} />
-            <AccountTypeCard
-              role={UserRole.Male}
-              title="I'm a Male"
-              subtitle="Browse and chat with females"
-              onPress={handlePickMale}
-            />
-          </View>
+        <View style={styles.cards}>
+          <FeatureCard
+            tint={AppColors.featureGreen}
+            icon={<ShieldCheck size={22} color="#FFFFFF" strokeWidth={2} />}
+            title="Verified profiles"
+            subtitle="Every woman is ID-verified before she can chat."
+          />
+          <FeatureCard
+            tint={AppColors.featureMauve}
+            icon={<Lock size={22} color="#FFFFFF" strokeWidth={2} />}
+            title="Private & text-only"
+            subtitle="No numbers shared — conversations stay in-app."
+          />
+          <FeatureCard
+            tint={AppColors.featureBlue}
+            icon={<Sparkles size={22} color="#FFFFFF" strokeWidth={2} />}
+            title="Pay per chat"
+            subtitle="Spend only on conversations that actually click."
+          />
         </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Already have an account?{' '}
-            <Text style={styles.footerLink} onPress={() => navigation.navigate('CommonLogin')}>
-              Login
-            </Text>
+        <View style={styles.spacer} />
+
+        <View style={styles.actions}>
+          <PrimaryButton label="Get started" variant="white" onPress={handleGetStarted} />
+        </View>
+
+        <Text style={styles.footerText}>
+          Already have an account?{' '}
+          <Text style={styles.footerLink} onPress={() => navigation.navigate('LoginPhone')}>
+            Log in
           </Text>
-        </View>
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -85,49 +86,47 @@ function AccountTypeScreen(): React.ReactElement {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: AppColors.background },
   scroll: {
-    padding: AppSpacing.lg,
-    paddingBottom: AppSpacing.xl,
+    paddingHorizontal: AppSpacing.lg,
+    paddingTop: AppSpacing.lg,
+    paddingBottom: AppSpacing.lg,
     flexGrow: 1,
-    justifyContent: 'space-between',
   },
-  logoHeader: {
-    alignItems: 'center',
-    marginTop: AppSpacing.sm,
-    marginBottom: AppSpacing.xxl,
-    marginRight: AppSpacing.xs,
+  wordmarkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: AppSpacing.sm },
+  wordmark: {
+    fontFamily: InterFont.regular,
+    fontSize: 19,
+    color: AppColors.onSurface,
+    letterSpacing: -0.38,
   },
-  mainContent: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    paddingTop: AppSpacing.md,
+  hero: {
+    fontFamily: InterFont.light,
+    fontSize: 36,
+    lineHeight: 43,
+    letterSpacing: -0.9,
+    color: AppColors.onSurface,
+    marginTop: 56,
   },
-  headlineText: {
-    ...AppTypography.headlineMedium,
-    color: AppColors.primaryDark,
-    textAlign: 'center',
-    fontWeight: '700',
+  subtitle: {
+    fontFamily: InterFont.light,
+    fontSize: 15.5,
+    lineHeight: 23,
+    color: '#8F8F96',
+    marginTop: AppSpacing.md,
   },
-  subheadline: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.onSurfaceMuted,
-    textAlign: 'center',
-    marginTop: AppSpacing.xs,
-    marginBottom: AppSpacing.xl,
-  },
-  cards: { marginTop: AppSpacing.xl, gap: AppSpacing.md },
-  cardGap: { height: AppSpacing.md },
-  footer: {
-    alignItems: 'center',
-    paddingVertical: AppSpacing.md,
-  },
+  cards: { gap: 14, marginTop: AppSpacing.xl },
+  spacer: { flex: 1, minHeight: AppSpacing.xl },
+  actions: { marginTop: AppSpacing.lg },
   footerText: {
-    ...AppTypography.bodyLarge,
-    color: AppColors.onSurfaceMuted,
+    fontFamily: InterFont.light,
+    fontSize: 14.5,
+    color: '#8C8C94',
+    textAlign: 'center',
+    marginTop: AppSpacing.md,
   },
   footerLink: {
-    ...AppTypography.bodyLarge,
+    fontFamily: InterFont.medium,
+    fontSize: 14.5,
     color: AppColors.primary,
-    fontWeight: '700',
   },
 });
 

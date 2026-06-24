@@ -21,22 +21,17 @@ export const linking: LinkingOptions<RootStackParamList> = {
           AccountType: 'onboarding/account-type',
           MaleOnboardingCarousel: 'onboarding/male',
 
-          FemaleSignupBasicInfo: 'auth/female/signup/basic-info',
-          FemaleSignupOtp: 'auth/female/signup/otp',
+          SignupPhone: 'auth/signup/phone',
+          SignupOtp: 'auth/signup/otp',
+          SignupProfile: 'auth/signup/profile',
+
           FemaleSignupBankUpi: 'auth/female/signup/payout-details',
           FemaleSignupVerificationInfo: 'auth/female/signup/verification-info',
           FemaleSignupFaceCapture: 'auth/female/signup/face-capture',
           FemaleSignupVerificationSubmitted: 'auth/female/signup/verification-submitted',
 
-          MaleSignupBasicInfo: 'auth/male/signup/basic-info',
-          MaleSignupOtp: 'auth/male/signup/otp',
-
-          FemaleLogin: 'auth/female/login',
-          MaleLogin: 'auth/male/login',
-
-          ForgotPasswordPhone: 'auth/forgot-password/phone',
-          ForgotPasswordOtp: 'auth/forgot-password/otp',
-          ForgotPasswordNew: 'auth/forgot-password/new-password',
+          LoginPhone: 'auth/login',
+          LoginOtp: 'auth/login/otp',
         },
       },
       FemaleApp: {
@@ -49,7 +44,6 @@ export const linking: LinkingOptions<RootStackParamList> = {
             },
           },
           Notifications: 'female/notifications',
-          ChangePassword: 'female/change-password',
           BankUpiUpdate: 'female/bank-upi',
           HelpSupport: 'female/help',
           ReportIssue: 'female/report',
@@ -77,7 +71,6 @@ export const linking: LinkingOptions<RootStackParamList> = {
           PaymentSuccess: 'male/payment/success',
           PaymentFailed: 'male/payment/failed',
           Notifications: 'male/notifications',
-          ChangePassword: 'male/change-password',
           HelpSupport: 'male/help',
           ReportIssue: 'male/report',
           AboutApp: 'male/about',

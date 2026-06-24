@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    fontFamily: 'Poppins',
+    fontFamily: 'Inter-SemiBold',
     color: FC.text,
     lineHeight: 30,
   },
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 1.4,
     fontWeight: '700',
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     color: FC.textDim,
     textAlign: 'center',
     textTransform: 'uppercase',
@@ -313,12 +313,11 @@ const styles = StyleSheet.create({
     marginTop: FS.md,
   },
   heroBalance: {
-    fontSize: 46,
-    fontWeight: '800',
-    fontFamily: 'Poppins',
-    letterSpacing: -1,
+    fontSize: 52,
+    fontFamily: 'Inter-Light',
+    letterSpacing: -1.4,
     color: FC.text,
-    lineHeight: 48,
+    lineHeight: 58,
   },
   pendingRow: {
     flexDirection: 'row',
@@ -329,7 +328,7 @@ const styles = StyleSheet.create({
   pendingText: {
     fontSize: 14,
     fontWeight: '600',
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     color: FC.textDim,
   },
   payoutBtn: {
@@ -346,7 +345,7 @@ const styles = StyleSheet.create({
   payoutBtnLabel: {
     fontSize: 15,
     fontWeight: '800',
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     color: FC.text,
   },
   quickStats: {
@@ -367,7 +366,7 @@ const styles = StyleSheet.create({
   quickStatLabel: {
     fontSize: 12,
     fontWeight: '700',
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     color: FC.textDim,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
@@ -375,7 +374,7 @@ const styles = StyleSheet.create({
   quickStatValue: {
     fontSize: 20,
     fontWeight: '800',
-    fontFamily: 'Poppins',
+    fontFamily: 'Inter-SemiBold',
     color: FC.text,
     letterSpacing: -0.3,
   },
@@ -388,7 +387,7 @@ const styles = StyleSheet.create({
   quickStatTrend: {
     fontSize: 11,
     fontWeight: '700',
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     marginTop: 4,
   },
   txHeader: {
@@ -402,7 +401,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    fontFamily: 'Poppins',
+    fontFamily: 'Inter-SemiBold',
     color: FC.text,
   },
   filterChip: {
@@ -414,7 +413,7 @@ const styles = StyleSheet.create({
   filterChipText: {
     fontSize: 13,
     fontWeight: '700',
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     color: FC.primary,
   },
   txList: {
@@ -445,14 +444,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: '700',
-    fontFamily: 'Poppins',
+    fontFamily: 'Inter-SemiBold',
     color: FC.text,
     marginTop: FS.md,
   },
   emptyBody: {
     fontSize: 13,
     fontWeight: '500',
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     color: FC.textDim,
     textAlign: 'center',
     marginTop: FS.xs,
@@ -482,7 +481,7 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 18,
     fontWeight: '700',
-    fontFamily: 'Poppins',
+    fontFamily: 'Inter-SemiBold',
     color: FC.text,
     marginBottom: FS.md,
   },
@@ -503,7 +502,7 @@ const styles = StyleSheet.create({
   sheetOptionLabel: {
     fontSize: 15,
     fontWeight: '600',
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     color: FC.textDim,
   },
   sheetOptionLabelActive: {

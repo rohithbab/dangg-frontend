@@ -1,9 +1,8 @@
 import { type RealtimeChannel, type Session, type SupabaseClient } from '@supabase/supabase-js';
-import { Platform } from 'react-native';
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 
-import { Env, USE_MOCK_DATA } from '@core/config/env';
+import { USE_MOCK_DATA } from '@core/config/env';
 import { fcmService } from '@core/services/fcmService';
 import { logger } from '@core/utils/logger';
 
@@ -72,7 +71,6 @@ export const useVerificationStatus = (): VerificationStatus =>
 
 let activeChannel: RealtimeChannel | null = null;
 let chatRequestsChannel: RealtimeChannel | null = null;
-let iosLoginAttempted = false;
 
 /**
  * Wires Supabase Auth's `onAuthStateChange` into the store. Returns the
@@ -98,21 +96,6 @@ export function subscribeSupabaseAuth(client: SupabaseClient): { unsubscribe: ()
         }, 0);
         return;
       }
-    }
-
-    if (Env.devMode && Platform.OS === 'ios' && !session && !iosLoginAttempted) {
-      iosLoginAttempted = true;
-      setTimeout(() => {
-        client.auth
-          .signInWithPassword({
-            phone: '+919900000101',
-            password: 'Password123!',
-          })
-          .catch(err => {
-            logger.error('iOS auto login failed', err);
-          });
-      }, 0);
-      return;
     }
 
     store.setSession(session);

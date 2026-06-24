@@ -7,23 +7,20 @@ export type AuthStackParamList = {
   AccountType: undefined;
   MaleOnboardingCarousel: undefined;
 
-  FemaleSignupBasicInfo: undefined;
-  FemaleSignupOtp: { phone: string };
+  // Signup: Phone → OTP → Profile (role/name/age collected on the Profile step).
+  SignupPhone: undefined;
+  SignupOtp: { phone: string };
+  SignupProfile: undefined;
+
+  // Female post-profile verification flow.
   FemaleSignupBankUpi: undefined;
   FemaleSignupVerificationInfo: undefined;
   FemaleSignupFaceCapture: undefined;
   FemaleSignupVerificationSubmitted: undefined;
 
-  MaleSignupBasicInfo: undefined;
-  MaleSignupOtp: { phone: string };
-
-  CommonLogin: undefined;
-  FemaleLogin: undefined;
-  MaleLogin: undefined;
-
-  ForgotPasswordPhone: { role: 'female' | 'male' };
-  ForgotPasswordOtp: { role: 'female' | 'male'; phone: string };
-  ForgotPasswordNew: { role: 'female' | 'male'; phone: string };
+  // OTP login (no passwords anywhere in the app).
+  LoginPhone: undefined;
+  LoginOtp: { phone: string };
 };
 
 /** Female bottom-tabs — order in nav is Earnings | Home (FAB) | Profile. */
@@ -38,7 +35,6 @@ export type FemaleAppStackParamList = {
   FemaleTabs: NavigatorScreenParams<FemaleTabParamList>;
   ChatsInbox: undefined;
   Notifications: undefined;
-  ChangePassword: undefined;
   BankUpiUpdate: undefined;
   HelpSupport: undefined;
   ReportIssue: undefined;
@@ -81,7 +77,6 @@ export type MaleAppStackParamList = {
   };
   PaymentFailed: { packageId: string; reason: string };
   Notifications: undefined;
-  ChangePassword: undefined;
   HelpSupport: undefined;
   ReportIssue: undefined;
   AboutApp: undefined;

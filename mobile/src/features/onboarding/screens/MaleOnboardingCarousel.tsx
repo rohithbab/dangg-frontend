@@ -17,17 +17,12 @@ import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import PrimaryButton from '@core/components/PrimaryButton';
-import { USE_MOCK_DATA } from '@core/config/env';
 import { AppException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
 
 import { UserRole } from '@app-types/domain';
 
-import {
-  markOnboardingSeen,
-  setInitialPassword,
-  signInWithPasswordDev,
-} from '../../auth/api/authApi';
+import { establishSignupSession, markOnboardingSeen } from '../../auth/api/authApi';
 import { useSignupDraftStore } from '../../auth/store/signupDraftStore';
 
 type Slide = {
@@ -83,12 +78,8 @@ function MaleOnboardingCarousel(): React.ReactElement {
     setCompleting(true);
     setCompleteError(null);
     try {
-      const { phone, password, clear } = useSignupDraftStore.getState();
-      if (USE_MOCK_DATA) {
-        await signInWithPasswordDev(phone, password, UserRole.Male);
-      } else {
-        await setInitialPassword(password);
-      }
+      const { phone, clear } = useSignupDraftStore.getState();
+      await establishSignupSession(UserRole.Male, phone);
       markOnboardingSeen();
       clear();
       // RootNavigator switches to MaleTabs as soon as the session lands —

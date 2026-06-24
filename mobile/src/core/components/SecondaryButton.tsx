@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
 import { AppSpacing } from '@theme/spacing';
-import { AppTypography } from '@theme/typography';
+import { InterFont } from '@theme/typography';
 
 export type SecondaryButtonProps = {
   label: string;
@@ -43,7 +43,7 @@ function SecondaryButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={AppColors.primary} />
+        <ActivityIndicator color={AppColors.onSurface} />
       ) : (
         <View style={styles.content}>
           {leftIcon ? <View style={styles.icon}>{leftIcon}</View> : null}
@@ -56,15 +56,15 @@ function SecondaryButton({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 52,
-    borderRadius: AppRadii.md,
+    minHeight: 54,
+    borderRadius: AppRadii.button,
     paddingHorizontal: AppSpacing.lg,
     paddingVertical: AppSpacing.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: AppColors.surface,
-    borderWidth: 1.5,
-    borderColor: AppColors.primaryOutline,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: AppColors.borderStrong,
   },
   full: { alignSelf: 'stretch' },
   inline: { alignSelf: 'flex-start' },
@@ -72,8 +72,9 @@ const styles = StyleSheet.create({
   content: { flexDirection: 'row', alignItems: 'center' },
   icon: { marginRight: AppSpacing.sm },
   label: {
-    ...AppTypography.labelLarge,
-    color: AppColors.primary,
+    fontFamily: InterFont.medium,
+    fontSize: 16,
+    color: AppColors.onSurface,
   },
 });
 

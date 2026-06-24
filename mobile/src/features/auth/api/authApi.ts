@@ -1,48 +1,41 @@
 /**
- * Auth repository.
+ * Auth repository — phone + OTP only (no passwords).
  *
  * All methods are async and return typed results — UI layers never touch
  * the Supabase client directly.
  *
+ * Session syncing: real OTP verification signs the user in via Supabase, and
+ * `subscribeSupabaseAuth` (sessionStore) reacts to `onAuthStateChange` to set
+ * the store session + role + female verification status automatically. The
+ * DEV_MODE (`USE_MOCK_DATA`) path builds a stub session and sets the store
+ * directly, since no real auth event fires.
+ *
  * DEV_MODE shortcuts (active when `USE_MOCK_DATA === true`):
- *   * sendOtp / submitVerificationPhoto: simulated success after a short
- *     delay; no network call.
- *   * verifyOtp: only the literal code `123456` is accepted. On success a
- *     synthetic Session is pushed into `useSessionStore` so the navigator
- *     sees the user as authenticated.
+ *   * sendOtp: no network call.
+ *   * verifyOtp: only the literal code `123456` is accepted; a synthetic
+ *     Session is returned (and, for login, pushed into the store).
  *   * getFemaleVerificationStatus: derived from the phone's last digit —
- *     `1` → verified, `2` → pending, `3` → none, anything else → verified.
- *     This lets us walk every login branch without backend wiring.
- *   * signInWithPassword: any non-empty password succeeds. Password
- *     `wrong` is reserved to simulate failure.
+ *     `2` → pending, `3` → none, otherwise verified.
  */
 import { type Session, type User as SupabaseUser } from '@supabase/supabase-js';
 
 import { USE_MOCK_DATA } from '@core/config/env';
 import { mapSupabaseError } from '@core/network/apiErrorMapper';
-import { AuthException, ValidationException } from '@core/network/apiException';
+import { AppException, AuthException, InvalidOtpException } from '@core/network/apiException';
 import { getSupabaseClient } from '@core/network/supabaseClient';
 import { prefsStorage, PrefsKey } from '@core/storage/prefsStorage';
 import { logger } from '@core/utils/logger';
 
 import { useSessionStore } from '@store/sessionStore';
 
-import { UserRole, VerificationStatus } from '@app-types/domain';
+import { parseUserRole, UserRole, VerificationStatus } from '@app-types/domain';
 
 import { type PayoutDetails, useSignupDraftStore } from '../store/signupDraftStore';
 
-export type AuthIntent = 'signup' | 'login' | 'forgotPassword';
+export type AuthIntent = 'signup' | 'login';
 
 const DEV_DELAY_MS = 600;
-const DEV_FAIL_PASSWORD = 'wrong';
-
-// ─── DEMO BUILD CREDENTIAL (frontend-only mock login) ────────────────────────
-// Shared/offline DEV_MODE build: the ONE phone + password that signs in without
-// a backend. Works for both male and female login. To restore the original
-// "any non-empty password" dev behaviour, re-comment the gate in
-// signInWithPasswordDev below.
-const DEMO_PHONE = '9876543210';
-const DEMO_PASSWORD = 'Qwerty@123';
+const DEV_OTP_CODE = '123456';
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -52,7 +45,7 @@ function sleep(ms: number): Promise<void> {
  * Normalises a phone number to E.164. Supabase Auth and the backend store
  * phones as `+91…`; the signup/login forms collect a bare 10-digit number
  * (the `+91` is only a UI prefix). Assumes India when no country code is
- * present. Already-E.164 input is returned digits-only after the `+`.
+ * present.
  */
 function toE164(phone: string): string {
   const trimmed = phone.trim();
@@ -60,19 +53,6 @@ function toE164(phone: string): string {
     return '+' + trimmed.slice(1).replace(/\D/g, '');
   }
   return `+91${trimmed.replace(/\D/g, '').slice(-10)}`;
-}
-
-/**
- * Pulls the in-progress signup details from the draft store for the
- * `signInWithOtp` metadata. The backend `handle_new_user` trigger REQUIRES
- * name/age/role in `raw_user_meta_data` and aborts signup without them.
- */
-function buildSignupMetadata(): { name: string; age: number; role: UserRole } {
-  const { name, age, role } = useSignupDraftStore.getState();
-  if (!name || age == null || !role) {
-    throw new ValidationException('Missing signup details. Please restart signup.');
-  }
-  return { name, age, role };
 }
 
 /** Builds a stub session shaped like a real Supabase response, for DEV_MODE only. */
@@ -86,7 +66,7 @@ function buildStubSession(role: UserRole, phone: string): Session {
     phone,
     created_at: new Date().toISOString(),
     app_metadata: { role, provider: 'phone', providers: ['phone'] },
-    user_metadata: {},
+    user_metadata: { role },
     identities: [],
     factors: [],
     is_anonymous: false,
@@ -102,19 +82,47 @@ function buildStubSession(role: UserRole, phone: string): Session {
 }
 
 /**
+ * Resolves a user's role from the `users` table by phone. Used to shape the
+ * dev stub session and to branch female verification routing at login.
+ */
+async function resolveUserRoleByPhone(phone: string): Promise<UserRole> {
+  const cleaned = phone.replace(/\D/g, '').slice(-10);
+  try {
+    const { data, error } = await getSupabaseClient()
+      .from('users')
+      .select('role')
+      .eq('phone', `+91${cleaned}`)
+      .maybeSingle();
+    if (error) {
+      logger.warn('resolveUserRoleByPhone query failed', error);
+    }
+    const role = parseUserRole(data?.role);
+    if (role) {
+      return role;
+    }
+  } catch (e) {
+    logger.warn('resolveUserRoleByPhone exception', e);
+  }
+  throw new AppException('NOT_FOUND', 'Account not found. Please sign up first.');
+}
+
+/**
  * Sends a 6-digit OTP to the given mobile number.
  *
- * OTP delivery is ALWAYS real — it is NOT mocked by DEV_MODE. It runs through
- * Supabase Auth, so in local dev the code is delivered to the edge-runtime
- * docker logs (MSG91 is unset locally → `send-sms-hook` logs the code), and in
- * staging/production MSG91 sends the real SMS. DEV_MODE still mocks the other
- * (non-auth) feature APIs.
+ * Signup carries name/age/role so the backend trigger can provision the
+ * public.users + role-specific row. Login targets an existing user, so no
+ * metadata is sent. OTP delivery is ALWAYS real (Supabase → MSG91 / edge logs).
  */
 export async function sendOtp(phone: string, intent: AuthIntent): Promise<void> {
-  // Signup must carry name/age/role so the backend trigger can provision the
-  // public.users + role-specific row. Login/forgot-password target an
-  // existing user, so no metadata is sent.
-  const options = intent === 'signup' ? { data: buildSignupMetadata() } : undefined;
+  if (USE_MOCK_DATA) {
+    await sleep(DEV_DELAY_MS / 2);
+    return;
+  }
+  // Signup defers the profile (name/age/role) to the Profile screen, so no
+  // metadata is sent here — the backend creates a pending auth user that
+  // completeSignupProfile() finalises. Login must NOT create a user, so an
+  // unregistered phone fails instead of silently registering.
+  const options = intent === 'login' ? { shouldCreateUser: false } : undefined;
   const { error } = await getSupabaseClient().auth.signInWithOtp({
     phone: toE164(phone),
     options,
@@ -127,28 +135,31 @@ export async function sendOtp(phone: string, intent: AuthIntent): Promise<void> 
 /**
  * Verifies an OTP code — proves the caller owns the phone.
  *
- * IMPORTANT: This intentionally does NOT establish a persistent session.
- *   * Female signup: the user must reach the submitted screen and then
- *     log in fresh — verification status gates her access.
- *   * Male signup: session is pushed at end-of-onboarding by the calling
- *     screen, not here.
- *   * Forgot password: a short-lived recovery session is needed in
- *     production to call `auth.updateUser`. We return that session so the
- *     forgot-password new-password screen can use it without re-prompting.
+ * On the real path Supabase establishes a session and `subscribeSupabaseAuth`
+ * reacts to it (sets store session + role + female verification). For LOGIN
+ * that is all that's needed. For SIGNUP the calling screen continues the
+ * multi-step flow (the session, if any, gates routing via RootNavigator).
  *
- * OTP verification is ALWAYS real — it is NOT mocked by DEV_MODE (the code
- * comes from the docker logs in dev, MSG91 in prod). The password-based login
- * path is what stays mocked under DEV_MODE via `signInWithPasswordDev`.
+ * DEV_MODE: only `123456` is accepted. A stub session is returned and, for
+ * login, pushed into the store (with female verification status).
  */
 export async function verifyOtp(
   phone: string,
   code: string,
-  // Kept for call-site symmetry with sendOtp; the real verify uses type:'sms'
-  // for every intent, so it is not branched on here.
+  // Kept for call-site symmetry with sendOtp; verification is intent-agnostic.
+  // Login session/routing happens in finishLogin(); signup routing in the screen.
   _intent: AuthIntent,
 ): Promise<Session | null> {
-  // Supabase mobile OTPs use `type: 'sms'` for both signup and reset flows.
-  // The reset semantics come from the subsequent `auth.updateUser` call.
+  if (USE_MOCK_DATA) {
+    await sleep(DEV_DELAY_MS);
+    if (code !== DEV_OTP_CODE) {
+      throw new InvalidOtpException();
+    }
+    // Phone proven. No session is pushed here — finishLogin() (login) or
+    // completeSignupProfile() (signup) establishes it once the role is known.
+    return null;
+  }
+
   const { data, error } = await getSupabaseClient().auth.verifyOtp({
     phone: toE164(phone),
     token: code,
@@ -157,20 +168,111 @@ export async function verifyOtp(
   if (error) {
     throw mapSupabaseError(error);
   }
-  // For signup intents we want a session in dev/prod parity: production
-  // will sign the user out at end-of-signup (female flow) or carry it
-  // through (male flow). For forgot-password we hand the recovery session
-  // back to the next screen.
   return data.session ?? null;
 }
 
 /**
- * Returns the female user's verification status for a given phone number.
+ * Resolves where a login lands after OTP verification.
  *
- * Called by the login flow to decide which screen to push next:
- *   * `Verified` → password entry
- *   * `Pending`  → "verification in progress" modal
- *   * `None`     → re-route into the verification capture screens
+ * Returns `{ needsProfile: true }` when the phone is verified but the account
+ * never finished signup (a "pending" account with no role in public.users) —
+ * the caller then sends the user to the Profile setup screen to complete it.
+ * Otherwise the session/role/verification is established (dev) or was already
+ * set by the Supabase auth listener (real), and RootNavigator routes by role.
+ */
+export async function finishLogin(phone: string): Promise<{ needsProfile: boolean }> {
+  let role: UserRole | null = null;
+  try {
+    role = await resolveUserRoleByPhone(phone);
+  } catch {
+    role = null;
+  }
+  if (!role) {
+    return { needsProfile: true };
+  }
+  if (USE_MOCK_DATA) {
+    if (role === UserRole.Female) {
+      const info = await getFemaleVerificationStatus(phone);
+      useSessionStore.getState().setVerificationStatus(info.status);
+    }
+    useSessionStore.getState().setSession(buildStubSession(role, phone));
+  }
+  // Real: the auth listener already set session + role + verification status.
+  return { needsProfile: false };
+}
+
+/**
+ * Establishes the store session at the end of male signup onboarding.
+ *
+ * Real path: the OTP verify already signed the user in and
+ * `subscribeSupabaseAuth` set the store — this hydrates from the current
+ * Supabase session as a safety net. DEV path: pushes a stub session.
+ */
+export async function establishSignupSession(role: UserRole, phone: string): Promise<void> {
+  if (USE_MOCK_DATA) {
+    useSessionStore.getState().setSession(buildStubSession(role, phone));
+    if (role === UserRole.Female) {
+      useSessionStore.getState().setVerificationStatus(VerificationStatus.Verified);
+    }
+    return;
+  }
+  const { data, error } = await getSupabaseClient().auth.getSession();
+  if (error) {
+    throw mapSupabaseError(error);
+  }
+  if (!data.session) {
+    throw new AuthException('No active session after verification.');
+  }
+  useSessionStore.getState().setSession(data.session);
+}
+
+/**
+ * Completes a deferred signup (Phone → OTP → Profile). Sets name/age/role on
+ * the backend (complete_signup_profile RPC + user_metadata) and pushes the
+ * session so RootNavigator routes by role. Females are reset to verification
+ * status None so they enter the verification flow next.
+ */
+export async function completeSignupProfile(params: {
+  name: string;
+  age: number;
+  role: UserRole;
+}): Promise<void> {
+  const { name, age, role } = params;
+  if (USE_MOCK_DATA) {
+    await sleep(DEV_DELAY_MS);
+    const phone = useSignupDraftStore.getState().phone;
+    if (role === UserRole.Female) {
+      useSessionStore.getState().setVerificationStatus(VerificationStatus.None);
+    }
+    useSessionStore.getState().setSession(buildStubSession(role, phone));
+    return;
+  }
+  const client = getSupabaseClient();
+  const { error: rpcErr } = await client.rpc('complete_signup_profile', {
+    p_name: name,
+    p_age: age,
+    p_role: role,
+  });
+  if (rpcErr) {
+    throw mapSupabaseError(rpcErr);
+  }
+  // Mirror role/name/age into user_metadata so the JWT carries the role.
+  const { error: updErr } = await client.auth.updateUser({ data: { name, age, role } });
+  if (updErr) {
+    throw mapSupabaseError(updErr);
+  }
+  if (role === UserRole.Female) {
+    useSessionStore.getState().setVerificationStatus(VerificationStatus.None);
+  }
+  const { data } = await client.auth.getSession();
+  if (data.session) {
+    useSessionStore.getState().setSession(data.session);
+  }
+}
+
+/**
+ * Returns the female user's verification status for a given phone number.
+ * Called by the OTP login flow to set verification status before routing.
  */
 export type FemaleVerificationStatusInfo = {
   status: VerificationStatus;
@@ -185,9 +287,7 @@ export async function getFemaleVerificationStatus(
     await sleep(DEV_DELAY_MS / 2);
     const last = phone.charAt(phone.length - 1);
     let status = VerificationStatus.Verified;
-    if (last === '1') {
-      status = VerificationStatus.Verified;
-    } else if (last === '2') {
+    if (last === '2') {
       status = VerificationStatus.Pending;
     } else if (last === '3') {
       status = VerificationStatus.None;
@@ -229,132 +329,12 @@ function parseVerificationStatus(raw: unknown): VerificationStatus {
   }
 }
 
-/** Sign in with phone + password. Returns the Session. */
-export async function signInWithPassword(phone: string, password: string): Promise<Session> {
-  if (USE_MOCK_DATA) {
-    await sleep(DEV_DELAY_MS);
-    if (!password) {
-      throw new ValidationException('Enter your password', 'password');
-    }
-    if (password === DEV_FAIL_PASSWORD) {
-      throw new AuthException('Incorrect password');
-    }
-    // Role is inferred from the route caller (female login vs male login).
-    // The stub session is set into the store from the screen via `verifyOtp`'s
-    // companion `_setDevSession` below — but for a real signInWithPassword
-    // call from the login screen we know the role from context. So expose
-    // a separate helper instead.
-    throw new Error('signInWithPassword in DEV_MODE: call signInWithPasswordDev(role) instead.');
-  }
-  const { data, error } = await getSupabaseClient().auth.signInWithPassword({
-    phone: toE164(phone),
-    password,
-  });
-  if (error) {
-    throw mapSupabaseError(error);
-  }
-  if (!data.session) {
-    throw new AuthException('Sign-in returned no session');
-  }
-  return data.session;
-}
-
 /**
- * DEV_MODE variant of `signInWithPassword` — requires the caller to declare
- * the role so the synthetic session carries the right `app_metadata.role`.
- *
- * Real production code paths NEVER reach this helper.
- */
-export async function signInWithPasswordDev(
-  phone: string,
-  password: string,
-  role: UserRole,
-): Promise<Session> {
-  if (!USE_MOCK_DATA) {
-    throw new Error('signInWithPasswordDev called outside DEV_MODE');
-  }
-  await sleep(DEV_DELAY_MS);
-  if (!password) {
-    throw new ValidationException('Enter your password', 'password');
-  }
-
-  // ─── DEMO BUILD GATE ───────────────────────────────────────────────────────
-  // Only the single demo credential signs in. `phone` arrives already cleaned to
-  // the last 10 digits by the login screens.
-  const cleanedPhone = phone.replace(/\D/g, '').slice(-10);
-  if (cleanedPhone !== DEMO_PHONE || password !== DEMO_PASSWORD) {
-    throw new AuthException('Incorrect phone number or password');
-  }
-  // ─── Original dev behaviour (any non-empty password except `wrong`) ──────────
-  // Re-enable by uncommenting this block and commenting out the gate above.
-  // if (password === DEV_FAIL_PASSWORD) {
-  //   throw new AuthException('Incorrect password');
-  // }
-
-  const session = buildStubSession(role, phone);
-  useSessionStore.getState().setSession(session);
-  // A demo female should land verified so the full female experience is usable
-  // offline (the availability toggle is gated on verification status).
-  if (role === UserRole.Female) {
-    useSessionStore.getState().setVerificationStatus(VerificationStatus.Verified);
-  }
-  return session;
-}
-
-/**
- * Sets the account password on the current session (created by verifyOtp).
- *
- * IDEMPOTENT: if the password already equals the desired value, Supabase
- * returns `same_password` (because `secure_password_change=true`). That means
- * the goal state is already met — we treat it as success, NOT an error. This
- * is why entering a valid OTP never surfaces "New password should be different
- * from the old password": re-running signup, or any duplicate set, is a no-op.
- */
-export async function setInitialPassword(password: string): Promise<void> {
-  if (USE_MOCK_DATA) {
-    await sleep(DEV_DELAY_MS);
-    return;
-  }
-  const { error } = await getSupabaseClient().auth.updateUser({ password });
-  if (error) {
-    const code = (error as { code?: string }).code;
-    if (code === 'same_password' || /different from the old password/i.test(error.message)) {
-      logger.debug('authApi.setInitialPassword: password already set (idempotent no-op)');
-      return;
-    }
-    throw mapSupabaseError(error);
-  }
-}
-
-/**
- * Resets a forgotten password.
- *
- * In production this assumes the user already proved phone ownership via
- * the forgot-password OTP step (which establishes a short-lived session),
- * after which `auth.updateUser({ password })` works.
- */
-export async function resetPassword(phone: string, newPassword: string): Promise<void> {
-  if (USE_MOCK_DATA) {
-    logger.debug('authApi.resetPassword (DEV)', { phone });
-    await sleep(DEV_DELAY_MS);
-    return;
-  }
-  const { error } = await getSupabaseClient().auth.updateUser({ password: newPassword });
-  if (error) {
-    throw mapSupabaseError(error);
-  }
-}
-
-/**
- * Uploads a verification selfie to the private `verification-photos` Storage
- * bucket (under the caller's own `{uid}/…` folder, enforced by storage RLS),
- * then calls the `verification-photo-submit` Edge Function which flips the
- * female's `verification_status` to `pending`. Returns the storage object
- * path. Requires an active session (signup leaves one after OTP verify).
- *
- * NOTE: gated on `USE_MOCK_DATA` ONLY — never `__DEV__`. A debug build
- * (`npm run ios`) has `__DEV__ === true`, so gating on it would mock the
- * upload even when pointed at a real backend.
+ * Uploads a verification selfie to the private `verification` Storage bucket
+ * (under the caller's own `{uid}/…` folder, enforced by storage RLS), then
+ * calls the `verification-photo-submit` Edge Function which flips the female's
+ * `verification_status` to `pending`. Requires an active session (signup
+ * leaves one after OTP verify).
  */
 export async function submitVerificationPhoto(localPath: string): Promise<string> {
   if (USE_MOCK_DATA) {
@@ -368,13 +348,8 @@ export async function submitVerificationPhoto(localPath: string): Promise<string
   if (userErr || !userData.user) {
     throw new AuthException('You must be signed in to submit verification.');
   }
-  // Path inside the `verification` bucket → R2 key: verification/photos/{uid}/selfie.jpg
   const objectPath = `photos/${userData.user.id}/selfie.jpg`;
 
-  // RN-safe file read: fetch the URI as an ArrayBuffer. Blob upload is
-  // unreliable on React Native; ArrayBuffer is the documented path. Pass
-  // through file:// (real device capture), content:// (Android gallery),
-  // and http(s):// (iOS Simulator fallback) as-is.
   const fileUri = /^(file|content|https?):\/\//.test(localPath) ? localPath : `file://${localPath}`;
   const arrayBuffer = await fetch(fileUri).then(res => res.arrayBuffer());
 
@@ -399,8 +374,7 @@ export async function submitVerificationPhoto(localPath: string): Promise<string
 /**
  * Persists the female's payout method to `payout_details` during signup.
  * RLS allows a female to write only her own row. Upsert on `female_id` so a
- * re-entry (e.g. corrected details) updates rather than duplicates. Requires
- * an active session (signup leaves one after OTP verify).
+ * re-entry updates rather than duplicates. Requires an active session.
  */
 export async function savePayoutDetails(payout: PayoutDetails): Promise<void> {
   if (USE_MOCK_DATA) {

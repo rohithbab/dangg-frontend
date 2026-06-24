@@ -12,7 +12,6 @@ import NotificationPermissionPrimerScreen from '@features/common/NotificationPer
 import FemaleProfilePreviewScreen from '@features/maleHome/screens/FemaleProfilePreviewScreen';
 import NotificationsScreen from '@features/notifications/screens/NotificationsScreen';
 import AboutAppScreen from '@features/profile/screens/AboutAppScreen';
-import ChangePasswordScreen from '@features/profile/screens/ChangePasswordScreen';
 import DeleteAccountConfirmScreen from '@features/profile/screens/DeleteAccountConfirmScreen';
 import DeleteAccountWarningScreen from '@features/profile/screens/DeleteAccountWarningScreen';
 import HelpSupportScreen from '@features/profile/screens/HelpSupportScreen';
@@ -75,7 +74,6 @@ function MaleAppStack(): React.ReactElement {
         options={{ animation: 'fade', gestureEnabled: false }}
       />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
-      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
       <Stack.Screen name="ReportIssue" component={ReportIssueScreen} />
       <Stack.Screen name="AboutApp" component={AboutAppScreen} />

@@ -3,9 +3,8 @@ import { Pressable, StyleSheet, Text, TextInput, type TextInputProps, View } fro
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
-import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
-import { AppTypography } from '@theme/typography';
+import { AppTypography, InterFont } from '@theme/typography';
 
 export type TextFieldProps = Omit<TextInputProps, 'style'> & {
   label?: string;
@@ -113,27 +112,30 @@ function TextFieldInner(
 
 const styles = StyleSheet.create({
   label: {
-    ...AppTypography.labelLarge,
-    color: AppColors.onSurfaceMuted,
-    marginBottom: AppSpacing.xs,
+    fontFamily: InterFont.medium,
+    fontSize: 11.5,
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+    color: '#6B6B73',
+    marginBottom: AppSpacing.sm,
   },
   fieldRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: AppColors.surface,
-    borderRadius: AppRadii.md,
+    backgroundColor: '#0E0E10',
+    borderRadius: AppRadii.lg,
     borderWidth: 1,
     borderColor: AppColors.border,
     paddingHorizontal: AppSpacing.md,
-    minHeight: 52,
+    minHeight: 58,
   },
-  fieldRowFocused: { borderColor: AppColors.primary, borderWidth: 1.5, ...AppShadows.e1 },
+  fieldRowFocused: { borderColor: AppColors.primary, borderWidth: 1.5 },
   fieldRowError: { borderColor: AppColors.error, borderWidth: 1.5 },
   iconLeft: { marginRight: AppSpacing.sm },
   iconRight: { marginLeft: AppSpacing.sm },
   input: {
-    ...AppTypography.bodyLarge,
-    lineHeight: undefined,
+    fontFamily: InterFont.medium,
+    fontSize: 16.5,
     flex: 1,
     alignSelf: 'stretch',
     paddingVertical: 0,

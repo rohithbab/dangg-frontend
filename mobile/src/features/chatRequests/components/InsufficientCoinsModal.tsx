@@ -252,14 +252,14 @@ const styles = StyleSheet.create({
     marginBottom: AppSpacing.md,
   },
   title: {
-    fontFamily: 'Poppins',
+    fontFamily: 'Inter-SemiBold',
     fontSize: 22,
     fontWeight: '700',
     color: AppColors.onSurface,
     letterSpacing: -0.3,
   },
   subtitle: {
-    fontFamily: 'Plus Jakarta Sans',
+    fontFamily: 'Inter-Regular',
     fontSize: 14,
     fontWeight: '400',
     color: AppColors.onSurfaceMuted,
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     borderColor: AppColors.primaryBorderSoft,
   },
   badgeLabel: {
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     fontSize: 10,
     fontWeight: '800',
     color: AppColors.primary,
@@ -309,14 +309,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   offerCoins: {
-    fontFamily: 'Poppins',
+    fontFamily: 'Inter-SemiBold',
     fontSize: 28,
     fontWeight: '800',
     color: AppColors.onSurface,
     letterSpacing: -0.5,
   },
   offerCoinsLabel: {
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     fontSize: 14,
     fontWeight: '600',
     color: AppColors.onSurfaceMuted,
@@ -325,14 +325,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   offerPrice: {
-    fontFamily: 'Poppins',
+    fontFamily: 'Inter-SemiBold',
     fontSize: 22,
     fontWeight: '700',
     color: AppColors.onSurface,
     letterSpacing: -0.3,
   },
   offerPriceLabel: {
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     fontSize: 11,
     fontWeight: '500',
     color: AppColors.onSurfaceMuted,
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     ...AppShadows.e2,
   },
   gradientCtaLabel: {
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
     marginTop: AppSpacing.sm,
   },
   walletBtnLabel: {
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     fontSize: 15,
     fontWeight: '600',
     color: AppColors.onSurface,
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     marginTop: AppSpacing.xs,
   },
   cancelBtnLabel: {
-    fontFamily: 'Nunito',
+    fontFamily: 'Inter-Regular',
     fontSize: 13,
     fontWeight: '500',
     color: AppColors.onSurfaceMuted,

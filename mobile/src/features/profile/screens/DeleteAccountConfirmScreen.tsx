@@ -21,20 +21,18 @@ const CONFIRM_PHRASE = 'DELETE';
 /**
  * Step 2 of the delete-account flow.
  *
- * Requires the user to type the literal word "DELETE" and re-enter their
- * password. Both must be present and valid before the destructive button
- * unlocks. On success the session is cleared and the RootNavigator swaps
- * back to the Auth stack automatically.
+ * Requires the user to type the literal word "DELETE" to unlock the
+ * destructive button. On success the session is cleared and the RootNavigator
+ * swaps back to the Auth stack automatically.
  */
 function DeleteAccountConfirmScreen(): React.ReactElement {
   const navigation = useNavigation<{ goBack: () => void }>();
   const [phrase, setPhrase] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const phraseOk = phrase === CONFIRM_PHRASE;
-  const canSubmit = phraseOk && password.length > 0 && !submitting;
+  const canSubmit = phraseOk && !submitting;
 
   const handleDelete = useCallback(async (): Promise<void> => {
     if (!canSubmit) {
@@ -43,7 +41,7 @@ function DeleteAccountConfirmScreen(): React.ReactElement {
     setError(null);
     setSubmitting(true);
     try {
-      await deleteAccount(password);
+      await deleteAccount();
       // RootNavigator switches to Auth flow as the session clears.
     } catch (e) {
       if (e instanceof AppException) {
@@ -54,7 +52,7 @@ function DeleteAccountConfirmScreen(): React.ReactElement {
       }
       setSubmitting(false);
     }
-  }, [canSubmit, password]);
+  }, [canSubmit]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -69,7 +67,7 @@ function DeleteAccountConfirmScreen(): React.ReactElement {
             <Text style={styles.helper}>
               {'Type '}
               <Text style={styles.phraseBold}>{CONFIRM_PHRASE}</Text>
-              {' below and re-enter your password to permanently delete your account.'}
+              {' below to permanently delete your account.'}
             </Text>
 
             <View style={styles.fieldBlock}>
@@ -84,18 +82,7 @@ function DeleteAccountConfirmScreen(): React.ReactElement {
               />
             </View>
 
-            <View style={styles.fieldBlock}>
-              <TextField
-                label="Your password"
-                hint="Re-enter to confirm"
-                value={password}
-                onChangeText={setPassword}
-                passwordToggle
-                autoCapitalize="none"
-                autoCorrect={false}
-                errorText={error ?? undefined}
-              />
-            </View>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
           </View>
         </ScrollView>
 
@@ -146,6 +133,11 @@ const styles = StyleSheet.create({
   },
   phraseBold: { fontWeight: '700', color: AppColors.primaryDark },
   fieldBlock: { marginTop: AppSpacing.md },
+  errorText: {
+    ...AppTypography.labelSmall,
+    color: AppColors.error,
+    marginTop: AppSpacing.md,
+  },
   footer: {
     padding: AppSpacing.md,
     gap: AppSpacing.sm,

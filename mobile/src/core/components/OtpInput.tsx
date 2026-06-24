@@ -14,9 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { AppColors } from '@theme/colors';
-import { AppRadii } from '@theme/radii';
-import { AppSpacing } from '@theme/spacing';
-import { AppTypography } from '@theme/typography';
+import { InterFont } from '@theme/typography';
 
 import { OTP_LENGTH } from '../config/constants';
 
@@ -143,19 +141,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   box: {
-    ...AppTypography.titleLarge,
-    width: 46,
-    height: 56,
-    borderRadius: AppRadii.md,
-    borderWidth: 1.5,
+    fontFamily: InterFont.light,
+    fontSize: 24,
+    width: 48,
+    height: 58,
+    borderRadius: 14,
+    borderWidth: 1,
     borderColor: AppColors.border,
-    backgroundColor: AppColors.surface,
-    marginHorizontal: AppSpacing.xs / 2,
+    backgroundColor: '#0E0E10',
     color: AppColors.onSurface,
     paddingVertical: 0,
     textAlign: 'center',
   },
-  boxFilled: { borderColor: AppColors.primary },
+  boxFilled: { borderColor: AppColors.primary, borderWidth: 1.5 },
   boxError: { borderColor: AppColors.error },
 });
 
