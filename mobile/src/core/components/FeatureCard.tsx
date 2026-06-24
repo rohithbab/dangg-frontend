@@ -25,8 +25,7 @@ function FeatureCard({ icon, title, subtitle, tint }: FeatureCardProps): React.R
       <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
         <Defs>
           <LinearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0" stopColor={tint} stopOpacity={0.7} />
-            <Stop offset="0.5" stopColor={tint} stopOpacity={0} />
+            <Stop offset="0" stopColor={tint} stopOpacity={0.78} />
             <Stop offset="1" stopColor={tint} stopOpacity={0} />
           </LinearGradient>
         </Defs>

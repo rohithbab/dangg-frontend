@@ -9,8 +9,8 @@ import { AppColors } from '@theme/colors';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
+import DanggLogo from '@core/components/DanggLogo';
 import FeatureCard from '@core/components/FeatureCard';
-import LogoMark from '@core/components/LogoMark';
 import PrimaryButton from '@core/components/PrimaryButton';
 
 import { type AuthStackParamList } from '@navigation/types';
@@ -36,8 +36,7 @@ function AccountTypeScreen(): React.ReactElement {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.wordmarkRow}>
-          <LogoMark size={28} />
-          <Text style={styles.wordmark}>Dangg</Text>
+          <DanggLogo width={116} showTagline={false} color={AppColors.onSurface} />
         </View>
 
         <Text style={styles.hero}>Real talk.{'\n'}Real connection.</Text>
@@ -91,12 +90,11 @@ const styles = StyleSheet.create({
     paddingBottom: AppSpacing.lg,
     flexGrow: 1,
   },
-  wordmarkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: AppSpacing.sm },
-  wordmark: {
-    fontFamily: InterFont.regular,
-    fontSize: 19,
-    color: AppColors.onSurface,
-    letterSpacing: -0.38,
+  wordmarkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: AppSpacing.sm,
   },
   hero: {
     fontFamily: InterFont.light,

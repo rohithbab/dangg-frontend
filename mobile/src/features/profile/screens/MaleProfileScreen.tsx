@@ -24,6 +24,7 @@ import BottomSheet from '@core/components/BottomSheet';
 import CoinIcon from '@core/components/CoinIcon';
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import GradientAvatar from '@core/components/GradientAvatar';
+import LogoMark from '@core/components/LogoMark';
 import PrimaryButton from '@core/components/PrimaryButton';
 import TextField from '@core/components/TextField';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
@@ -274,7 +275,13 @@ function MaleProfileScreen(): React.ReactElement {
           />
         </Section>
 
-        <Text style={styles.version}>DANGG v1.0.0</Text>
+        <View style={styles.brandFooter}>
+          <View style={styles.brandRow}>
+            <LogoMark size={20} />
+            <Text style={styles.brandWord}>Dangg</Text>
+          </View>
+          <Text style={styles.brandVersion}>v1.0.0</Text>
+        </View>
       </ScrollView>
 
       <EditProfilePicSheet
@@ -417,12 +424,19 @@ const styles = StyleSheet.create({
   rowLabel: { flex: 1, fontFamily: InterFont.regular, fontSize: 15, color: AppColors.onSurface },
   rowLabelDanger: { fontFamily: InterFont.medium, color: AppColors.error },
 
-  version: {
+  brandFooter: { alignItems: 'center', marginTop: 28 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  brandWord: {
+    fontFamily: InterFont.regular,
+    fontSize: 18,
+    color: AppColors.onSurface,
+    letterSpacing: -0.36,
+  },
+  brandVersion: {
     fontFamily: InterFont.regular,
     fontSize: 12,
     color: AppColors.onSurfaceDisabled,
-    textAlign: 'center',
-    marginTop: 28,
+    marginTop: 6,
   },
 
   // Edit sheet
