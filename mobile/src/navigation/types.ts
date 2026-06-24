@@ -67,6 +67,7 @@ export type MaleAppStackParamList = {
   ChatRequestDeclined: { requestId: string };
   ChatRequestTimeout: { requestId: string };
   ChatSession: { requestId: string };
+  CoinStore: undefined;
   PaymentProcessing: { packageId: string };
   PaymentSuccess: {
     transactionId: string;

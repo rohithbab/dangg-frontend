@@ -1,341 +1,134 @@
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Animated, BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { AppColors } from '@theme/colors';
-import { AppRadii } from '@theme/radii';
-import { AppSpacing } from '@theme/spacing';
+import { InterFont } from '@theme/typography';
 
-import { inr } from '@core/utils/formatters';
+import CoinIcon from '@core/components/CoinIcon';
 
 import { type MaleAppStackParamList } from '@navigation/types';
+
+import { WC, WR, WS } from '../walletTheme';
 
 type Nav = NativeStackNavigationProp<MaleAppStackParamList, 'PaymentSuccess'>;
 type Route = RouteProp<MaleAppStackParamList, 'PaymentSuccess'>;
 
-function AnimatedCheckmark(): React.ReactElement {
-  const scale = useRef(new Animated.Value(0)).current;
-
+function CheckBadge(): React.ReactElement {
+  const scale = useRef(new Animated.Value(0.5)).current;
   useEffect(() => {
     Animated.spring(scale, {
       toValue: 1,
       useNativeDriver: true,
-      damping: 12,
-      stiffness: 180,
-      mass: 0.6,
+      damping: 11,
+      stiffness: 200,
+      mass: 0.7,
     }).start();
   }, [scale]);
 
-  const circleScale = scale.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.5, 1],
-  });
-
   return (
-    <Animated.View style={[styles.checkCircle, { transform: [{ scale: circleScale }] }]}>
-      <Svg width={28} height={28} viewBox="0 0 24 24">
-        <Path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill={AppColors.success} />
+    <Animated.View style={[styles.badge, { transform: [{ scale }] }]}>
+      <Svg width={36} height={36} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M5 13l4 4L19 7"
+          stroke={WC.text}
+          strokeWidth={2.6}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </Svg>
     </Animated.View>
   );
 }
 
-function AnimatedFadeSlide({
-  children,
-  delay,
-}: {
-  children: React.ReactNode;
-  delay: number;
-}): React.ReactElement {
-  const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(12)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 500,
-        delay,
-        useNativeDriver: true,
-      }),
-      Animated.spring(translateY, {
-        toValue: 0,
-        delay,
-        useNativeDriver: true,
-        damping: 18,
-        stiffness: 140,
-      }),
-    ]).start();
-  }, [delay, opacity, translateY]);
-
-  return <Animated.View style={{ opacity, transform: [{ translateY }] }}>{children}</Animated.View>;
-}
-
+/** Payment success result (B10). Single "Done" CTA returns to the Wallet. */
 function PaymentSuccessScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const { transactionId, coinsAdded, bonusCoins, amountInr, newBalance } = route.params;
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const { coinsAdded, newBalance } = route.params;
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
     return () => sub.remove();
   }, []);
 
-  const toggleDetails = useCallback(() => {
-    setDetailsOpen(prev => !prev);
-  }, []);
-
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.body}>
-        <View style={styles.center}>
-          <AnimatedFadeSlide delay={100}>
-            <AnimatedCheckmark />
-          </AnimatedFadeSlide>
-
-          <AnimatedFadeSlide delay={250}>
-            <Text style={styles.title}>Payment Successful!</Text>
-          </AnimatedFadeSlide>
-
-          <AnimatedFadeSlide delay={400}>
-            <Text style={styles.coinsAdded}>{`${coinsAdded} Coins Added`}</Text>
-          </AnimatedFadeSlide>
-
-          <AnimatedFadeSlide delay={550}>
-            <View style={styles.balanceSection}>
-              <Text style={styles.balanceLabel}>Current Balance</Text>
-              <Text style={styles.balanceValue}>{`${newBalance} Coins`}</Text>
-            </View>
-          </AnimatedFadeSlide>
+        <CheckBadge />
+        <Text style={styles.title}>Payment successful</Text>
+        <Text
+          style={styles.subtitle}
+        >{`+${coinsAdded.toLocaleString()} coins added to your wallet`}</Text>
+        <View style={styles.balanceChip}>
+          <CoinIcon size={16} />
+          <Text style={styles.balanceChipText}>{`Balance: ${newBalance.toLocaleString()}`}</Text>
         </View>
-
-        <AnimatedFadeSlide delay={700}>
-          <View style={styles.detailsWrap}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={toggleDetails}
-              style={styles.detailsToggle}
-              hitSlop={8}
-            >
-              <Text style={styles.detailsToggleText}>
-                {detailsOpen ? 'Hide Details' : 'View Details'}
-              </Text>
-              <Animated.View style={{ transform: [{ rotate: detailsOpen ? '180deg' : '0deg' }] }}>
-                <Svg width={12} height={12} viewBox="0 0 24 24">
-                  <Path
-                    d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"
-                    fill={AppColors.onSurfaceMuted}
-                  />
-                </Svg>
-              </Animated.View>
-            </Pressable>
-
-            {detailsOpen ? (
-              <View style={styles.detailsContent}>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Amount paid</Text>
-                  <Text style={styles.detailValue}>{inr(amountInr)}</Text>
-                </View>
-                <View style={styles.detailDivider} />
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Transaction ID</Text>
-                  <Text style={styles.detailValueMono} numberOfLines={1}>
-                    {transactionId}
-                  </Text>
-                </View>
-                {bonusCoins > 0 ? (
-                  <>
-                    <View style={styles.detailDivider} />
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Bonus</Text>
-                      <Text style={styles.detailValueBonus}>{`+${bonusCoins} coins`}</Text>
-                    </View>
-                  </>
-                ) : null}
-              </View>
-            ) : null}
-          </View>
-        </AnimatedFadeSlide>
       </View>
 
-      <AnimatedFadeSlide delay={850}>
-        <View style={styles.footer}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => navigation.replace('MaleTabs', { screen: 'Home' })}
-            style={({ pressed }) => [styles.primaryCta, { opacity: pressed ? 0.85 : 1 }]}
-          >
-            <Text style={styles.primaryCtaLabel}>Continue Browsing</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => navigation.replace('MaleTabs', { screen: 'Wallet' })}
-            style={({ pressed }) => [styles.secondaryCta, { opacity: pressed ? 0.6 : 1 }]}
-          >
-            <Text style={styles.secondaryCtaLabel}>View Wallet</Text>
-          </Pressable>
-        </View>
-      </AnimatedFadeSlide>
+      <View style={styles.footer}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => navigation.replace('MaleTabs', { screen: 'Wallet' })}
+          style={({ pressed }) => [styles.doneBtn, pressed && styles.pressed]}
+        >
+          <Text style={styles.doneText}>Done</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: AppColors.background },
-  body: {
-    flex: 1,
-    paddingHorizontal: AppSpacing.lg,
-    justifyContent: 'space-between',
-  },
-  center: {
-    alignItems: 'center',
-    paddingTop: AppSpacing.xxl + AppSpacing.lg,
-  },
-  checkCircle: {
+  safe: { flex: 1, backgroundColor: WC.bg },
+  body: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  badge: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: AppColors.successLight,
+    backgroundColor: WC.success,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: AppSpacing.md,
   },
   title: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 28,
-    fontWeight: '700',
-    color: AppColors.onSurface,
-    textAlign: 'center',
-    letterSpacing: -0.5,
+    fontFamily: InterFont.medium,
+    fontSize: 20,
+    color: WC.text,
+    marginTop: WS.xl,
   },
-  coinsAdded: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 18,
-    fontWeight: '600',
-    color: AppColors.onSurfaceMuted,
-    textAlign: 'center',
-    marginTop: AppSpacing.xs,
-  },
-  balanceSection: {
-    alignItems: 'center',
-    marginTop: AppSpacing.xl,
-    paddingVertical: AppSpacing.lg,
-    paddingHorizontal: AppSpacing.xl,
-    backgroundColor: AppColors.surface,
-    borderRadius: AppRadii.xl,
-    minWidth: 200,
-  },
-  balanceLabel: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 12,
-    fontWeight: '600',
-    color: AppColors.onSurfaceMuted,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-  balanceValue: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 32,
-    fontWeight: '700',
-    color: AppColors.onSurface,
-    letterSpacing: -0.5,
-    marginTop: AppSpacing.xs,
-  },
-  detailsWrap: {
-    alignItems: 'center',
-    paddingBottom: AppSpacing.md,
-  },
-  detailsToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: AppSpacing.sm,
-  },
-  detailsToggleText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 13,
-    fontWeight: '500',
-    color: AppColors.onSurfaceMuted,
-  },
-  detailsContent: {
-    width: '100%',
-    maxWidth: 300,
-    backgroundColor: AppColors.surface,
-    borderRadius: AppRadii.md,
-    padding: AppSpacing.md,
-    marginTop: AppSpacing.sm,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  detailLabel: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 13,
-    fontWeight: '500',
-    color: AppColors.onSurfaceMuted,
-  },
-  detailValue: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    fontWeight: '600',
-    color: AppColors.onSurface,
-  },
-  detailValueMono: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 12,
-    fontWeight: '500',
-    color: AppColors.onSurfaceMuted,
-    maxWidth: 180,
-  },
-  detailValueBonus: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    fontWeight: '600',
-    color: AppColors.success,
-  },
-  detailDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: AppColors.border,
-  },
-  footer: {
-    paddingHorizontal: AppSpacing.lg,
-    paddingBottom: AppSpacing.xl,
-    gap: AppSpacing.sm,
-  },
-  primaryCta: {
-    minHeight: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: AppColors.primary,
-  },
-  primaryCtaLabel: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 17,
-    fontWeight: '700',
-    color: AppColors.onPrimary,
-    letterSpacing: 0.3,
-  },
-  secondaryCta: {
-    minHeight: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryCtaLabel: {
-    fontFamily: 'Inter-Regular',
+  subtitle: {
+    fontFamily: InterFont.regular,
     fontSize: 15,
-    fontWeight: '600',
-    color: AppColors.onSurfaceMuted,
-    letterSpacing: 0.2,
+    color: WC.textDim,
+    marginTop: WS.sm + 2,
   },
+  balanceChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 44,
+    paddingLeft: 16,
+    paddingRight: 18,
+    borderRadius: WR.lg + 2,
+    backgroundColor: WC.surfaceDeep,
+    borderWidth: 1,
+    borderColor: WC.hairline,
+    marginTop: WS.xl,
+  },
+  balanceChipText: { fontFamily: InterFont.regular, fontSize: 15, color: WC.text },
+
+  footer: { paddingHorizontal: 24, paddingBottom: WS.xl },
+  doneBtn: {
+    height: 54,
+    borderRadius: WR.lg - 2,
+    backgroundColor: WC.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doneText: { fontFamily: InterFont.medium, fontSize: 16.5, color: WC.bg },
+  pressed: { opacity: 0.85 },
 });
 
 export default PaymentSuccessScreen;

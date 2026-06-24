@@ -1,5 +1,6 @@
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Clock } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   AppState,
@@ -36,6 +37,7 @@ import { AppTypography } from '@theme/typography';
 
 import Avatar from '@core/components/Avatar';
 import CoinIcon from '@core/components/CoinIcon';
+import GradientAvatar from '@core/components/GradientAvatar';
 import { USE_MOCK_DATA } from '@core/config/env';
 import { getSupabaseClient } from '@core/network/supabaseClient';
 import { logger } from '@core/utils/logger';
@@ -230,14 +232,12 @@ function ChatHeader({
   name,
   avatarUri,
   secondsElapsed,
-  coinsSpent,
   onBack,
   isLive,
 }: {
   name: string;
   avatarUri: string | null;
   secondsElapsed: number;
-  coinsSpent: number;
   onBack: () => void;
   /** Live session shows the running timer; an ended (history) chat does not. */
   isLive: boolean;
@@ -246,36 +246,40 @@ function ChatHeader({
   const ss = String(secondsElapsed % 60).padStart(2, '0');
 
   return (
-    <View style={[styles.header, AppShadows.e1]}>
+    <View style={styles.header}>
       <Pressable onPress={onBack} hitSlop={12} style={styles.backBtn}>
         <BackIcon />
       </Pressable>
 
       <View style={styles.headerCenter}>
         <View style={styles.femaleAvatarWrap}>
-          <Avatar
+          <GradientAvatar
             uri={avatarUri}
-            size={40}
+            seed={name}
             initials={initialsFromName(name)}
-            borderColor={AppColors.primary}
-            borderWidth={2}
+            size={36}
+            shape="squircle"
           />
           {isLive ? <View style={styles.onlineDot} /> : null}
         </View>
-        <View>
-          <Text style={styles.headerName}>{name}</Text>
+        <View style={styles.headerTitleBlock}>
+          <Text style={styles.headerName} numberOfLines={1}>
+            {name}
+          </Text>
           {isLive ? (
-            <Text style={styles.headerOnline}>Online • {`${mm}:${ss}`}</Text>
+            <Text style={styles.headerOnline}>online</Text>
           ) : (
             <Text style={styles.headerEnded}>Chat ended</Text>
           )}
         </View>
       </View>
 
-      <View style={styles.headerRight}>
-        <CoinIcon size={16} />
-        <Text style={styles.coinsSpentText}>{coinsSpent}</Text>
-      </View>
+      {isLive ? (
+        <View style={styles.countdownChip}>
+          <Clock size={13} color={AppColors.onSurface} strokeWidth={2} />
+          <Text style={styles.countdownText}>{`${mm}:${ss}`}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -763,8 +767,6 @@ function ChatSessionScreen(): React.ReactElement {
     };
   }, [route.params.requestId]);
 
-  const coinsSpent = messages.filter(m => m.kind === 'sent').length * COINS_PER_MESSAGE;
-
   const handleSend = async (): Promise<void> => {
     const text = inputText.trim();
     if (!text) {
@@ -833,7 +835,6 @@ function ChatSessionScreen(): React.ReactElement {
         name={partnerName}
         avatarUri={partnerAvatarUrl}
         secondsElapsed={secondsElapsed}
-        coinsSpent={coinsSpent}
         isLive={isLive}
         onBack={isLive ? handleInitiateEndChat : () => navigation.goBack()}
       />
@@ -860,9 +861,9 @@ function ChatSessionScreen(): React.ReactElement {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.dateSeparator}>
-            <View style={styles.dateLine} />
-            <Text style={styles.dateLabel}>Today</Text>
-            <View style={styles.dateLine} />
+            <View style={styles.datePill}>
+              <Text style={styles.dateLabel}>Today</Text>
+            </View>
           </View>
 
           {messages.map((msg, idx) => (
@@ -883,7 +884,7 @@ function ChatSessionScreen(): React.ReactElement {
               style={styles.input}
               value={inputText}
               onChangeText={setInputText}
-              placeholder="Type a message…"
+              placeholder="Message…"
               placeholderTextColor={AppColors.onSurfaceMuted}
               multiline
               maxLength={200}
@@ -951,7 +952,9 @@ const styles = StyleSheet.create({
         ? (StatusBar.currentHeight ?? 0) + AppSpacing.sm + 2
         : AppSpacing.sm + 2,
     paddingBottom: AppSpacing.sm + 2,
-    backgroundColor: AppColors.surface,
+    backgroundColor: AppColors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: AppColors.border,
     gap: AppSpacing.sm,
   },
   backBtn: {
@@ -970,24 +973,24 @@ const styles = StyleSheet.create({
   femaleAvatarWrap: { position: 'relative' },
   onlineDot: {
     position: 'absolute',
-    bottom: 1,
-    right: 1,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    bottom: -1,
+    right: -1,
+    width: 11,
+    height: 11,
+    borderRadius: 5.5,
     backgroundColor: AppColors.onlineGreen,
-    borderWidth: 1.5,
-    borderColor: AppColors.surface,
+    borderWidth: 2.5,
+    borderColor: AppColors.background,
   },
+  headerTitleBlock: { flex: 1, minWidth: 0 },
   headerName: {
     ...AppTypography.titleMedium,
-    color: AppColors.primaryDark,
-    fontWeight: '700',
+    color: AppColors.onSurface,
   },
   headerOnline: {
     ...AppTypography.labelSmall,
-    color: AppColors.success,
-    fontWeight: '600',
+    fontSize: 12,
+    color: AppColors.onlineGreen,
   },
   headerEnded: {
     ...AppTypography.labelSmall,
@@ -1006,19 +1009,21 @@ const styles = StyleSheet.create({
     ...AppTypography.bodySmall,
     color: AppColors.onSurfaceMuted,
   },
-  headerRight: {
+  countdownChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: AppColors.primarySubtle,
+    backgroundColor: AppColors.surface,
+    borderWidth: 1,
+    borderColor: AppColors.border,
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: AppRadii.full,
+    paddingVertical: 5,
+    borderRadius: 13,
   },
-  coinsSpentText: {
-    ...AppTypography.labelSmall,
-    color: AppColors.primary,
-    fontWeight: '700',
+  countdownText: {
+    ...AppTypography.labelLarge,
+    fontSize: 14,
+    color: AppColors.onSurface,
   },
 
   // Coin cost pill
@@ -1056,15 +1061,20 @@ const styles = StyleSheet.create({
 
   dateSeparator: {
     flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'center',
     marginVertical: AppSpacing.md,
-    gap: AppSpacing.sm,
   },
-  dateLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: AppColors.border },
+  datePill: {
+    backgroundColor: AppColors.surface,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
   dateLabel: {
     ...AppTypography.labelSmall,
+    fontSize: 11,
+    letterSpacing: 0.44,
     color: AppColors.onSurfaceMuted,
-    fontWeight: '600',
   },
 
   // Bubbles
@@ -1073,21 +1083,23 @@ const styles = StyleSheet.create({
   msgRowReceived: { alignSelf: 'flex-start' },
 
   bubble: {
-    borderRadius: AppRadii.lg,
-    paddingHorizontal: AppSpacing.md,
-    paddingVertical: AppSpacing.sm,
-    gap: 2,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingTop: 9,
+    paddingBottom: 8,
+    gap: 3,
   },
   bubbleSent: {
     backgroundColor: AppColors.primary,
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: 6,
   },
   bubbleReceived: {
-    backgroundColor: AppColors.surfaceVariant, // clean neutral light-gray background
-    borderBottomLeftRadius: 4,
-    borderWidth: 0, // borderless
+    backgroundColor: AppColors.surface,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    borderBottomLeftRadius: 6,
   },
-  bubbleText: { ...AppTypography.bodyMedium, lineHeight: 20 },
+  bubbleText: { ...AppTypography.bodyMedium, fontSize: 15, lineHeight: 20 },
   bubbleTextSent: { color: AppColors.onPrimary },
   bubbleTextReceived: { color: AppColors.onSurface },
   bubbleTimeRow: {
@@ -1139,33 +1151,25 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    minHeight: 44,
+    minHeight: 46,
     maxHeight: 100,
     backgroundColor: AppColors.surface,
-    borderRadius: AppRadii.xl,
-    paddingHorizontal: AppSpacing.md,
+    borderRadius: 23,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    paddingHorizontal: 18,
     paddingVertical: AppSpacing.sm,
-    borderWidth: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 10,
-    elevation: 2,
     ...AppTypography.bodyMedium,
+    fontSize: 15,
     color: AppColors.onSurface,
   },
   sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: AppColors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: AppColors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 6,
   },
   sendBtnPressed: { opacity: 0.82, transform: [{ scale: 0.96 }] },
 

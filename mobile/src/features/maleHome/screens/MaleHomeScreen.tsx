@@ -20,6 +20,7 @@ import { AppRadii } from '@theme/radii';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
+import CoinIcon from '@core/components/CoinIcon';
 import GradientAvatar from '@core/components/GradientAvatar';
 import LogoMark from '@core/components/LogoMark';
 import PaginationLoader from '@core/components/PaginationLoader';
@@ -237,7 +238,7 @@ function MaleHomeScreen(): React.ReactElement {
             onPress={() => navigation.navigate('MaleTabs', { screen: 'Wallet' })}
             style={styles.balancePill}
           >
-            <View style={styles.coinDot} />
+            <CoinIcon size={16} />
             <Text style={styles.balanceText}>{coinBalance.toLocaleString()}</Text>
           </Pressable>
           <Pressable
@@ -412,7 +413,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-  coinDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: AppColors.primary },
   balanceText: { fontFamily: InterFont.medium, fontSize: 14.5, color: AppColors.onSurface },
   chatBtn: {
     width: 40,

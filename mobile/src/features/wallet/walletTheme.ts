@@ -8,8 +8,10 @@ import { type ViewStyle } from 'react-native';
 export const WC = {
   bg: '#000000',
   surface: '#101013',
+  surfaceDeep: '#0E0E10',
   card: '#141417',
   cardHi: '#1C1C20',
+  cardActive: '#29292B',
 
   primary: '#DC308F',
   secondary: '#9D5CFF',
@@ -17,6 +19,9 @@ export const WC = {
   successText: '#4ADE80',
   warning: '#F5A524',
   blue: '#457BF1',
+  mauve: '#D0A8C9',
+  danger: '#FF5A6E',
+  dangerSoft: 'rgba(255,90,110,0.14)',
 
   text: '#FFFFFF',
   textDim: '#8E8E96',
@@ -24,7 +29,9 @@ export const WC = {
 
   divider: 'rgba(255,255,255,0.06)',
   hairline: 'rgba(255,255,255,0.08)',
+  borderStrong: 'rgba(255,255,255,0.12)',
   glass: 'rgba(255,255,255,0.05)',
+  transparent: 'transparent',
 
   primarySoft: 'rgba(220,48,143,0.12)',
   primaryEdge: 'rgba(220,48,143,0.55)',

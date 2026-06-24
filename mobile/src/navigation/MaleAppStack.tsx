@@ -17,6 +17,7 @@ import DeleteAccountWarningScreen from '@features/profile/screens/DeleteAccountW
 import HelpSupportScreen from '@features/profile/screens/HelpSupportScreen';
 import ReportIssueScreen from '@features/profile/screens/ReportIssueScreen';
 import SettingsScreen from '@features/profile/screens/SettingsScreen';
+import CoinStoreScreen from '@features/wallet/screens/CoinStoreScreen';
 import PaymentFailedScreen from '@features/wallet/screens/PaymentFailedScreen';
 import PaymentProcessingScreen from '@features/wallet/screens/PaymentProcessingScreen';
 import PaymentSuccessScreen from '@features/wallet/screens/PaymentSuccessScreen';
@@ -58,6 +59,7 @@ function MaleAppStack(): React.ReactElement {
         component={ChatRequestTimeoutScreen}
         options={{ animation: 'fade', gestureEnabled: false }}
       />
+      <Stack.Screen name="CoinStore" component={CoinStoreScreen} />
       <Stack.Screen
         name="PaymentProcessing"
         component={PaymentProcessingScreen}

@@ -1,140 +1,65 @@
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
-  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
-  withSpring,
+  withRepeat,
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
 
-import { AppColors } from '@theme/colors';
-import { AppSpacing } from '@theme/spacing';
-import { AppTypography } from '@theme/typography';
+import { InterFont } from '@theme/typography';
 
 import { logger } from '@core/utils/logger';
 
 import { type MaleAppStackParamList } from '@navigation/types';
 
 import { processPayment } from '../api/walletApi';
-import { getPackageById, totalCoinsFor } from '../constants';
+import { getPackageById } from '../constants';
+import { WC, WS } from '../walletTheme';
 
 type Nav = NativeStackNavigationProp<MaleAppStackParamList, 'PaymentProcessing'>;
 type Route = RouteProp<MaleAppStackParamList, 'PaymentProcessing'>;
 
-const CHECK_PATH_LENGTH = 34;
-const AnimatedPath = Animated.createAnimatedComponent(Path);
+const RING = 88;
+const R = 38;
+const C = 2 * Math.PI * R;
 
-function AnimatedCheckmark(): React.ReactElement {
-  const circleScale = useSharedValue(0);
-  const checkProgress = useSharedValue(0);
-  const checkOpacity = useSharedValue(0);
-
+/** Pink three-segment ring that spins while the payment is in flight. */
+function Spinner(): React.ReactElement {
+  const rot = useSharedValue(0);
   useEffect(() => {
-    circleScale.value = withSpring(1, { damping: 10, stiffness: 220, mass: 0.8 });
-
-    const t = setTimeout(() => {
-      checkOpacity.value = withTiming(1, { duration: 50 });
-      checkProgress.value = withTiming(1, {
-        duration: 550,
-        easing: Easing.out(Easing.cubic),
-      });
-    }, 320);
-
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const circleStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: circleScale.value }],
-  }));
-
-  const checkStyle = useAnimatedStyle(() => ({
-    opacity: checkOpacity.value,
-  }));
-
-  const checkAnimatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: CHECK_PATH_LENGTH * (1 - checkProgress.value),
-  }));
+    rot.value = withRepeat(withTiming(360, { duration: 1100, easing: Easing.linear }), -1, false);
+  }, [rot]);
+  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${rot.value}deg` }] }));
 
   return (
-    <Animated.View style={[styles.checkCircle, circleStyle]}>
-      <Animated.View style={checkStyle}>
-        <Svg width={64} height={64} viewBox="0 0 52 52">
-          <AnimatedPath
-            animatedProps={checkAnimatedProps}
-            d="M14 27 l8 8 16-16"
-            stroke={AppColors.success}
-            strokeWidth={4}
-            fill="none"
-            strokeDasharray={CHECK_PATH_LENGTH}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </Svg>
-      </Animated.View>
+    <Animated.View style={style}>
+      <Svg width={RING} height={RING} viewBox={`0 0 ${RING} ${RING}`}>
+        <Circle cx={44} cy={44} r={R} stroke={WC.hairline} strokeWidth={6} fill="none" />
+        <Circle
+          cx={44}
+          cy={44}
+          r={R}
+          stroke={WC.primary}
+          strokeWidth={6}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`18 ${(C - 3 * 18) / 3}`}
+        />
+      </Svg>
     </Animated.View>
   );
 }
 
-type SuccessResult = {
-  transactionId: string;
-  coinsAdded: number;
-  bonusCoins: number;
-  amountInr: number;
-  newBalance: number;
-};
-
-function SuccessPhase({
-  result,
-  onDone,
-}: {
-  result: SuccessResult;
-  onDone: () => void;
-}): React.ReactElement {
-  const contentOpacity = useSharedValue(0);
-  const contentY = useSharedValue(16);
-
-  useEffect(() => {
-    contentOpacity.value = withDelay(700, withTiming(1, { duration: 500 }));
-    contentY.value = withDelay(700, withSpring(0, { damping: 16, stiffness: 120 }));
-
-    const t = setTimeout(onDone, 2200);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const contentStyle = useAnimatedStyle(() => ({
-    opacity: contentOpacity.value,
-    transform: [{ translateY: contentY.value }],
-  }));
-
-  return (
-    <View style={styles.body}>
-      <AnimatedCheckmark />
-      <Animated.View style={[styles.successText, contentStyle]}>
-        <Text style={styles.successTitle}>Payment Successful!</Text>
-        <Text
-          style={styles.successSubtitle}
-        >{`${result.coinsAdded} coins added to your wallet`}</Text>
-        <Text style={styles.successHint}>Opening receipt…</Text>
-      </Animated.View>
-    </View>
-  );
-}
-
 /**
- * Payment-in-flight screen.
- *
- * Phase 1 — spinner while Razorpay/backend processes.
- * Phase 2 — animated tick (mirrors ChatRequestAcceptedScreen) then navigates
- *            to the receipt screen after 2.2 s.
+ * Payment-in-flight screen (B10). Runs the create-order → Razorpay → verify
+ * flow, then replaces itself with the success or failed result screen. The
+ * back gesture is blocked while a charge may be in progress.
  */
 function PaymentProcessingScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
@@ -142,26 +67,12 @@ function PaymentProcessingScreen(): React.ReactElement {
   const { packageId } = route.params;
 
   const [running, setRunning] = useState(false);
-  const [successResult, setSuccessResult] = useState<SuccessResult | null>(null);
   const completedRef = useRef(false);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
     return () => sub.remove();
   }, []);
-
-  const handleDone = useCallback(() => {
-    if (!successResult) {
-      return;
-    }
-    navigation.replace('PaymentSuccess', {
-      transactionId: successResult.transactionId,
-      coinsAdded: successResult.coinsAdded,
-      bonusCoins: successResult.bonusCoins,
-      amountInr: successResult.amountInr,
-      newBalance: successResult.newBalance,
-    });
-  }, [navigation, successResult]);
 
   const finalize = useCallback(async (): Promise<void> => {
     if (completedRef.current || running) {
@@ -172,7 +83,7 @@ function PaymentProcessingScreen(): React.ReactElement {
       const result = await processPayment(packageId);
       completedRef.current = true;
       if (result.ok) {
-        setSuccessResult({
+        navigation.replace('PaymentSuccess', {
           transactionId: result.transactionId,
           coinsAdded: result.coinsAdded,
           bonusCoins: result.bonusCoins,
@@ -197,85 +108,34 @@ function PaymentProcessingScreen(): React.ReactElement {
 
   const pkg = getPackageById(packageId);
 
-  if (successResult) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <SuccessPhase result={successResult} onDone={handleDone} />
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.body}>
-        <Text style={styles.brand}>razorpay</Text>
-        <View style={styles.spinnerWrap}>
-          <ActivityIndicator size="large" color={AppColors.primary} />
-        </View>
+        <Spinner />
+        {pkg ? <Text style={styles.amount}>{`₹ ${pkg.priceInr.toLocaleString()}`}</Text> : null}
         <Text style={styles.title}>Processing payment…</Text>
-        <Text style={styles.subtitle}>Please don't close the app</Text>
-        {pkg ? (
-          <Text style={styles.amount}>{`₹${pkg.priceInr} for ${totalCoinsFor(pkg)} coins`}</Text>
-        ) : null}
+        <Text style={styles.hint}>Please don&apos;t close this screen</Text>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: AppColors.background },
-  body: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: AppSpacing.lg,
-    gap: AppSpacing.xl,
-  },
-  checkCircle: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    backgroundColor: AppColors.successLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  successText: { alignItems: 'center', gap: AppSpacing.xs },
-  successTitle: {
-    ...AppTypography.headlineLarge,
-    color: AppColors.primaryDark,
-    fontWeight: '800',
-  },
-  successSubtitle: {
-    ...AppTypography.bodyLarge,
-    color: AppColors.onSurfaceMuted,
-  },
-  successHint: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.onSurfaceMuted,
-    marginTop: AppSpacing.sm,
-  },
-  brand: {
-    ...AppTypography.titleLarge,
-    color: AppColors.info,
-    letterSpacing: 1,
-    fontWeight: '700',
-  },
-  spinnerWrap: { marginTop: AppSpacing.xl },
-  title: {
-    ...AppTypography.titleMedium,
-    color: AppColors.primaryDark,
-    marginTop: AppSpacing.lg,
-  },
-  subtitle: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.onSurfaceMuted,
-    marginTop: AppSpacing.xs,
-  },
+  safe: { flex: 1, backgroundColor: WC.bg },
+  body: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   amount: {
-    ...AppTypography.bodyLarge,
-    color: AppColors.primaryDark,
-    marginTop: AppSpacing.md,
+    fontFamily: InterFont.light,
+    fontSize: 40,
+    color: WC.text,
+    marginTop: WS.xxl + WS.md,
   },
+  title: {
+    fontFamily: InterFont.medium,
+    fontSize: 18,
+    color: WC.text,
+    marginTop: WS.lg,
+  },
+  hint: { fontFamily: InterFont.regular, fontSize: 14, color: WC.textDim, marginTop: WS.xs + 2 },
 });
 
 export default PaymentProcessingScreen;
