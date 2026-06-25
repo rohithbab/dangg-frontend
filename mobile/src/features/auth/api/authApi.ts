@@ -23,6 +23,7 @@ import { USE_MOCK_DATA } from '@core/config/env';
 import { mapSupabaseError } from '@core/network/apiErrorMapper';
 import { AppException, AuthException, InvalidOtpException } from '@core/network/apiException';
 import { getSupabaseClient } from '@core/network/supabaseClient';
+import { uploadToR2 } from '@core/network/mediaService';
 import { prefsStorage, PrefsKey } from '@core/storage/prefsStorage';
 import { logger } from '@core/utils/logger';
 
@@ -330,8 +331,7 @@ function parseVerificationStatus(raw: unknown): VerificationStatus {
 }
 
 /**
- * Uploads a verification selfie to the private `verification` Storage bucket
- * (under the caller's own `{uid}/…` folder, enforced by storage RLS), then
+ * Uploads a verification selfie to R2 (via media-sign presigned PUT), then
  * calls the `verification-photo-submit` Edge Function which flips the female's
  * `verification_status` to `pending`. Requires an active session (signup
  * leaves one after OTP verify).
@@ -344,31 +344,18 @@ export async function submitVerificationPhoto(localPath: string): Promise<string
   }
 
   const client = getSupabaseClient();
-  const { data: userData, error: userErr } = await client.auth.getUser();
-  if (userErr || !userData.user) {
-    throw new AuthException('You must be signed in to submit verification.');
-  }
-  const objectPath = `photos/${userData.user.id}/selfie.jpg`;
 
-  const fileUri = /^(file|content|https?):\/\//.test(localPath) ? localPath : `file://${localPath}`;
-  const arrayBuffer = await fetch(fileUri).then(res => res.arrayBuffer());
-
-  const { error: uploadErr } = await client.storage
-    .from('verification')
-    .upload(objectPath, arrayBuffer, { contentType: 'image/jpeg', upsert: true });
-  if (uploadErr) {
-    throw mapSupabaseError(uploadErr);
-  }
+  const { objectKey } = await uploadToR2('verification', localPath);
 
   const { error: submitErr } = await client.functions.invoke('verification-photo-submit', {
-    body: { objectPath },
+    body: { objectPath: objectKey },
   });
   if (submitErr) {
     throw mapSupabaseError(submitErr);
   }
 
-  logger.info('authApi.submitVerificationPhoto uploaded', { objectPath });
-  return objectPath;
+  logger.info('authApi.submitVerificationPhoto uploaded', { objectKey });
+  return objectKey;
 }
 
 /**
