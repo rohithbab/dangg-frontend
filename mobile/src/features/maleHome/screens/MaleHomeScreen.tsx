@@ -22,7 +22,6 @@ import { InterFont } from '@theme/typography';
 
 import CoinIcon from '@core/components/CoinIcon';
 import GradientAvatar from '@core/components/GradientAvatar';
-import LogoMark from '@core/components/LogoMark';
 import PaginationLoader from '@core/components/PaginationLoader';
 import PersonRow from '@core/components/PersonRow';
 import { BOTTOM_NAV_HEIGHT } from '@core/config/constants';
@@ -31,14 +30,17 @@ import { logger } from '@core/utils/logger';
 
 import { type MaleAppStackParamList } from '@navigation/types';
 
+import { useSessionStore } from '@store/sessionStore';
+
 import { sendChatRequest } from '@features/chatRequests/api/chatRequestApi';
 import ChatRequestConfirmModal from '@features/chatRequests/components/ChatRequestConfirmModal';
 import InsufficientCoinsModal from '@features/chatRequests/components/InsufficientCoinsModal';
+import { getProfile } from '@features/profile/api/profileApi';
 import { fetchWalletSnapshot } from '@features/wallet/api/walletApi';
 import { COIN_PACKAGES } from '@features/wallet/constants';
 import { useCoinBalance, useWalletStore } from '@features/wallet/store/walletStore';
 
-import { type AvailableFemale, browseFemales } from '../api/maleHomeApi';
+import { type AvailableFemale, browseFemales, listFavorites } from '../api/maleHomeApi';
 import FemaleSearchFilterSheet from '../components/FemaleSearchFilterSheet';
 import { useFemaleFiltersStore } from '../store/femaleFiltersStore';
 
@@ -46,6 +48,24 @@ type Nav = NativeStackNavigationProp<MaleAppStackParamList>;
 
 const PAGE_SIZE = 20;
 const BOTTOM_CLEAR = BOTTOM_NAV_HEIGHT + AppSpacing.xl + AppSpacing.md;
+
+function firstNameFromSession(fullName: string | undefined): string {
+  if (!fullName) {
+    return 'there';
+  }
+  return fullName.split(/\s+/)[0] ?? fullName;
+}
+
+function greetingForNow(): string {
+  const h = new Date().getHours();
+  if (h < 12) {
+    return 'Good morning';
+  }
+  if (h < 17) {
+    return 'Good afternoon';
+  }
+  return 'Good evening';
+}
 
 /**
  * Male Home (Neue) — Discover surface. Header (brand + coin balance + chats),
@@ -57,11 +77,15 @@ function MaleHomeScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const coinBalance = useCoinBalance();
   const spend = useWalletStore(s => s.spend);
+  const session = useSessionStore(s => s.session);
+  const firstName = firstNameFromSession(session?.user.user_metadata?.name);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   const activeFilterCount = useFemaleFiltersStore(s => s.activeCount)();
   const filters = useFemaleFiltersStore();
 
   const [items, setItems] = useState<ReadonlyArray<AvailableFemale>>([]);
+  const [favorites, setFavorites] = useState<ReadonlyArray<AvailableFemale>>([]);
   const [totalOnline, setTotalOnline] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -97,14 +121,14 @@ function MaleHomeScreen(): React.ReactElement {
 
   const loadFirstPage = useCallback(async (): Promise<void> => {
     try {
-      const {
-        items: page,
-        hasMore: more,
-        totalOnline: online,
-      } = await browseFemales(filtersSnapshot, PAGE_SIZE, 0);
+      const [{ items: page, hasMore: more, totalOnline: online }, favs] = await Promise.all([
+        browseFemales(filtersSnapshot, PAGE_SIZE, 0),
+        listFavorites().catch(() => [] as ReadonlyArray<AvailableFemale>),
+      ]);
       setItems(page);
       setHasMore(more);
       setTotalOnline(online);
+      setFavorites(favs);
       setInitialLoaded(true);
     } catch (e) {
       logger.warn('browseFemales failed', e);
@@ -127,6 +151,9 @@ function MaleHomeScreen(): React.ReactElement {
   useFocusEffect(
     useCallback(() => {
       fetchWalletSnapshot().catch(e => logger.warn('Wallet snapshot failed', e));
+      getProfile()
+        .then(p => setAvatarUrl(p.avatarUrl))
+        .catch(e => logger.warn('MaleHome: getProfile failed', e));
       const id = setInterval(() => {
         void loadFirstPage();
       }, 5000);
@@ -194,7 +221,7 @@ function MaleHomeScreen(): React.ReactElement {
         useWalletStore.getState().setBalance(newCoinBalance);
       }
       setConfirmOpen(false);
-      navigation.navigate('ChatRequestSent', { requestId });
+      navigation.navigate('ChatRequestSent', { requestId, femaleName: selected.name });
     } catch (e) {
       logger.warn('sendChatRequest failed', e);
       useWalletStore.getState().credit(selected.coinPrice);
@@ -202,8 +229,6 @@ function MaleHomeScreen(): React.ReactElement {
       setSubmitting(false);
     }
   }, [selected, submitting, spend, navigation]);
-
-  const onlineItems = useMemo(() => items.filter(f => f.isOnline).slice(0, 10), [items]);
 
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<AvailableFemale>): React.ReactElement => (
@@ -227,9 +252,20 @@ function MaleHomeScreen(): React.ReactElement {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       <View style={styles.topBar}>
-        <View style={styles.brand}>
-          <LogoMark size={26} />
-          <Text style={styles.wordmark}>Dangg</Text>
+        <View style={styles.greetWrap}>
+          <GradientAvatar
+            initials={firstName.slice(0, 1).toUpperCase()}
+            seed={session?.user.id ?? firstName}
+            uri={avatarUrl}
+            size={46}
+            shape="squircle"
+          />
+          <View style={styles.greetText}>
+            <Text style={styles.greeting}>{greetingForNow()}</Text>
+            <Text style={styles.greetName} numberOfLines={1}>
+              {firstName}
+            </Text>
+          </View>
         </View>
         <View style={styles.topRight}>
           <Pressable
@@ -289,13 +325,13 @@ function MaleHomeScreen(): React.ReactElement {
               {activeFilterCount > 0 ? <View style={styles.searchBadge} /> : null}
             </Pressable>
 
-            {onlineItems.length > 0 ? (
+            {favorites.length > 0 ? (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.rail}
               >
-                {onlineItems.map(f => (
+                {favorites.map(f => (
                   <Pressable
                     key={f.id}
                     accessibilityRole="button"
@@ -304,11 +340,11 @@ function MaleHomeScreen(): React.ReactElement {
                     style={styles.railItem}
                   >
                     <GradientAvatar
-                      initials={f.name}
+                      initials={f.name.slice(0, 1).toUpperCase()}
                       seed={f.id}
                       uri={f.imageUrl}
                       size={56}
-                      online
+                      online={f.isOnline}
                     />
                     <Text style={styles.railName} numberOfLines={1}>
                       {f.name}
@@ -393,12 +429,15 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? AppSpacing.sm : AppSpacing.xs,
     paddingBottom: AppSpacing.sm,
   },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  wordmark: {
+  greetWrap: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 },
+  greetText: { flex: 1, minWidth: 0 },
+  greeting: { fontFamily: InterFont.light, fontSize: 13, color: '#8C8C94' },
+  greetName: {
     fontFamily: InterFont.regular,
-    fontSize: 18,
+    fontSize: 20,
     color: AppColors.onSurface,
-    letterSpacing: -0.36,
+    letterSpacing: -0.4,
+    marginTop: 2,
   },
   topRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   balancePill: {

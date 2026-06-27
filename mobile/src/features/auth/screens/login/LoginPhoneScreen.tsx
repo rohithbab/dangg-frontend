@@ -23,7 +23,9 @@ import { logger } from '@core/utils/logger';
 
 import { type AuthStackParamList } from '@navigation/types';
 
-import { sendOtp } from '../../api/authApi';
+import { VerificationStatus } from '@app-types/domain';
+
+import { getFemaleVerificationStatus, sendOtp } from '../../api/authApi';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'LoginPhone'>;
 
@@ -36,6 +38,7 @@ function LoginPhoneScreen(): React.ReactElement {
   const [phone, setPhone] = useState('');
   const [focused, setFocused] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const cleaned = phone.replace(/\D/g, '').slice(-10);
@@ -47,8 +50,26 @@ function LoginPhoneScreen(): React.ReactElement {
       return;
     }
     setError(null);
+    setInfo(null);
     setSubmitting(true);
     try {
+      // If this number is a female whose verification is still under review,
+      // there's nothing to do but wait — tell her here instead of sending an
+      // OTP and dropping her on a screen she can't act on. (The status RPC is
+      // anon-callable by phone.) A failed check is non-fatal: fall through to
+      // the normal OTP path so login never breaks because of this lookup.
+      try {
+        const { status } = await getFemaleVerificationStatus(cleaned);
+        if (status === VerificationStatus.Pending) {
+          setInfo(
+            "Your verification is still under review. We'll notify you once it's approved — no need to sign in.",
+          );
+          return;
+        }
+      } catch (e) {
+        logger.warn('LoginPhoneScreen.verificationPreCheck failed', e);
+      }
+
       await sendOtp(cleaned, 'login');
       navigation.navigate('LoginOtp', { phone: cleaned });
     } catch (e) {
@@ -97,6 +118,9 @@ function LoginPhoneScreen(): React.ReactElement {
                 if (error) {
                   setError(null);
                 }
+                if (info) {
+                  setInfo(null);
+                }
               }}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
@@ -108,6 +132,7 @@ function LoginPhoneScreen(): React.ReactElement {
             />
           </View>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {!error && info ? <Text style={styles.infoText}>{info}</Text> : null}
         </View>
 
         <View style={styles.ctaWrap}>
@@ -189,6 +214,13 @@ const styles = StyleSheet.create({
     fontFamily: InterFont.medium,
     fontSize: 13,
     color: AppColors.error,
+    marginTop: AppSpacing.sm,
+  },
+  infoText: {
+    fontFamily: InterFont.medium,
+    fontSize: 13,
+    lineHeight: 19,
+    color: AppColors.primary,
     marginTop: AppSpacing.sm,
   },
   ctaWrap: { paddingHorizontal: AppSpacing.lg, paddingBottom: AppSpacing.md },

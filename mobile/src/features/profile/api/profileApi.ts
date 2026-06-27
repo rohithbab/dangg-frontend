@@ -23,6 +23,10 @@ export type Profile = {
   ratingAvg: number;
   totalChats: number;
   daysActive: number;
+  /** Editable on the Edit Profile screen (users.age). */
+  age: number | null;
+  /** Editable bio — females only (females.bio); null for males. */
+  bio: string | null;
 };
 
 function maskPhone(phone: string | null | undefined): string {
@@ -50,6 +54,8 @@ function emptyProfile(): Profile {
       ratingAvg: 4.85,
       totalChats: 142,
       daysActive: 18,
+      age: 24,
+      bio: 'Loves slow conversations about books & long train rides.',
     };
   } else {
     return {
@@ -61,6 +67,8 @@ function emptyProfile(): Profile {
       ratingAvg: 0,
       totalChats: 0,
       daysActive: 5,
+      age: 27,
+      bio: null,
     };
   }
 }
@@ -81,7 +89,7 @@ export async function getProfile(): Promise<Profile> {
   // NOT on `females`/`males`. RLS scopes the row to the caller.
   const { data: userData, error: userErr } = await client
     .from('users')
-    .select('name, phone, profile_picture_url, role, created_at')
+    .select('name, phone, profile_picture_url, role, created_at, age')
     .eq('id', userId)
     .single();
   if (userErr) {
@@ -93,29 +101,33 @@ export async function getProfile(): Promise<Profile> {
     profile_picture_url: string | null;
     role: 'female' | 'male';
     created_at: string;
+    age: number | null;
   };
 
   // Role-specific stats come from the matching table.
   let verified = false;
   let ratingAvg = 0;
   let totalChats = 0;
+  let bio: string | null = null;
   if (user.role === 'female') {
     // Filter to the caller's own row: a female can SELECT every verified
     // female (females_select_browseable powers male discovery), so an
     // unfiltered `.single()` throws once a second verified female exists.
     const { data: f } = await client
       .from('females')
-      .select('verification_status, rating_avg, total_chats')
+      .select('verification_status, rating_avg, total_chats, bio')
       .eq('id', userId)
       .single();
     const fr = f as {
       verification_status?: string;
       rating_avg?: number;
       total_chats?: number;
+      bio?: string | null;
     } | null;
     verified = fr?.verification_status === 'verified';
     ratingAvg = fr?.rating_avg ?? 0;
     totalChats = fr?.total_chats ?? 0;
+    bio = fr?.bio ?? null;
   } else {
     const { data: m } = await client.from('males').select('chats_initiated').single();
     totalChats = (m as { chats_initiated?: number } | null)?.chats_initiated ?? 0;
@@ -134,6 +146,8 @@ export async function getProfile(): Promise<Profile> {
     ratingAvg,
     totalChats,
     daysActive,
+    age: user.age,
+    bio,
   };
 }
 
@@ -261,7 +275,12 @@ export async function deleteAccount(): Promise<void> {
 }
 
 /** Updates the user's name on public.users. */
-export async function updateProfile(updates: { name: string }): Promise<void> {
+export async function updateProfile(updates: {
+  name: string;
+  age?: number | null;
+  /** Female-only; when provided, written to females.bio. */
+  bio?: string | null;
+}): Promise<void> {
   if (USE_MOCK_DATA) {
     return;
   }
@@ -270,8 +289,22 @@ export async function updateProfile(updates: { name: string }): Promise<void> {
   if (!userId) {
     throw new Error('Not authenticated');
   }
-  const { error } = await client.from('users').update({ name: updates.name }).eq('id', userId);
+  const userPatch: { name: string; age?: number } = { name: updates.name };
+  if (typeof updates.age === 'number') {
+    userPatch.age = updates.age;
+  }
+  const { error } = await client.from('users').update(userPatch).eq('id', userId);
   if (error) {
     throw mapSupabaseError(error);
+  }
+  // Bio lives on the females row; only patch it when the caller passed one.
+  if (updates.bio !== undefined) {
+    const { error: bioErr } = await client
+      .from('females')
+      .update({ bio: updates.bio })
+      .eq('id', userId);
+    if (bioErr) {
+      throw mapSupabaseError(bioErr);
+    }
   }
 }

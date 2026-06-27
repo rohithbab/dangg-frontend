@@ -1,97 +1,61 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useState } from 'react';
+import { ChevronRight } from 'lucide-react-native';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, {
-  Defs,
-  LinearGradient as SvgLinearGradient,
-  Path,
-  RadialGradient,
-  Rect,
-  Stop,
-} from 'react-native-svg';
+import Svg, { Rect } from 'react-native-svg';
 
-import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION, MIN_PAYOUT_AMOUNT_INR } from '@core/config/constants';
+import { AppColors } from '@theme/colors';
+import { AppRadii } from '@theme/radii';
+import { AppSpacing } from '@theme/spacing';
+import { InterFont } from '@theme/typography';
+
+import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
 import { inr } from '@core/utils/formatters';
 import { logger } from '@core/utils/logger';
 
 import { type FemaleAppStackParamList } from '@navigation/types';
 
-import { FC, FR, FS, FShadow } from '@features/femaleHome/femaleTheme';
-
 import {
   type EarningsBalance,
   type Transaction,
-  type TransactionFilter,
   getEarningsBalance,
   listTransactions,
 } from '../api/earningsApi';
-import TransactionItem from '../components/TransactionItem';
 
 type Nav = NativeStackNavigationProp<FemaleAppStackParamList>;
 
-const FILTER_LABEL: Record<TransactionFilter, string> = {
-  all: 'All',
-  earning: 'Earnings',
-  payout: 'Payouts',
-  refund: 'Refunds',
-};
+const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const;
 
-function ClockIcon(): React.ReactElement {
-  return (
-    <Svg width={16} height={16} viewBox="0 0 24 24">
-      <Path
-        d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"
-        fill={FC.text}
-        fillOpacity={0.9}
-      />
-    </Svg>
-  );
+/** Monday=0 … Sunday=6 index for a date (JS getDay is Sun=0). */
+function mondayIndex(d: Date): number {
+  return (d.getDay() + 6) % 7;
 }
 
-function EarningsHeroBackdrop({ radius = 28 }: { radius?: number }): React.ReactElement {
-  const base = React.useId();
-  const glowA = React.useId();
-  const glowB = React.useId();
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Svg width="100%" height="100%">
-        <Defs>
-          <SvgLinearGradient id={base} x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#1A1A22" />
-            <Stop offset="1" stopColor="#141419" />
-          </SvgLinearGradient>
-          <RadialGradient id={glowA} cx="88%" cy="2%" r="72%">
-            <Stop offset="0" stopColor={FC.secondary} stopOpacity={0.24} />
-            <Stop offset="1" stopColor={FC.secondary} stopOpacity={0} />
-          </RadialGradient>
-          <RadialGradient id={glowB} cx="2%" cy="100%" r="72%">
-            <Stop offset="0" stopColor={FC.primary} stopOpacity={0.16} />
-            <Stop offset="1" stopColor={FC.primary} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" rx={radius} fill={`url(#${base})`} />
-        <Rect x="0" y="0" width="100%" height="100%" rx={radius} fill={`url(#${glowA})`} />
-        <Rect x="0" y="0" width="100%" height="100%" rx={radius} fill={`url(#${glowB})`} />
-      </Svg>
-    </View>
-  );
+function startOfToday(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
+/**
+ * C22 · Earnings (Neue). Withdrawable balance hero + Withdraw pill, a weekly
+ * earnings bar chart, Today / This week / All-time summary rows, and a link to
+ * payout history. Balances are INR (what she actually withdraws); the weekly
+ * bars + Today/This-week totals are derived client-side from the transactions
+ * feed. All data sources (getEarningsBalance / listTransactions) are unchanged.
+ */
 function EarningsDashboardScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
 
   const [balance, setBalance] = useState<EarningsBalance | null>(null);
   const [transactions, setTransactions] = useState<ReadonlyArray<Transaction>>([]);
-  const [filter, setFilter] = useState<TransactionFilter>('all');
-  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadAll = useCallback(async (active: TransactionFilter): Promise<void> => {
+  const loadAll = useCallback(async (): Promise<void> => {
     try {
-      const [b, t] = await Promise.all([getEarningsBalance(), listTransactions(active)]);
+      const [b, t] = await Promise.all([getEarningsBalance(), listTransactions('earning')]);
       setBalance(b);
       setTransactions(t);
     } catch (e) {
@@ -101,420 +65,215 @@ function EarningsDashboardScreen(): React.ReactElement {
 
   useFocusEffect(
     useCallback(() => {
-      void loadAll(filter);
-    }, [filter, loadAll]),
+      void loadAll();
+    }, [loadAll]),
   );
 
   const handleRefresh = useCallback(async (): Promise<void> => {
     setRefreshing(true);
-    await loadAll(filter);
+    await loadAll();
     setRefreshing(false);
-  }, [filter, loadAll]);
+  }, [loadAll]);
 
-  const handleFilterPick = useCallback((next: TransactionFilter): void => {
-    setFilter(next);
-    setFilterSheetOpen(false);
-  }, []);
+  /** Earnings summed per weekday for the current week (Mon→Sun), + today/week totals. */
+  const { weekBars, todayInr, weekInr } = useMemo(() => {
+    const bars = [0, 0, 0, 0, 0, 0, 0];
+    const today0 = startOfToday().getTime();
+    const weekStart = today0 - mondayIndex(new Date()) * 24 * 60 * 60 * 1000;
+    let todaySum = 0;
+    let weekSum = 0;
+    for (const t of transactions) {
+      if (t.kind !== 'earning') {
+        continue;
+      }
+      const ts = t.occurredAt.getTime();
+      if (ts >= weekStart) {
+        bars[mondayIndex(t.occurredAt)] += t.amountInr;
+        weekSum += t.amountInr;
+      }
+      if (ts >= today0) {
+        todaySum += t.amountInr;
+      }
+    }
+    return { weekBars: bars, todayInr: todaySum, weekInr: weekSum };
+  }, [transactions]);
 
-  const payoutBlocked =
-    (balance?.availableInr ?? 0) < MIN_PAYOUT_AMOUNT_INR ||
-    (balance?.pendingPayoutInr ?? null) !== null;
+  const pending = balance?.pendingPayoutInr ?? null;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={FC.primary}
-            colors={[FC.primary]}
+            tintColor={AppColors.primary}
+            colors={[AppColors.primary]}
           />
         }
       >
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Earnings</Text>
-        </View>
+        <Text style={styles.title}>Earnings</Text>
 
-        <Animated.View entering={FadeInDown.duration(480)} style={[styles.hero, FShadow.hero]}>
-          <EarningsHeroBackdrop radius={FR.hero} />
-          <View style={styles.heroTopHighlight} pointerEvents="none" />
-          <Text style={styles.heroLabel}>AVAILABLE TO WITHDRAW</Text>
-          <View style={styles.heroBalanceRow}>
-            <Text style={styles.heroBalance}>{balance ? inr(balance.availableInr) : '—'}</Text>
-          </View>
-          {balance?.pendingPayoutInr != null ? (
-            <View style={styles.pendingRow}>
-              <ClockIcon />
-              <Text style={styles.pendingText}>
-                {inr(balance.pendingPayoutInr)} payout in review
-              </Text>
-            </View>
-          ) : (
-            <Pressable
-              accessibilityRole="button"
-              disabled={payoutBlocked}
-              onPress={() => navigation.navigate('PayoutRequest')}
-              style={({ pressed }) => [
-                styles.payoutBtn,
-                pressed && styles.payoutBtnPressed,
-                payoutBlocked && styles.payoutBtnDisabled,
-              ]}
-            >
-              <Text style={styles.payoutBtnLabel}>Request Payout</Text>
-            </Pressable>
-          )}
-        </Animated.View>
-
-        <View style={styles.quickStats}>
-          <Animated.View entering={FadeInDown.duration(380).delay(100)} style={styles.quickStat}>
-            <Text style={styles.quickStatLabel}>This Month</Text>
-            <View style={styles.statCoinRow}>
-              <Text style={styles.quickStatValue}>
-                {balance ? inr(balance.monthEarningsInr) : '—'}
-              </Text>
-            </View>
-            {balance ? (
-              <Text style={[styles.quickStatTrend, { color: FC.success }]}>
-                {balance.monthTrend.label}
-              </Text>
-            ) : null}
-          </Animated.View>
-          <Animated.View entering={FadeInDown.duration(380).delay(200)} style={styles.quickStat}>
-            <Text style={styles.quickStatLabel}>Lifetime</Text>
-            <View style={styles.statCoinRow}>
-              <Text style={styles.quickStatValue}>
-                {balance ? inr(balance.lifetimeEarningsInr) : '—'}
-              </Text>
-            </View>
-            <Text style={[styles.quickStatTrend, { color: FC.textFaint }]}>since joining</Text>
-          </Animated.View>
-        </View>
-
-        <View style={styles.txHeader}>
-          <Text style={styles.sectionTitle}>Transactions</Text>
+        <Text style={styles.availLabel}>AVAILABLE</Text>
+        <View style={styles.balanceRow}>
+          <Text style={styles.balance}>{balance ? inr(balance.availableInr) : '—'}</Text>
           <Pressable
             accessibilityRole="button"
-            onPress={() => setFilterSheetOpen(true)}
-            hitSlop={8}
-            style={styles.filterChip}
+            accessibilityLabel="Withdraw"
+            onPress={() => navigation.navigate('WithdrawAmount')}
+            style={({ pressed }) => [styles.withdrawPill, pressed && styles.pressed]}
           >
-            <Text style={styles.filterChipText}>{FILTER_LABEL[filter]}</Text>
+            <Text style={styles.withdrawLabel}>Withdraw</Text>
           </Pressable>
         </View>
+        <Text style={styles.subBalance}>
+          {pending != null ? `${inr(pending)} payout in review` : 'Available to withdraw'}
+        </Text>
 
-        {transactions.length === 0 ? (
-          <View style={styles.empty}>
-            <View style={styles.emptyIcon}>
-              <Svg width={48} height={48} viewBox="0 0 24 24">
-                <Path
-                  d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8z"
-                  fill={FC.primary}
-                />
-              </Svg>
-            </View>
-            <Text style={styles.emptyTitle}>No transactions yet</Text>
-            <Text style={styles.emptyBody}>
-              Your earnings will appear here once you start chatting.
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.txList}>
-            {transactions.map(t => (
-              <TransactionItem key={t.id} item={t} />
-            ))}
-          </View>
-        )}
-      </ScrollView>
+        <WeekChart bars={weekBars} />
 
-      {/* Filter bottom sheet */}
-      {filterSheetOpen && (
-        <View style={styles.scrim}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setFilterSheetOpen(false)} />
-          <Animated.View entering={FadeInDown.duration(300)} style={styles.sheet}>
-            <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>Filter transactions</Text>
-            <View style={styles.sheetOptions}>
-              {(Object.keys(FILTER_LABEL) as TransactionFilter[]).map(f => (
-                <Pressable
-                  key={f}
-                  accessibilityRole="button"
-                  onPress={() => handleFilterPick(f)}
-                  style={[styles.sheetOption, f === filter && styles.sheetOptionActive]}
-                >
-                  <Text
-                    style={[styles.sheetOptionLabel, f === filter && styles.sheetOptionLabelActive]}
-                  >
-                    {FILTER_LABEL[f]}
-                  </Text>
-                  {f === filter ? <View style={styles.sheetCheck} /> : null}
-                </Pressable>
-              ))}
-            </View>
-          </Animated.View>
+        <View style={styles.summary}>
+          <SummaryRow label="Today" value={`+${inr(todayInr)}`} />
+          <SummaryRow label="This week" value={`+${inr(weekInr)}`} />
+          <SummaryRow label="All time" value={balance ? inr(balance.lifetimeEarningsInr) : '—'} />
         </View>
-      )}
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => navigation.navigate('PayoutHistory')}
+          style={({ pressed }) => [styles.historyLink, pressed && styles.pressed]}
+        >
+          <Text style={styles.historyText}>Payout history</Text>
+          <ChevronRight size={16} color={AppColors.onSurfaceMuted} strokeWidth={2} />
+        </Pressable>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-const BOTTOM_CLEAR = BOTTOM_NAV_HEIGHT + FAB_PROTRUSION + FS.lg;
+function WeekChart({ bars }: { bars: ReadonlyArray<number> }): React.ReactElement {
+  const max = Math.max(1, ...bars);
+  const CHART_H = 132;
+  const BAR_W = 22;
+  return (
+    <View style={styles.chart}>
+      <View style={styles.chartBars}>
+        {bars.map((v, i) => {
+          const h = Math.max(6, Math.round((v / max) * CHART_H));
+          // Brightest bar = the week's peak day (matches the Figma highlight).
+          const isPeak = v === max && v > 0;
+          return (
+            <View key={i} style={styles.barCol}>
+              <Svg width={BAR_W} height={CHART_H}>
+                <Rect
+                  x={0}
+                  y={CHART_H - h}
+                  width={BAR_W}
+                  height={h}
+                  rx={6}
+                  fill={isPeak ? AppColors.primary : AppColors.primaryDark}
+                  fillOpacity={isPeak ? 1 : 0.55}
+                />
+              </Svg>
+              <Text style={styles.barLabel}>{WEEKDAY_LABELS[i]}</Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }): React.ReactElement {
+  return (
+    <View style={styles.summaryRow}>
+      <Text style={styles.summaryLabel}>{label}</Text>
+      <Text style={styles.summaryValue}>{value}</Text>
+    </View>
+  );
+}
+
+const BOTTOM_CLEAR = BOTTOM_NAV_HEIGHT + FAB_PROTRUSION + AppSpacing.lg;
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: FC.bg },
-  scroll: { paddingBottom: BOTTOM_CLEAR },
-  header: {
+  safe: { flex: 1, backgroundColor: AppColors.background },
+  scroll: {
+    paddingHorizontal: AppSpacing.lg,
+    paddingTop: AppSpacing.md,
+    paddingBottom: BOTTOM_CLEAR,
+  },
+  title: {
+    fontFamily: InterFont.regular,
+    fontSize: 28,
+    letterSpacing: -0.6,
+    color: AppColors.onSurface,
+  },
+  availLabel: {
+    fontFamily: InterFont.medium,
+    fontSize: 11.5,
+    letterSpacing: 0.8,
+    color: AppColors.onSurfaceMuted,
+    marginTop: AppSpacing.xl,
+  },
+  balanceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: FS.lg,
-    paddingTop: FS.md,
+    marginTop: AppSpacing.xs,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    fontFamily: 'Inter-SemiBold',
-    color: FC.text,
-    lineHeight: 30,
-  },
-  hero: {
-    marginHorizontal: FS.md,
-    marginTop: FS.lg,
-    borderRadius: FR.hero,
-    paddingVertical: FS.xxl,
-    paddingHorizontal: FS.xl,
-    borderWidth: 1,
-    borderColor: FC.hairline,
-    overflow: 'hidden',
-    alignItems: 'center',
-  },
-  heroTopHighlight: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-  },
-  heroLabel: {
-    fontSize: 12,
-    letterSpacing: 1.4,
-    fontWeight: '700',
-    fontFamily: 'Inter-Regular',
-    color: FC.textDim,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-  },
-  heroBalanceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: FS.sm + 4,
-    marginTop: FS.md,
-  },
-  heroBalance: {
+  balance: {
+    fontFamily: InterFont.light,
     fontSize: 52,
-    fontFamily: 'Inter-Light',
-    letterSpacing: -1.4,
-    color: FC.text,
-    lineHeight: 58,
+    letterSpacing: -1.6,
+    color: AppColors.onSurface,
   },
-  pendingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: FS.xs,
-    marginTop: FS.sm,
+  withdrawPill: {
+    backgroundColor: AppColors.primary,
+    borderRadius: 999,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
   },
-  pendingText: {
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: 'Inter-Regular',
-    color: FC.textDim,
-  },
-  payoutBtn: {
-    marginTop: FS.lg,
-    backgroundColor: FC.primary,
-    borderRadius: FR.md,
-    paddingVertical: FS.md,
-    paddingHorizontal: FS.xxl,
-    alignItems: 'center',
-    minWidth: 200,
-  },
-  payoutBtnPressed: { opacity: 0.85 },
-  payoutBtnDisabled: { opacity: 0.5 },
-  payoutBtnLabel: {
-    fontSize: 15,
-    fontWeight: '800',
-    fontFamily: 'Inter-Regular',
-    color: FC.text,
-  },
-  quickStats: {
-    flexDirection: 'row',
-    marginHorizontal: FS.md,
-    marginTop: FS.md,
-    gap: FS.sm,
-  },
-  quickStat: {
-    flex: 1,
-    backgroundColor: FC.card,
-    borderRadius: FR.lg,
-    padding: FS.lg,
-    borderWidth: 1,
-    borderColor: FC.hairline,
-    ...FShadow.card,
-  },
-  quickStatLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    fontFamily: 'Inter-Regular',
-    color: FC.textDim,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  quickStatValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    fontFamily: 'Inter-SemiBold',
-    color: FC.text,
-    letterSpacing: -0.3,
-  },
-  statCoinRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: FS.sm,
-  },
-  quickStatTrend: {
-    fontSize: 11,
-    fontWeight: '700',
-    fontFamily: 'Inter-Regular',
+  pressed: { opacity: 0.85 },
+  withdrawLabel: { fontFamily: InterFont.semibold, fontSize: 15, color: '#FFFFFF' },
+  subBalance: {
+    fontFamily: InterFont.regular,
+    fontSize: 13.5,
+    color: AppColors.onSurfaceMuted,
     marginTop: 4,
   },
-  txHeader: {
+  chart: { marginTop: AppSpacing.xl + 8 },
+  chartBars: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  barCol: { alignItems: 'center' },
+  barLabel: {
+    fontFamily: InterFont.regular,
+    fontSize: 12,
+    color: AppColors.onSurfaceMuted,
+    marginTop: 8,
+  },
+  summary: { marginTop: AppSpacing.xl + 8, gap: 10 },
+  summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginHorizontal: FS.md,
-    marginTop: FS.xl,
-    marginBottom: FS.sm,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    fontFamily: 'Inter-SemiBold',
-    color: FC.text,
-  },
-  filterChip: {
-    paddingHorizontal: FS.sm + 4,
-    paddingVertical: FS.xs + 2,
-    borderRadius: FR.pill,
-    backgroundColor: FC.primarySoft,
-  },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: '700',
-    fontFamily: 'Inter-Regular',
-    color: FC.primary,
-  },
-  txList: {
-    marginHorizontal: FS.md,
-    backgroundColor: FC.card,
-    borderRadius: FR.lg,
+    backgroundColor: AppColors.surface,
+    borderRadius: AppRadii.card,
     borderWidth: 1,
-    borderColor: FC.hairline,
-    overflow: 'hidden',
-    ...FShadow.card,
+    borderColor: AppColors.border,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
   },
-  empty: {
-    alignItems: 'center',
-    marginTop: FS.lg,
-    padding: FS.lg,
-  },
-  emptyIcon: {
-    width: 104,
-    height: 104,
-    borderRadius: 52,
-    backgroundColor: FC.card,
-    borderWidth: 1,
-    borderColor: FC.hairline,
+  summaryLabel: { fontFamily: InterFont.regular, fontSize: 15, color: AppColors.onSurface },
+  summaryValue: { fontFamily: InterFont.medium, fontSize: 15, color: AppColors.success },
+  historyLink: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: FS.lg,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    fontFamily: 'Inter-SemiBold',
-    color: FC.text,
-    marginTop: FS.md,
-  },
-  emptyBody: {
-    fontSize: 13,
-    fontWeight: '500',
-    fontFamily: 'Inter-Regular',
-    color: FC.textDim,
-    textAlign: 'center',
-    marginTop: FS.xs,
-    lineHeight: 18,
-  },
-  scrim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: FC.scrim,
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: FC.card,
-    borderTopLeftRadius: FR.xl,
-    borderTopRightRadius: FR.xl,
-    paddingHorizontal: FS.xl,
-    paddingBottom: FS.huge,
-    paddingTop: FS.sm,
-  },
-  sheetHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: FC.textFaint,
-    alignSelf: 'center',
-    marginBottom: FS.lg,
-  },
-  sheetTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    fontFamily: 'Inter-SemiBold',
-    color: FC.text,
-    marginBottom: FS.md,
-  },
-  sheetOptions: {
     gap: 4,
+    marginTop: AppSpacing.xl,
   },
-  sheetOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: FS.md,
-    paddingHorizontal: FS.md,
-    borderRadius: FR.md,
-  },
-  sheetOptionActive: {
-    backgroundColor: FC.primarySoft,
-  },
-  sheetOptionLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    fontFamily: 'Inter-Regular',
-    color: FC.textDim,
-  },
-  sheetOptionLabelActive: {
-    color: FC.primary,
-    fontWeight: '700',
-  },
-  sheetCheck: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: FC.primary,
-  },
+  historyText: { fontFamily: InterFont.medium, fontSize: 14, color: AppColors.onSurfaceMuted },
 });
 
 export default EarningsDashboardScreen;

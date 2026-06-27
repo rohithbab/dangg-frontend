@@ -266,3 +266,133 @@ export async function getPayoutDetails(): Promise<
     ifsc: row.ifsc_code ?? '',
   };
 }
+
+/* ───────────────────────── Payout history (F9 / F10) ───────────────────────── */
+
+/** UI-collapsed payout state: amber / green / red families. */
+export type PayoutUiStatus = 'processing' | 'paid' | 'failed' | 'cancelled';
+
+export type PayoutRecord = {
+  id: string;
+  amountInr: number;
+  status: PayoutUiStatus;
+  /** e.g. "HDFC Bank •••• 5521" or "aanya@okaxis". */
+  methodLabel: string;
+  requestedAt: Date;
+  completedAt: Date | null;
+  reference: string | null;
+};
+
+/** Collapses the DB payout_status enum into the four UI families. */
+function toUiStatus(raw: string): PayoutUiStatus {
+  switch (raw) {
+    case 'completed':
+    case 'paid':
+      return 'paid';
+    case 'failed':
+    case 'rejected':
+      return 'failed';
+    case 'cancelled':
+      return 'cancelled';
+    default:
+      return 'processing'; // pending / approved / processing
+  }
+}
+
+/** Human label for a frozen payout_method_snapshot row. */
+function methodLabelFromSnapshot(snap: unknown): string {
+  if (typeof snap !== 'object' || snap === null) {
+    return 'Payout';
+  }
+  const s = snap as Record<string, unknown>;
+  if (s.method === 'upi' && typeof s.upi_id === 'string') {
+    return s.upi_id;
+  }
+  const acct = typeof s.account_number === 'string' ? s.account_number : '';
+  const tail = acct.length > 4 ? acct.slice(-4) : acct;
+  return tail ? `Bank •••• ${tail}` : 'Bank transfer';
+}
+
+const mockPayouts: PayoutRecord[] = [
+  {
+    id: 'po-1',
+    amountInr: 4210,
+    status: 'processing',
+    methodLabel: 'HDFC Bank •••• 5521',
+    requestedAt: new Date('2026-06-24T04:30:00'),
+    completedAt: null,
+    reference: 'PAY-8K2QX9',
+  },
+  {
+    id: 'po-2',
+    amountInr: 3000,
+    status: 'paid',
+    methodLabel: 'HDFC Bank •••• 5521',
+    requestedAt: new Date('2026-06-18T10:00:00'),
+    completedAt: new Date('2026-06-19T11:10:00'),
+    reference: 'PAY-7QW12A',
+  },
+  {
+    id: 'po-3',
+    amountInr: 1250,
+    status: 'paid',
+    methodLabel: 'HDFC Bank •••• 5521',
+    requestedAt: new Date('2026-06-09T09:00:00'),
+    completedAt: new Date('2026-06-10T09:00:00'),
+    reference: 'PAY-5JK90B',
+  },
+  {
+    id: 'po-4',
+    amountInr: 2500,
+    status: 'failed',
+    methodLabel: 'HDFC Bank •••• 5521',
+    requestedAt: new Date('2026-05-28T12:00:00'),
+    completedAt: null,
+    reference: 'PAY-2MN44C',
+  },
+];
+
+function mapPayoutRow(row: Record<string, unknown>): PayoutRecord {
+  const requestedAt = new Date((row.requested_at as string | number) ?? Date.now());
+  const completedRaw = row.completed_at as string | null | undefined;
+  return {
+    id: String(row.id),
+    amountInr: row.payout_amount_paisa != null ? Number(row.payout_amount_paisa) / 100 : 0,
+    status: toUiStatus(String(row.status ?? 'pending')),
+    methodLabel: methodLabelFromSnapshot(row.payout_method_snapshot),
+    requestedAt,
+    completedAt: completedRaw ? new Date(completedRaw) : null,
+    reference: typeof row.id === 'string' ? `PAY-${row.id.slice(0, 6).toUpperCase()}` : null,
+  };
+}
+
+/** Full payout history for the current female, newest first. */
+export async function listPayouts(): Promise<ReadonlyArray<PayoutRecord>> {
+  if (USE_MOCK_DATA) {
+    return mockPayouts;
+  }
+  const { data, error } = await getSupabaseClient()
+    .from('payouts')
+    .select('id, payout_amount_paisa, payout_method_snapshot, status, requested_at, completed_at')
+    .order('requested_at', { ascending: false });
+  if (error) {
+    throw mapSupabaseError(error);
+  }
+  return ((data ?? []) as ReadonlyArray<Record<string, unknown>>).map(mapPayoutRow);
+}
+
+/** A single payout for the detail screen (F10). */
+export async function getPayout(id: string): Promise<PayoutRecord | null> {
+  if (USE_MOCK_DATA) {
+    return mockPayouts.find(p => p.id === id) ?? null;
+  }
+  const { data, error } = await getSupabaseClient()
+    .from('payouts')
+    .select('id, payout_amount_paisa, payout_method_snapshot, status, requested_at, completed_at')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) {
+    throw mapSupabaseError(error);
+  }
+  return data ? mapPayoutRow(data as Record<string, unknown>) : null;
+}

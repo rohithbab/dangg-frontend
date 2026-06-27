@@ -14,6 +14,7 @@ import NotificationsScreen from '@features/notifications/screens/NotificationsSc
 import AboutAppScreen from '@features/profile/screens/AboutAppScreen';
 import DeleteAccountConfirmScreen from '@features/profile/screens/DeleteAccountConfirmScreen';
 import DeleteAccountWarningScreen from '@features/profile/screens/DeleteAccountWarningScreen';
+import EditProfileScreen from '@features/profile/screens/EditProfileScreen';
 import HelpSupportScreen from '@features/profile/screens/HelpSupportScreen';
 import ReportIssueScreen from '@features/profile/screens/ReportIssueScreen';
 import SettingsScreen from '@features/profile/screens/SettingsScreen';
@@ -80,6 +81,7 @@ function MaleAppStack(): React.ReactElement {
       <Stack.Screen name="ReportIssue" component={ReportIssueScreen} />
       <Stack.Screen name="AboutApp" component={AboutAppScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="DeleteAccount" component={DeleteAccountWarningScreen} />
       <Stack.Screen name="DeleteAccountConfirm" component={DeleteAccountConfirmScreen} />
       <Stack.Screen name="NotificationPermission" component={NotificationPermissionPrimerScreen} />

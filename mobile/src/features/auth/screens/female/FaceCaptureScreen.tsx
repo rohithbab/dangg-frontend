@@ -30,6 +30,10 @@ import { logger } from '@core/utils/logger';
 
 import { type AuthStackParamList } from '@navigation/types';
 
+import { useSessionStore } from '@store/sessionStore';
+
+import { VerificationStatus } from '@app-types/domain';
+
 import { submitVerificationPhoto } from '../../api/authApi';
 import { useSignupDraftStore } from '../../store/signupDraftStore';
 
@@ -45,6 +49,7 @@ type CameraSide = 'front' | 'back';
 function FaceCaptureScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const setVerificationPhoto = useSignupDraftStore(s => s.setVerificationPhoto);
+  const setVerificationStatus = useSessionStore(s => s.setVerificationStatus);
 
   const [side, setSide] = useState<CameraSide>('front');
   const [previewPath, setPreviewPath] = useState<string | null>(null);
@@ -67,7 +72,11 @@ function FaceCaptureScreen(): React.ReactElement {
   }, []);
 
   const handleCapture = useCallback(async (): Promise<void> => {
-    if ((Env.devMode || __DEV__) && !cameraRef.current) {
+    // The simulated photo exists only for environments with no real camera
+    // (e.g. the iOS Simulator). It is gated strictly on the explicit DEV_MODE
+    // flag — NOT __DEV__ — so a normal debug build always uses the real camera
+    // and takes an actual photo rather than silently substituting a stock image.
+    if (Env.devMode && !cameraRef.current) {
       setCaptureError(null);
       setPreviewPath(
         'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=600',
@@ -75,6 +84,7 @@ function FaceCaptureScreen(): React.ReactElement {
       return;
     }
     if (!cameraRef.current) {
+      setCaptureError('Camera not ready yet, try again');
       return;
     }
     try {
@@ -100,6 +110,10 @@ function FaceCaptureScreen(): React.ReactElement {
     try {
       const remotePath = await submitVerificationPhoto(previewPath);
       setVerificationPhoto(remotePath);
+      // Reflect the submission locally so routing is deterministic even if the
+      // `females` realtime UPDATE (which also flips this to pending) is delayed
+      // or dropped. Keeps her gated to the pending screen, not bounced out.
+      setVerificationStatus(VerificationStatus.Pending);
       navigation.reset({
         index: 0,
         routes: [{ name: 'FemaleSignupVerificationSubmitted' }],
@@ -113,7 +127,7 @@ function FaceCaptureScreen(): React.ReactElement {
         setCaptureError('Upload failed, try again');
       }
     }
-  }, [navigation, previewPath, setVerificationPhoto]);
+  }, [navigation, previewPath, setVerificationPhoto, setVerificationStatus]);
 
   const handleFlip = useCallback((): void => {
     setSide(prev => (prev === 'front' ? 'back' : 'front'));

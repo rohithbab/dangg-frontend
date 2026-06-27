@@ -20,10 +20,14 @@
 import { type Session, type User as SupabaseUser } from '@supabase/supabase-js';
 
 import { USE_MOCK_DATA } from '@core/config/env';
-import { mapSupabaseError } from '@core/network/apiErrorMapper';
+import {
+  appExceptionFromStatus,
+  extractEdgeFunctionError,
+  mapSupabaseError,
+} from '@core/network/apiErrorMapper';
 import { AppException, AuthException, InvalidOtpException } from '@core/network/apiException';
-import { getSupabaseClient } from '@core/network/supabaseClient';
 import { uploadToR2 } from '@core/network/mediaService';
+import { getSupabaseClient } from '@core/network/supabaseClient';
 import { prefsStorage, PrefsKey } from '@core/storage/prefsStorage';
 import { logger } from '@core/utils/logger';
 
@@ -351,6 +355,30 @@ export async function submitVerificationPhoto(localPath: string): Promise<string
     body: { objectPath: objectKey },
   });
   if (submitErr) {
+    // `functions.invoke` hides the real reason behind a generic
+    // "Edge Function returned a non-2xx status code". Read the actual envelope
+    // ({ code, message, status }) so logs and the UI show what truly failed.
+    const detail = await extractEdgeFunctionError(submitErr);
+
+    // A 409 means she's already pending or verified — the photo is in, so this
+    // is an idempotent success. Proceed (info, not error) instead of blocking
+    // on a benign conflict; throwing here is what surfaced the scary toast.
+    if (detail?.status === 409) {
+      logger.info('authApi.submitVerificationPhoto: already submitted, proceeding', {
+        code: detail.code,
+      });
+      return objectKey;
+    }
+
+    logger.error('authApi.submitVerificationPhoto: edge function failed', {
+      objectKey,
+      status: detail?.status,
+      code: detail?.code,
+      message: detail?.message,
+    });
+    if (detail) {
+      throw appExceptionFromStatus(detail.status, detail.message, submitErr);
+    }
     throw mapSupabaseError(submitErr);
   }
 

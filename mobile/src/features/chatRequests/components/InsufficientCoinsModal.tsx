@@ -73,9 +73,9 @@ function GradientCtaButton({
             <Svg width="100%" height="100%">
               <Defs>
                 <LinearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
-                  <Stop offset="0" stopColor="#FF4FA3" />
-                  <Stop offset="0.5" stopColor="#E84393" />
-                  <Stop offset="1" stopColor="#D946EF" />
+                  <Stop offset="0" stopColor="#DC308F" />
+                  <Stop offset="0.5" stopColor="#C92D84" />
+                  <Stop offset="1" stopColor="#B81F74" />
                 </LinearGradient>
               </Defs>
               <Rect x="0" y="0" width="100%" height="100%" rx={16} fill={`url(#${gradientId})`} />

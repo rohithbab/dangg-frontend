@@ -21,8 +21,7 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'AccountType'>;
  * Welcome / account-type screen — "DANGG · Neue".
  *
  * Marketing hero + three feature tiles + a single "Get started" CTA into the
- * signup flow (Phone → OTP → Profile, where role is chosen). Returning users
- * tap "Log in".
+ * signup flow (Phone → OTP → Profile, where role is chosen).
  */
 function AccountTypeScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
@@ -70,13 +69,6 @@ function AccountTypeScreen(): React.ReactElement {
         <View style={styles.actions}>
           <PrimaryButton label="Get started" variant="white" onPress={handleGetStarted} />
         </View>
-
-        <Text style={styles.footerText}>
-          Already have an account?{' '}
-          <Text style={styles.footerLink} onPress={() => navigation.navigate('LoginPhone')}>
-            Log in
-          </Text>
-        </Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -114,18 +106,6 @@ const styles = StyleSheet.create({
   cards: { gap: 14, marginTop: AppSpacing.xl },
   spacer: { flex: 1, minHeight: AppSpacing.xl },
   actions: { marginTop: AppSpacing.lg },
-  footerText: {
-    fontFamily: InterFont.light,
-    fontSize: 14.5,
-    color: '#8C8C94',
-    textAlign: 'center',
-    marginTop: AppSpacing.md,
-  },
-  footerLink: {
-    fontFamily: InterFont.medium,
-    fontSize: 14.5,
-    color: AppColors.primary,
-  },
 });
 
 export default AccountTypeScreen;

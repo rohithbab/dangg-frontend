@@ -20,13 +20,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppColors } from '@theme/colors';
 import { InterFont } from '@theme/typography';
 
-import BottomSheet from '@core/components/BottomSheet';
 import CoinIcon from '@core/components/CoinIcon';
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import GradientAvatar from '@core/components/GradientAvatar';
 import LogoMark from '@core/components/LogoMark';
-import PrimaryButton from '@core/components/PrimaryButton';
-import TextField from '@core/components/TextField';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
 import { logger } from '@core/utils/logger';
 
@@ -34,7 +31,7 @@ import { type MaleAppStackParamList } from '@navigation/types';
 
 import { useWalletStore } from '@features/wallet/store/walletStore';
 
-import { type Profile, getProfile, signOut, updateProfile } from '../api/profileApi';
+import { type Profile, getProfile, signOut } from '../api/profileApi';
 import EditProfilePicSheet from '../components/EditProfilePicSheet';
 
 type Nav = NativeStackNavigationProp<MaleAppStackParamList>;
@@ -99,8 +96,6 @@ function MaleProfileScreen(): React.ReactElement {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [editSheetOpen, setEditSheetOpen] = useState(false);
-  const [editDetailsOpen, setEditDetailsOpen] = useState(false);
-  const [editName, setEditName] = useState('');
   const [logoutDialog, setLogoutDialog] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -108,7 +103,6 @@ function MaleProfileScreen(): React.ReactElement {
     try {
       const p = await getProfile();
       setProfile(p);
-      setEditName(p.name);
     } catch (e) {
       logger.error('MaleProfileScreen.load failed', e);
     }
@@ -123,19 +117,6 @@ function MaleProfileScreen(): React.ReactElement {
   const handleAvatarChanged = useCallback((url: string | null): void => {
     setProfile(prev => (prev ? { ...prev, avatarUrl: url } : prev));
   }, []);
-
-  const handleSaveDetails = async (): Promise<void> => {
-    if (!editName.trim()) {
-      return;
-    }
-    try {
-      await updateProfile({ name: editName });
-      setProfile(prev => (prev ? { ...prev, name: editName } : prev));
-      setEditDetailsOpen(false);
-    } catch (e) {
-      logger.error('handleSaveDetails failed', e);
-    }
-  };
 
   const handleLogoutConfirm = useCallback(async (): Promise<void> => {
     if (signingOut) {
@@ -189,7 +170,7 @@ function MaleProfileScreen(): React.ReactElement {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Edit profile"
-            onPress={() => setEditDetailsOpen(true)}
+            onPress={() => navigation.navigate('EditProfile')}
             style={({ pressed }) => [styles.editPill, pressed && styles.pressed]}
           >
             <Text style={styles.editPillText}>Edit</Text>
@@ -213,7 +194,7 @@ function MaleProfileScreen(): React.ReactElement {
           <Row
             icon={mutedIcon(User)}
             label="Edit profile"
-            onPress={() => setEditDetailsOpen(true)}
+            onPress={() => navigation.navigate('EditProfile')}
           />
           <Row
             icon={mutedIcon(Bell)}
@@ -290,24 +271,6 @@ function MaleProfileScreen(): React.ReactElement {
         onClose={() => setEditSheetOpen(false)}
         onAvatarChanged={handleAvatarChanged}
       />
-
-      <BottomSheet
-        visible={editDetailsOpen}
-        onClose={() => setEditDetailsOpen(false)}
-        title="Edit Profile"
-      >
-        <View style={styles.editForm}>
-          <TextField
-            label="Name"
-            value={editName}
-            onChangeText={setEditName}
-            placeholder="Enter your name"
-          />
-          <View style={styles.editActions}>
-            <PrimaryButton label="Save Changes" onPress={handleSaveDetails} />
-          </View>
-        </View>
-      </BottomSheet>
 
       <ConfirmationDialog
         visible={logoutDialog}
@@ -438,10 +401,6 @@ const styles = StyleSheet.create({
     color: AppColors.onSurfaceDisabled,
     marginTop: 6,
   },
-
-  // Edit sheet
-  editForm: { gap: 12, paddingVertical: 8 },
-  editActions: { marginTop: 8 },
 });
 
 export default MaleProfileScreen;

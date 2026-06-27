@@ -47,8 +47,10 @@ function FloatingBottomNav({
 
   useEffect(() => {
     highlightLeft.value = withSpring(state.index * tabWidth + (tabWidth - highlightWidth) / 2, {
-      damping: 16,
-      stiffness: 140,
+      // Snappy: high stiffness + low mass so the pill darts to the tapped tab.
+      damping: 24,
+      stiffness: 320,
+      mass: 0.6,
     });
   }, [state.index, tabWidth, highlightWidth, highlightLeft]);
 

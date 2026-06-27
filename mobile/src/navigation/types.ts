@@ -43,6 +43,17 @@ export type FemaleAppStackParamList = {
   /** Placeholder for the payout flow shipped in a later prompt. */
   PayoutRequest: undefined;
   PayoutInReview: { amount: number; payoutMethod: string };
+  PayoutHistory: undefined;
+  PayoutDetail: { payoutId: string };
+  WithdrawAmount: undefined;
+  ReviewWithdrawal: { amountInr: number };
+  WithdrawResult: { amountInr: number; destinationLabel: string };
+  PayoutMethods: undefined;
+  AddPayoutMethod: undefined;
+  AddUpi: undefined;
+  AddBank: undefined;
+  PayoutMethodAdded: undefined;
+  EditProfile: undefined;
   DeleteAccount: undefined;
   DeleteAccountConfirm: undefined;
   NotificationPermission: undefined;
@@ -62,7 +73,7 @@ export type MaleAppStackParamList = {
   MaleTabs: NavigatorScreenParams<MaleTabParamList>;
   ChatsInbox: undefined;
   FemaleProfilePreview: { femaleId: string };
-  ChatRequestSent: { requestId: string };
+  ChatRequestSent: { requestId: string; femaleName?: string };
   ChatRequestAccepted: { requestId: string };
   ChatRequestDeclined: { requestId: string };
   ChatRequestTimeout: { requestId: string };
@@ -82,6 +93,7 @@ export type MaleAppStackParamList = {
   ReportIssue: undefined;
   AboutApp: undefined;
   Settings: undefined;
+  EditProfile: undefined;
   DeleteAccount: undefined;
   DeleteAccountConfirm: undefined;
   NotificationPermission: undefined;

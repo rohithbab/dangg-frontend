@@ -1,15 +1,12 @@
 import React from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppColors } from '@theme/colors';
-import { AppRadii } from '@theme/radii';
-import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
-import { AppTypography } from '@theme/typography';
+import { InterFont } from '@theme/typography';
 
-import Avatar from '@core/components/Avatar';
+import GradientAvatar from '@core/components/GradientAvatar';
 import PrimaryButton from '@core/components/PrimaryButton';
-import SecondaryButton from '@core/components/SecondaryButton';
 
 export type ChatRequestConfirmModalProps = {
   visible: boolean;
@@ -22,15 +19,9 @@ export type ChatRequestConfirmModalProps = {
   onConfirm: () => void;
 };
 
-function initialsFromName(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return (parts[0]?.[0] ?? '?').toUpperCase();
-}
-
 /**
- * Modal asking the male to confirm a chat request before coins are deducted.
- * Pre-computes the post-spend balance so the user sees exactly what they're
- * committing to.
+ * B8 · Confirm (Neue bottom sheet). Compact confirm before coins are deducted:
+ * ripple avatar, "Chat with {name}", the cost + balance, and Send / Cancel.
  */
 function ChatRequestConfirmModal({
   visible,
@@ -42,7 +33,7 @@ function ChatRequestConfirmModal({
   onCancel,
   onConfirm,
 }: ChatRequestConfirmModalProps): React.ReactElement {
-  const afterBalance = Math.max(0, currentBalance - coinCost);
+  const initial = femaleName.trim().slice(0, 1).toUpperCase();
 
   return (
     <Modal
@@ -52,122 +43,98 @@ function ChatRequestConfirmModal({
       statusBarTranslucent
       onRequestClose={onCancel}
     >
-      <View style={styles.scrim}>
-        <View style={[styles.card, AppShadows.e3]}>
-          <View style={styles.accentStrip} />
-          <View style={styles.body}>
-            <View style={styles.avatarRing}>
-              <Avatar uri={femaleAvatarUrl} size={64} initials={initialsFromName(femaleName)} />
-            </View>
-            <Text style={styles.title}>{`Send chat request to ${femaleName}?`}</Text>
+      <Pressable style={styles.scrim} onPress={submitting ? undefined : onCancel}>
+        <Pressable style={styles.sheet} onPress={() => undefined}>
+          <View style={styles.accent} />
+          <View style={styles.grabber} />
 
-            <View style={styles.infoCard}>
-              <InfoRow label="Cost" value={`${coinCost} coins`} />
-              <InfoRow label="Your balance" value={`${currentBalance} coins`} />
-              <InfoRow label="After this request" value={`${afterBalance} coins`} muted />
-            </View>
-
-            <Text style={styles.helper}>
-              Coins are deducted now. If she doesn't accept within 5 minutes, they'll be refunded.
-            </Text>
-
-            <View style={styles.actions}>
-              <View style={styles.actionHalf}>
-                <SecondaryButton label="Cancel" onPress={onCancel} disabled={submitting} />
-              </View>
-              <View style={styles.actionHalf}>
-                <PrimaryButton label="Send Request" onPress={onConfirm} loading={submitting} />
-              </View>
-            </View>
+          <View style={styles.ripple}>
+            <View style={[styles.ring, styles.ringOuter]} />
+            <View style={[styles.ring, styles.ringInner]} />
+            <GradientAvatar initials={initial} seed={femaleName} uri={femaleAvatarUrl} size={72} />
           </View>
-        </View>
-      </View>
+
+          <Text style={styles.title}>{`Chat with ${femaleName}`}</Text>
+          <Text style={styles.cost}>
+            This costs <Text style={styles.costValue}>{`${coinCost} coins`}</Text>
+          </Text>
+          <Text style={styles.balance}>{`Balance: ${currentBalance.toLocaleString()}`}</Text>
+
+          <View style={styles.cta}>
+            <PrimaryButton label="Send request" onPress={onConfirm} loading={submitting} />
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onCancel}
+            disabled={submitting}
+            style={styles.cancelBtn}
+          >
+            <Text style={styles.cancelText}>Cancel</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
 
-function InfoRow({
-  label,
-  value,
-  muted = false,
-}: {
-  label: string;
-  value: string;
-  muted?: boolean;
-}): React.ReactElement {
-  return (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={[styles.infoValue, muted && styles.infoValueMuted]}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  scrim: {
-    flex: 1,
-    backgroundColor: AppColors.scrim,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: AppSpacing.lg,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 360,
+  scrim: { flex: 1, backgroundColor: AppColors.scrim, justifyContent: 'flex-end' },
+  sheet: {
     backgroundColor: AppColors.surface,
-    borderRadius: AppRadii.lg,
-    overflow: 'hidden',
-  },
-  accentStrip: { height: 4, backgroundColor: AppColors.primary },
-  body: { padding: AppSpacing.lg, alignItems: 'center' },
-  avatarRing: {
-    padding: 3,
-    borderRadius: 999,
-    borderWidth: 3,
-    borderColor: AppColors.primary,
-  },
-  title: {
-    ...AppTypography.titleMedium,
-    color: AppColors.primaryDark,
-    textAlign: 'center',
-    marginTop: AppSpacing.sm,
-  },
-  infoCard: {
-    width: '100%',
-    backgroundColor: AppColors.primarySubtle,
-    borderRadius: AppRadii.md,
-    padding: AppSpacing.sm + 4,
-    marginTop: AppSpacing.md,
-    gap: 4,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: AppSpacing.lg,
+    paddingTop: AppSpacing.sm,
+    paddingBottom: AppSpacing.xl,
     alignItems: 'center',
   },
-  infoLabel: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.onSurfaceMuted,
+  accent: {
+    position: 'absolute',
+    top: 0,
+    left: 24,
+    right: 24,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: AppColors.primary,
   },
-  infoValue: {
-    ...AppTypography.bodyMedium,
+  grabber: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: AppColors.borderStrong,
+    marginBottom: AppSpacing.lg,
+  },
+  ripple: { width: 120, height: 120, alignItems: 'center', justifyContent: 'center' },
+  ring: {
+    position: 'absolute',
+    borderWidth: 1.5,
+    borderColor: AppColors.primaryBorderSoft,
+    borderRadius: 999,
+  },
+  ringOuter: { width: 120, height: 120 },
+  ringInner: { width: 96, height: 96, borderColor: AppColors.primaryOutline },
+  title: {
+    fontFamily: InterFont.semibold,
+    fontSize: 19,
     color: AppColors.onSurface,
-    fontWeight: '600',
+    marginTop: AppSpacing.md,
   },
-  infoValueMuted: { color: AppColors.onSurfaceMuted, fontWeight: '400' },
-  helper: {
-    ...AppTypography.bodySmall,
+  cost: {
+    fontFamily: InterFont.regular,
+    fontSize: 14.5,
     color: AppColors.onSurfaceMuted,
-    textAlign: 'center',
-    marginTop: AppSpacing.sm,
+    marginTop: 6,
   },
-  actions: {
-    flexDirection: 'row',
-    width: '100%',
-    marginTop: AppSpacing.lg,
-    gap: AppSpacing.sm,
+  costValue: { fontFamily: InterFont.medium, color: AppColors.primary },
+  balance: {
+    fontFamily: InterFont.regular,
+    fontSize: 13,
+    color: AppColors.onSurfaceMuted,
+    marginTop: 3,
   },
-  actionHalf: { flex: 1 },
+  cta: { alignSelf: 'stretch', marginTop: AppSpacing.lg },
+  cancelBtn: { alignItems: 'center', paddingVertical: 14, marginTop: 2 },
+  cancelText: { fontFamily: InterFont.medium, fontSize: 15, color: AppColors.onSurfaceMuted },
 });
 
 export default ChatRequestConfirmModal;

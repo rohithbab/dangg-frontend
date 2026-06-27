@@ -1,4 +1,4 @@
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MessageCircle } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -28,6 +28,8 @@ import {
   useVerificationStatus,
   parseVerificationStatus,
 } from '@store/sessionStore';
+
+import { getProfile } from '@features/profile/api/profileApi';
 
 import { VerificationStatus } from '@app-types/domain';
 
@@ -80,7 +82,17 @@ function FemaleHomeScreen(): React.ReactElement {
   const [refreshing, setRefreshing] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const clearNotice = useCallback(() => setNotice(null), []);
+
+  // Profile picture for the greeting avatar (falls back to the initial).
+  useFocusEffect(
+    useCallback(() => {
+      getProfile()
+        .then(p => setAvatarUrl(p.avatarUrl))
+        .catch(e => logger.warn('FemaleHome: getProfile failed', e));
+    }, []),
+  );
 
   useAvailabilityHeartbeat(availability?.online === true);
 
@@ -190,8 +202,9 @@ function FemaleHomeScreen(): React.ReactElement {
         {/* Header */}
         <View style={styles.header}>
           <GradientAvatar
-            initials={firstName}
+            initials={firstName.slice(0, 1).toUpperCase()}
             seed={session?.user.id ?? firstName}
+            uri={avatarUrl}
             size={46}
             shape="squircle"
           />
@@ -383,6 +396,16 @@ const styles = StyleSheet.create({
 
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: FS.sm },
   headerText: { flex: 1 },
+  chatBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: FC.card,
+    borderWidth: 1,
+    borderColor: FC.hairline,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   greeting: { fontFamily: InterFont.light, fontSize: 13, color: '#8C8C94' },
   name: {
     fontFamily: InterFont.regular,

@@ -5,13 +5,24 @@ import ChatsInboxScreen from '@features/chatRequests/screens/ChatsInboxScreen';
 import FemaleChatRequestAcceptedScreen from '@features/chatRequests/screens/FemaleChatRequestAcceptedScreen';
 import FemaleChatSessionScreen from '@features/chatRequests/screens/FemaleChatSessionScreen';
 import NotificationPermissionPrimerScreen from '@features/common/NotificationPermissionPrimerScreen';
+import AddBankScreen from '@features/earnings/screens/AddBankScreen';
+import AddPayoutMethodScreen from '@features/earnings/screens/AddPayoutMethodScreen';
+import AddUpiScreen from '@features/earnings/screens/AddUpiScreen';
 import FemaleBankUpiUpdateScreen from '@features/earnings/screens/BankUpiUpdateScreen';
+import PayoutDetailScreen from '@features/earnings/screens/PayoutDetailScreen';
+import PayoutHistoryScreen from '@features/earnings/screens/PayoutHistoryScreen';
 import PayoutInReviewScreen from '@features/earnings/screens/PayoutInReviewScreen';
+import PayoutMethodAddedScreen from '@features/earnings/screens/PayoutMethodAddedScreen';
+import PayoutMethodsScreen from '@features/earnings/screens/PayoutMethodsScreen';
 import PayoutRequestScreen from '@features/earnings/screens/PayoutRequestScreen';
+import ReviewWithdrawalScreen from '@features/earnings/screens/ReviewWithdrawalScreen';
+import WithdrawAmountScreen from '@features/earnings/screens/WithdrawAmountScreen';
+import WithdrawResultScreen from '@features/earnings/screens/WithdrawResultScreen';
 import NotificationsScreen from '@features/notifications/screens/NotificationsScreen';
 import AboutAppScreen from '@features/profile/screens/AboutAppScreen';
 import DeleteAccountConfirmScreen from '@features/profile/screens/DeleteAccountConfirmScreen';
 import DeleteAccountWarningScreen from '@features/profile/screens/DeleteAccountWarningScreen';
+import EditProfileScreen from '@features/profile/screens/EditProfileScreen';
 import HelpSupportScreen from '@features/profile/screens/HelpSupportScreen';
 import ReportIssueScreen from '@features/profile/screens/ReportIssueScreen';
 import SettingsScreen from '@features/profile/screens/SettingsScreen';
@@ -37,10 +48,29 @@ function FemaleAppStack(): React.ReactElement {
       <Stack.Screen name="ReportIssue" component={ReportIssueScreen} />
       <Stack.Screen name="AboutApp" component={AboutAppScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="PayoutRequest" component={PayoutRequestScreen} />
       <Stack.Screen
         name="PayoutInReview"
         component={PayoutInReviewScreen}
+        options={{ animation: 'fade', gestureEnabled: false }}
+      />
+      <Stack.Screen name="PayoutHistory" component={PayoutHistoryScreen} />
+      <Stack.Screen name="PayoutDetail" component={PayoutDetailScreen} />
+      <Stack.Screen name="WithdrawAmount" component={WithdrawAmountScreen} />
+      <Stack.Screen name="ReviewWithdrawal" component={ReviewWithdrawalScreen} />
+      <Stack.Screen
+        name="WithdrawResult"
+        component={WithdrawResultScreen}
+        options={{ animation: 'fade', gestureEnabled: false }}
+      />
+      <Stack.Screen name="PayoutMethods" component={PayoutMethodsScreen} />
+      <Stack.Screen name="AddPayoutMethod" component={AddPayoutMethodScreen} />
+      <Stack.Screen name="AddUpi" component={AddUpiScreen} />
+      <Stack.Screen name="AddBank" component={AddBankScreen} />
+      <Stack.Screen
+        name="PayoutMethodAdded"
+        component={PayoutMethodAddedScreen}
         options={{ animation: 'fade', gestureEnabled: false }}
       />
       <Stack.Screen name="DeleteAccount" component={DeleteAccountWarningScreen} />

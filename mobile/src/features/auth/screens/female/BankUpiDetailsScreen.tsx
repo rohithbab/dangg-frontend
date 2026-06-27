@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, type Control, useForm } from 'react-hook-form';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -10,20 +10,16 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
-import { AppRadii } from '@theme/radii';
 import { AppSpacing } from '@theme/spacing';
-import { AppTypography } from '@theme/typography';
+import { InterFont } from '@theme/typography';
 
-import AppBar from '@core/components/AppBar';
-import Card from '@core/components/Card';
 import PrimaryButton from '@core/components/PrimaryButton';
-import TextButton from '@core/components/TextButton';
-import TextField from '@core/components/TextField';
 import { AppException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
 
@@ -42,9 +38,9 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'FemaleSignupBankUpi'>;
 type Mode = 'bank' | 'upi';
 
 /**
- * Skippable payout-details step. The female can fill bank account OR UPI;
- * a Skip link in the app bar advances without saving anything — the
- * earnings dashboard will nag her later if she never completes it.
+ * Skippable payout-details step (Neue). Bank OR UPI via a segmented switch,
+ * Neue labelled fields, and a Skip in the header that advances without saving.
+ * All react-hook-form + zod validation and the save/skip logic are unchanged.
  */
 function BankUpiDetailsScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
@@ -71,9 +67,6 @@ function BankUpiDetailsScreen(): React.ReactElement {
     navigation.navigate('FemaleSignupVerificationInfo');
   }, [navigation, skipPayoutDetails]);
 
-  // Persist payout details to the backend (RLS-scoped to self), keep a draft
-  // copy for resilience, then advance. On failure we surface an inline error
-  // and stay so her details aren't silently lost.
   const persistAndContinue = useCallback(
     async (payout: Parameters<typeof setPayoutDetails>[0]): Promise<void> => {
       setSubmitError(null);
@@ -96,40 +89,36 @@ function BankUpiDetailsScreen(): React.ReactElement {
     [navigation, setPayoutDetails],
   );
 
-  const handleBankSubmit = useCallback(
-    (data: BankAccountInput): void => {
-      void persistAndContinue({
-        kind: 'bank',
-        bank: {
-          holderName: data.holderName.trim(),
-          accountNumber: data.accountNumber,
-          ifsc: data.ifsc,
-        },
-      });
-    },
-    [persistAndContinue],
-  );
-
-  const handleUpiSubmit = useCallback(
-    (data: UpiInput): void => {
-      void persistAndContinue({ kind: 'upi', upiId: data.upiId.trim() });
-    },
-    [persistAndContinue],
-  );
-
   const onSavePress = useCallback((): void => {
     if (mode === 'bank') {
-      void bankForm.handleSubmit(handleBankSubmit)();
+      void bankForm.handleSubmit(data =>
+        persistAndContinue({
+          kind: 'bank',
+          bank: {
+            holderName: data.holderName.trim(),
+            accountNumber: data.accountNumber,
+            ifsc: data.ifsc,
+          },
+        }),
+      )();
     } else {
-      void upiForm.handleSubmit(handleUpiSubmit)();
+      void upiForm.handleSubmit(data =>
+        persistAndContinue({ kind: 'upi', upiId: data.upiId.trim() }),
+      )();
     }
-  }, [bankForm, handleBankSubmit, handleUpiSubmit, mode, upiForm]);
+  }, [bankForm, mode, persistAndContinue, upiForm]);
 
   const submitDisabled = mode === 'bank' ? !bankForm.formState.isValid : !upiForm.formState.isValid;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <AppBar title="Payout Details" actions={<TextButton label="Skip" onPress={handleSkip} />} />
+      <View style={styles.header}>
+        <Text style={styles.title}>Payout Details</Text>
+        <Pressable accessibilityRole="button" hitSlop={10} onPress={handleSkip}>
+          <Text style={styles.skip}>Skip</Text>
+        </Pressable>
+      </View>
+
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -140,99 +129,59 @@ function BankUpiDetailsScreen(): React.ReactElement {
           </Text>
 
           <View style={styles.segmented}>
-            <ModeSegment
+            <Segment
               label="Bank Account"
               active={mode === 'bank'}
               onPress={() => setMode('bank')}
             />
-            <ModeSegment label="UPI" active={mode === 'upi'} onPress={() => setMode('upi')} />
+            <Segment label="UPI" active={mode === 'upi'} onPress={() => setMode('upi')} />
           </View>
 
-          <Card padding={AppSpacing.lg} containerStyle={styles.card}>
-            {mode === 'bank' ? (
-              <>
-                <Controller
-                  control={bankForm.control}
-                  name="holderName"
-                  render={({ field: { onChange, onBlur, value }, fieldState }) => (
-                    <TextField
-                      label="Account Holder Name"
-                      value={value}
-                      onChangeText={onChange}
-                      onBlur={onBlur}
-                      autoCapitalize="words"
-                      errorText={fieldState.error?.message}
-                    />
-                  )}
-                />
-                <Controller
-                  control={bankForm.control}
-                  name="accountNumber"
-                  render={({ field: { onChange, onBlur, value }, fieldState }) => (
-                    <TextField
-                      label="Account Number"
-                      value={value}
-                      onChangeText={onChange}
-                      onBlur={onBlur}
-                      keyboardType="number-pad"
-                      maxLength={18}
-                      errorText={fieldState.error?.message}
-                    />
-                  )}
-                />
-                <Controller
-                  control={bankForm.control}
-                  name="confirmAccountNumber"
-                  render={({ field: { onChange, onBlur, value }, fieldState }) => (
-                    <TextField
-                      label="Confirm Account Number"
-                      value={value}
-                      onChangeText={onChange}
-                      onBlur={onBlur}
-                      keyboardType="number-pad"
-                      maxLength={18}
-                      errorText={fieldState.error?.message}
-                    />
-                  )}
-                />
-                <Controller
-                  control={bankForm.control}
-                  name="ifsc"
-                  render={({ field: { onChange, onBlur, value }, fieldState }) => (
-                    <TextField
-                      label="IFSC Code"
-                      value={value}
-                      onChangeText={t => onChange(t.toUpperCase())}
-                      onBlur={onBlur}
-                      autoCapitalize="characters"
-                      autoCorrect={false}
-                      maxLength={11}
-                      errorText={fieldState.error?.message}
-                    />
-                  )}
-                />
-              </>
-            ) : (
-              <Controller
-                control={upiForm.control}
-                name="upiId"
-                render={({ field: { onChange, onBlur, value }, fieldState }) => (
-                  <TextField
-                    label="UPI ID"
-                    hint="yourname@oksbi"
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    helperText="Example: yourname@oksbi"
-                    errorText={fieldState.error?.message}
-                  />
-                )}
+          {mode === 'bank' ? (
+            <>
+              <Field
+                control={bankForm.control}
+                name="holderName"
+                label="ACCOUNT HOLDER NAME"
+                placeholder="Aisha Verma"
+                autoCapitalize="words"
               />
-            )}
-          </Card>
+              <Field
+                control={bankForm.control}
+                name="accountNumber"
+                label="ACCOUNT NUMBER"
+                keyboardType="number-pad"
+                maxLength={18}
+              />
+              <Field
+                control={bankForm.control}
+                name="confirmAccountNumber"
+                label="CONFIRM ACCOUNT NUMBER"
+                keyboardType="number-pad"
+                maxLength={18}
+              />
+              <Field
+                control={bankForm.control}
+                name="ifsc"
+                label="IFSC CODE"
+                placeholder="HDFC0001234"
+                autoCapitalize="characters"
+                maxLength={11}
+                transform={t => t.toUpperCase()}
+              />
+            </>
+          ) : (
+            <Field
+              control={upiForm.control}
+              name="upiId"
+              label="UPI ID"
+              placeholder="yourname@oksbi"
+              autoCapitalize="none"
+              hint="Example: yourname@oksbi"
+            />
+          )}
         </ScrollView>
+
         <View style={styles.footer}>
           {submitError ? <Text style={styles.errorText}>{submitError}</Text> : null}
           <PrimaryButton
@@ -247,65 +196,176 @@ function BankUpiDetailsScreen(): React.ReactElement {
   );
 }
 
-type ModeSegmentProps = {
+function Segment({
+  label,
+  active,
+  onPress,
+}: {
   label: string;
   active: boolean;
   onPress: () => void;
-};
-
-function ModeSegment({ label, active, onPress }: ModeSegmentProps): React.ReactElement {
+}): React.ReactElement {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       onPress={onPress}
-      style={[styles.segment, active ? styles.segmentActive : styles.segmentInactive]}
+      style={[styles.segment, active && styles.segmentActive]}
     >
       <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>{label}</Text>
     </Pressable>
   );
 }
 
+type FieldProps = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- shared across two RHF forms
+  control: Control<any>;
+  name: string;
+  label: string;
+  placeholder?: string;
+  hint?: string;
+  keyboardType?: 'default' | 'number-pad';
+  autoCapitalize?: 'none' | 'words' | 'characters';
+  maxLength?: number;
+  transform?: (t: string) => string;
+};
+
+function Field({
+  control,
+  name,
+  label,
+  placeholder,
+  hint,
+  keyboardType = 'default',
+  autoCapitalize = 'none',
+  maxLength,
+  transform,
+}: FieldProps): React.ReactElement {
+  const [focused, setFocused] = useState(false);
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field: { onChange, onBlur, value }, fieldState }) => (
+        <View style={styles.fieldWrap}>
+          <Text style={styles.label}>{label}</Text>
+          <View
+            style={[
+              styles.field,
+              focused && styles.fieldFocused,
+              fieldState.error ? styles.fieldError : null,
+            ]}
+          >
+            <TextInput
+              style={styles.input}
+              value={value as string}
+              onChangeText={t => onChange(transform ? transform(t) : t)}
+              onFocus={() => setFocused(true)}
+              onBlur={() => {
+                setFocused(false);
+                onBlur();
+              }}
+              placeholder={placeholder}
+              placeholderTextColor={AppColors.onSurfaceDisabled}
+              keyboardType={keyboardType}
+              autoCapitalize={autoCapitalize}
+              autoCorrect={false}
+              maxLength={maxLength}
+            />
+          </View>
+          {fieldState.error ? (
+            <Text style={styles.fieldErrorText}>{fieldState.error.message}</Text>
+          ) : hint ? (
+            <Text style={styles.hint}>{hint}</Text>
+          ) : null}
+        </View>
+      )}
+    />
+  );
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: AppColors.background },
   flex: { flex: 1 },
-  scroll: { padding: AppSpacing.md, paddingBottom: AppSpacing.lg },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: AppSpacing.lg,
+    paddingTop: AppSpacing.md,
+    paddingBottom: AppSpacing.sm,
+  },
+  title: {
+    fontFamily: InterFont.regular,
+    fontSize: 28,
+    letterSpacing: -0.6,
+    color: AppColors.onSurface,
+  },
+  skip: { fontFamily: InterFont.medium, fontSize: 15, color: AppColors.primary },
+  scroll: { paddingHorizontal: AppSpacing.lg, paddingBottom: AppSpacing.lg },
   subtitle: {
-    ...AppTypography.bodyMedium,
+    fontFamily: InterFont.regular,
+    fontSize: 14.5,
+    lineHeight: 21,
     color: AppColors.onSurfaceMuted,
-    marginBottom: AppSpacing.md,
+    marginTop: AppSpacing.sm,
+    marginBottom: AppSpacing.lg,
   },
   segmented: {
     flexDirection: 'row',
     backgroundColor: AppColors.surface,
-    borderRadius: AppRadii.md,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: AppColors.border,
     padding: 4,
-    marginBottom: AppSpacing.md,
+    marginBottom: AppSpacing.lg,
   },
-  segment: {
-    flex: 1,
-    paddingVertical: AppSpacing.sm,
-    borderRadius: AppRadii.sm,
-    alignItems: 'center',
-  },
+  segment: { flex: 1, paddingVertical: 11, borderRadius: 10, alignItems: 'center' },
   segmentActive: { backgroundColor: AppColors.primary },
-  segmentInactive: { backgroundColor: AppColors.transparent },
-  segmentLabel: {
-    ...AppTypography.labelLarge,
-    color: AppColors.onSurface,
+  segmentLabel: { fontFamily: InterFont.medium, fontSize: 14.5, color: AppColors.onSurfaceMuted },
+  segmentLabelActive: { color: '#FFFFFF' },
+  fieldWrap: { marginBottom: AppSpacing.md },
+  label: {
+    fontFamily: InterFont.medium,
+    fontSize: 11.5,
+    letterSpacing: 0.7,
+    color: '#6B6B73',
+    marginBottom: AppSpacing.sm,
   },
-  segmentLabelActive: { color: AppColors.onPrimary },
-  card: { gap: AppSpacing.sm },
+  field: {
+    height: 54,
+    borderRadius: 14,
+    backgroundColor: '#0E0E10',
+    borderWidth: 1.5,
+    borderColor: AppColors.border,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+  },
+  fieldFocused: { borderColor: 'rgba(220,48,143,0.8)' },
+  fieldError: { borderColor: AppColors.error },
+  input: { fontFamily: InterFont.regular, fontSize: 16, color: AppColors.onSurface, padding: 0 },
+  hint: {
+    fontFamily: InterFont.regular,
+    fontSize: 12.5,
+    color: AppColors.onSurfaceMuted,
+    marginTop: 6,
+  },
+  fieldErrorText: {
+    fontFamily: InterFont.medium,
+    fontSize: 12.5,
+    color: AppColors.error,
+    marginTop: 6,
+  },
   footer: {
-    padding: AppSpacing.md,
+    paddingHorizontal: AppSpacing.lg,
+    paddingTop: AppSpacing.sm,
+    paddingBottom: AppSpacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: AppColors.divider,
-    backgroundColor: AppColors.background,
+    borderTopColor: AppColors.border,
   },
   errorText: {
-    ...AppTypography.bodySmall,
+    fontFamily: InterFont.medium,
+    fontSize: 13,
     color: AppColors.error,
     marginBottom: AppSpacing.sm,
     textAlign: 'center',

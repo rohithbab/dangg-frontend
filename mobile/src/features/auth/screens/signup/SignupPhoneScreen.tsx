@@ -23,7 +23,9 @@ import { logger } from '@core/utils/logger';
 
 import { type AuthStackParamList } from '@navigation/types';
 
-import { sendOtp } from '../../api/authApi';
+import { VerificationStatus } from '@app-types/domain';
+
+import { getFemaleVerificationStatus, sendOtp } from '../../api/authApi';
 import { useSignupDraftStore } from '../../store/signupDraftStore';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'SignupPhone'>;
@@ -39,6 +41,7 @@ function SignupPhoneScreen(): React.ReactElement {
   const [phone, setPhoneInput] = useState('');
   const [focused, setFocused] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const cleaned = phone.replace(/\D/g, '').slice(-10);
@@ -50,8 +53,25 @@ function SignupPhoneScreen(): React.ReactElement {
       return;
     }
     setError(null);
+    setInfo(null);
     setSubmitting(true);
     try {
+      // A female whose verification is still under review has nothing to do but
+      // wait — tell her here instead of running her through OTP again. (The
+      // status RPC is anon-callable by phone.) A failed check is non-fatal:
+      // fall through to the normal OTP path so signup never breaks on it.
+      try {
+        const { status } = await getFemaleVerificationStatus(cleaned);
+        if (status === VerificationStatus.Pending) {
+          setInfo(
+            "Your verification is still under review. We'll notify you once it's approved — no need to sign in.",
+          );
+          return;
+        }
+      } catch (e) {
+        logger.warn('SignupPhoneScreen.verificationPreCheck failed', e);
+      }
+
       await sendOtp(cleaned, 'signup');
       setPhone(cleaned);
       navigation.navigate('SignupOtp', { phone: cleaned });
@@ -101,6 +121,9 @@ function SignupPhoneScreen(): React.ReactElement {
                 if (error) {
                   setError(null);
                 }
+                if (info) {
+                  setInfo(null);
+                }
               }}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
@@ -112,6 +135,7 @@ function SignupPhoneScreen(): React.ReactElement {
             />
           </View>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {!error && info ? <Text style={styles.infoText}>{info}</Text> : null}
         </View>
 
         <View style={styles.ctaWrap}>
@@ -193,6 +217,13 @@ const styles = StyleSheet.create({
     fontFamily: InterFont.medium,
     fontSize: 13,
     color: AppColors.error,
+    marginTop: AppSpacing.sm,
+  },
+  infoText: {
+    fontFamily: InterFont.medium,
+    fontSize: 13,
+    lineHeight: 19,
+    color: AppColors.primary,
     marginTop: AppSpacing.sm,
   },
   ctaWrap: { paddingHorizontal: AppSpacing.lg, paddingBottom: AppSpacing.md },
