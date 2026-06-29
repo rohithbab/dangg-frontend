@@ -12,7 +12,7 @@
  */
 import { DefaultTheme, DarkTheme, NavigationContainer } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { StatusBar, StyleSheet, Text, View } from 'react-native';
+import { Platform, StatusBar, StyleSheet, Text, ToastAndroid, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -22,7 +22,7 @@ import { AppTypography } from '@theme/typography';
 
 import { initSupabase } from '@core/network/supabaseClient';
 import { connectivityService } from '@core/services/connectivityService';
-import { fcmService } from '@core/services/fcmService';
+import { fcmService, type RemoteMessage } from '@core/services/fcmService';
 import { logger } from '@core/utils/logger';
 
 import { linking } from '@navigation/linking';
@@ -35,6 +35,57 @@ import { subscribeSupabaseAuth } from '@store/sessionStore';
 import IncomingChatRequestListener from '@features/chatRequests/components/IncomingChatRequestListener';
 import IncomingChatRequestModal from '@features/chatRequests/components/IncomingChatRequestModal';
 import OfflineOverlay from '@features/common/OfflineOverlay';
+
+/** Navigate to the appropriate screen when the user taps a push notification. */
+function navigateFromPush(message: RemoteMessage): void {
+  const type = message.data?.type as string | undefined;
+  const requestId = (message.data?.chat_request_id as string) ?? '';
+
+  const go = (): void => {
+    switch (type) {
+      case 'chat_request_received':
+        // Female: IncomingChatRequestListener picks up the pending request via
+        // Realtime once the app is foregrounded — no extra navigation needed.
+        break;
+      case 'chat_request_accepted':
+        navigationRef.navigate('ChatRequestAccepted' as never, { requestId } as never);
+        break;
+      case 'chat_request_declined':
+        navigationRef.navigate('ChatRequestDeclined' as never, { requestId } as never);
+        break;
+      case 'chat_request_expired':
+      case 'chat_request_missed':
+      case 'chat_request_cancelled':
+        navigationRef.navigate('ChatRequestTimeout' as never, { requestId } as never);
+        break;
+      default:
+        // Verification, payouts, etc. → notifications inbox.
+        navigationRef.navigate('Notifications' as never);
+        break;
+    }
+  };
+
+  if (navigationRef.isReady()) {
+    go();
+  } else {
+    // Cold-start: navigation container may not be mounted yet. One short
+    // retry is sufficient — init() runs inside useEffect, after first render.
+    setTimeout(go, 300);
+  }
+}
+
+/** Show a foreground toast for a push that arrives while the app is open. */
+function showPushToast(message: RemoteMessage): void {
+  if (Platform.OS !== 'android') {
+    return;
+  }
+  const title = message.notification?.title ?? (message.data?.title as string | undefined) ?? '';
+  const body = message.notification?.body ?? (message.data?.body as string | undefined) ?? '';
+  const text = body ? `${title}\n${body}` : title;
+  if (text) {
+    ToastAndroid.show(text, ToastAndroid.LONG);
+  }
+}
 
 const MyLightTheme = {
   ...DefaultTheme,
@@ -79,8 +130,14 @@ function App(): React.JSX.Element {
       });
 
       void fcmService.init({
-        onForeground: message => logger.debug('FCM foreground', message.messageId),
-        onOpenedFromBackground: message => logger.debug('FCM tap', message.messageId),
+        onForeground: message => {
+          logger.debug('FCM foreground', message.messageId);
+          showPushToast(message);
+        },
+        onOpenedFromBackground: message => {
+          logger.debug('FCM tap', message.messageId);
+          navigateFromPush(message);
+        },
       });
 
       return () => {
