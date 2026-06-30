@@ -22,6 +22,7 @@ import { InterFont } from '@theme/typography';
 
 import CoinIcon from '@core/components/CoinIcon';
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
+import DanggLogo from '@core/components/DanggLogo';
 import GradientAvatar from '@core/components/GradientAvatar';
 import LogoMark from '@core/components/LogoMark';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
@@ -259,7 +260,7 @@ function MaleProfileScreen(): React.ReactElement {
         <View style={styles.brandFooter}>
           <View style={styles.brandRow}>
             <LogoMark size={20} />
-            <Text style={styles.brandWord}>Dangg</Text>
+            <DanggLogo width={86} showTagline={false} color={AppColors.onSurface} />
           </View>
           <Text style={styles.brandVersion}>v1.0.0</Text>
         </View>
@@ -389,12 +390,6 @@ const styles = StyleSheet.create({
 
   brandFooter: { alignItems: 'center', marginTop: 28 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  brandWord: {
-    fontFamily: InterFont.regular,
-    fontSize: 18,
-    color: AppColors.onSurface,
-    letterSpacing: -0.36,
-  },
   brandVersion: {
     fontFamily: InterFont.regular,
     fontSize: 12,

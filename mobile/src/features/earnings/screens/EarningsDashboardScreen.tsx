@@ -1,6 +1,6 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ChevronRight } from 'lucide-react-native';
+import { format } from 'date-fns';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { AppRadii } from '@theme/radii';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
+import EmptyState from '@core/components/EmptyState';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
 import { inr } from '@core/utils/formatters';
 import { logger } from '@core/utils/logger';
@@ -19,14 +20,26 @@ import { type FemaleAppStackParamList } from '@navigation/types';
 
 import {
   type EarningsBalance,
+  type PayoutRecord,
+  type PayoutUiStatus,
   type Transaction,
   getEarningsBalance,
+  listPayouts,
   listTransactions,
 } from '../api/earningsApi';
 
 type Nav = NativeStackNavigationProp<FemaleAppStackParamList>;
 
+type Tab = 'earnings' | 'payouts';
+
 const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const;
+
+const STATUS_META: Record<PayoutUiStatus, { label: string; color: string; tint: string }> = {
+  processing: { label: 'Processing', color: AppColors.coinGold, tint: 'rgba(245,181,61,0.14)' },
+  paid: { label: 'Paid', color: AppColors.success, tint: 'rgba(52,211,153,0.14)' },
+  failed: { label: 'Failed', color: AppColors.error, tint: 'rgba(248,113,113,0.14)' },
+  cancelled: { label: 'Cancelled', color: AppColors.onSurfaceMuted, tint: AppColors.surface },
+};
 
 /** Monday=0 … Sunday=6 index for a date (JS getDay is Sun=0). */
 function mondayIndex(d: Date): number {
@@ -40,26 +53,37 @@ function startOfToday(): Date {
 }
 
 /**
- * C22 · Earnings (Neue). Withdrawable balance hero + Withdraw pill, a weekly
- * earnings bar chart, Today / This week / All-time summary rows, and a link to
- * payout history. Balances are INR (what she actually withdraws); the weekly
- * bars + Today/This-week totals are derived client-side from the transactions
- * feed. All data sources (getEarningsBalance / listTransactions) are unchanged.
+ * C22 · Earnings (Neue). A top tab switcher toggles between two panels:
+ *  • Earnings — withdrawable balance hero + Withdraw pill, weekly bar chart and
+ *    Today / This week / All-time summary rows.
+ *  • Payout history — month-grouped list of every withdrawal (pulled inline from
+ *    the standalone PayoutHistory screen so it's reachable at the top).
+ * The active tab is white, the inactive one grey; tapping swaps the content.
  */
 function EarningsDashboardScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
 
+  const [tab, setTab] = useState<Tab>('earnings');
   const [balance, setBalance] = useState<EarningsBalance | null>(null);
   const [transactions, setTransactions] = useState<ReadonlyArray<Transaction>>([]);
+  const [payouts, setPayouts] = useState<ReadonlyArray<PayoutRecord>>([]);
+  const [payoutsLoaded, setPayoutsLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadAll = useCallback(async (): Promise<void> => {
     try {
-      const [b, t] = await Promise.all([getEarningsBalance(), listTransactions('earning')]);
+      const [b, t, p] = await Promise.all([
+        getEarningsBalance(),
+        listTransactions('earning'),
+        listPayouts(),
+      ]);
       setBalance(b);
       setTransactions(t);
+      setPayouts(p);
     } catch (e) {
       logger.error('EarningsDashboardScreen.loadAll failed', e);
+    } finally {
+      setPayoutsLoaded(true);
     }
   }, []);
 
@@ -98,6 +122,21 @@ function EarningsDashboardScreen(): React.ReactElement {
     return { weekBars: bars, todayInr: todaySum, weekInr: weekSum };
   }, [transactions]);
 
+  /** Payouts grouped into [monthLabel, rows][] preserving newest-first order. */
+  const payoutGroups = useMemo(() => {
+    const out: Array<{ key: string; rows: PayoutRecord[] }> = [];
+    for (const p of payouts) {
+      const key = format(p.requestedAt, 'MMMM yyyy').toUpperCase();
+      const last = out[out.length - 1];
+      if (last && last.key === key) {
+        last.rows.push(p);
+      } else {
+        out.push({ key, rows: [p] });
+      }
+    }
+    return out;
+  }, [payouts]);
+
   const pending = balance?.pendingPayoutInr ?? null;
 
   return (
@@ -114,42 +153,103 @@ function EarningsDashboardScreen(): React.ReactElement {
           />
         }
       >
-        <Text style={styles.title}>Earnings</Text>
-
-        <Text style={styles.availLabel}>AVAILABLE</Text>
-        <View style={styles.balanceRow}>
-          <Text style={styles.balance}>{balance ? inr(balance.availableInr) : '—'}</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Withdraw"
-            onPress={() => navigation.navigate('WithdrawAmount')}
-            style={({ pressed }) => [styles.withdrawPill, pressed && styles.pressed]}
-          >
-            <Text style={styles.withdrawLabel}>Withdraw</Text>
-          </Pressable>
-        </View>
-        <Text style={styles.subBalance}>
-          {pending != null ? `${inr(pending)} payout in review` : 'Available to withdraw'}
-        </Text>
-
-        <WeekChart bars={weekBars} />
-
-        <View style={styles.summary}>
-          <SummaryRow label="Today" value={`+${inr(todayInr)}`} />
-          <SummaryRow label="This week" value={`+${inr(weekInr)}`} />
-          <SummaryRow label="All time" value={balance ? inr(balance.lifetimeEarningsInr) : '—'} />
+        <View style={styles.tabsRow}>
+          <TabLabel
+            label="Earnings"
+            active={tab === 'earnings'}
+            onPress={() => setTab('earnings')}
+          />
+          <TabLabel
+            label="Payout history"
+            active={tab === 'payouts'}
+            onPress={() => setTab('payouts')}
+          />
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => navigation.navigate('PayoutHistory')}
-          style={({ pressed }) => [styles.historyLink, pressed && styles.pressed]}
-        >
-          <Text style={styles.historyText}>Payout history</Text>
-          <ChevronRight size={16} color={AppColors.onSurfaceMuted} strokeWidth={2} />
-        </Pressable>
+        {tab === 'earnings' ? (
+          <>
+            <Text style={styles.availLabel}>AVAILABLE</Text>
+            <View style={styles.balanceRow}>
+              <Text style={styles.balance}>{balance ? inr(balance.availableInr) : '—'}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Withdraw"
+                onPress={() => navigation.navigate('WithdrawAmount')}
+                style={({ pressed }) => [styles.withdrawPill, pressed && styles.pressed]}
+              >
+                <Text style={styles.withdrawLabel}>Withdraw</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.subBalance}>
+              {pending != null ? `${inr(pending)} payout in review` : 'Available to withdraw'}
+            </Text>
+
+            <WeekChart bars={weekBars} />
+
+            <View style={styles.summary}>
+              <SummaryRow label="Today" value={`+${inr(todayInr)}`} />
+              <SummaryRow label="This week" value={`+${inr(weekInr)}`} />
+              <SummaryRow
+                label="All time"
+                value={balance ? inr(balance.lifetimeEarningsInr) : '—'}
+              />
+            </View>
+          </>
+        ) : payoutsLoaded && payouts.length === 0 ? (
+          <View style={styles.emptyWrap}>
+            <EmptyState
+              title="No payouts yet"
+              body="Your withdrawals will show up here once you request one."
+            />
+          </View>
+        ) : (
+          payoutGroups.map(group => (
+            <View key={group.key} style={styles.group}>
+              <Text style={styles.groupLabel}>{group.key}</Text>
+              {group.rows.map(p => {
+                const meta = STATUS_META[p.status];
+                return (
+                  <Pressable
+                    key={p.id}
+                    accessibilityRole="button"
+                    onPress={() => navigation.navigate('PayoutDetail', { payoutId: p.id })}
+                    style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+                  >
+                    <View style={[styles.dot, { backgroundColor: meta.color }]} />
+                    <View style={styles.rowMain}>
+                      <Text style={styles.amount}>{inr(p.amountInr)}</Text>
+                      <Text style={styles.method}>{p.methodLabel}</Text>
+                    </View>
+                    <View style={styles.rowRight}>
+                      <View style={[styles.badge, { backgroundColor: meta.tint }]}>
+                        <Text style={[styles.badgeText, { color: meta.color }]}>{meta.label}</Text>
+                      </View>
+                      <Text style={styles.date}>{format(p.requestedAt, 'd MMM')}</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function TabLabel({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}): React.ReactElement {
+  return (
+    <Pressable accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={onPress}>
+      <Text style={[styles.tab, active ? styles.tabActive : styles.tabInactive]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -204,12 +304,19 @@ const styles = StyleSheet.create({
     paddingTop: AppSpacing.md,
     paddingBottom: BOTTOM_CLEAR,
   },
-  title: {
-    fontFamily: InterFont.regular,
-    fontSize: 28,
-    letterSpacing: -0.6,
-    color: AppColors.onSurface,
+  tabsRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: AppSpacing.lg,
+    marginBottom: AppSpacing.sm,
   },
+  tab: {
+    fontFamily: InterFont.regular,
+    fontSize: 22,
+    letterSpacing: -0.5,
+  },
+  tabActive: { color: AppColors.onSurface, fontFamily: InterFont.medium },
+  tabInactive: { color: AppColors.onSurfaceMuted },
   availLabel: {
     fontFamily: InterFont.medium,
     fontSize: 11.5,
@@ -266,14 +373,44 @@ const styles = StyleSheet.create({
   },
   summaryLabel: { fontFamily: InterFont.regular, fontSize: 15, color: AppColors.onSurface },
   summaryValue: { fontFamily: InterFont.medium, fontSize: 15, color: AppColors.success },
-  historyLink: {
+  emptyWrap: { marginTop: 48 },
+  group: { marginTop: AppSpacing.lg },
+  groupLabel: {
+    fontFamily: InterFont.medium,
+    fontSize: 11.5,
+    letterSpacing: 0.8,
+    color: AppColors.onSurfaceMuted,
+    marginBottom: AppSpacing.sm,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    marginTop: AppSpacing.xl,
+    backgroundColor: AppColors.surface,
+    borderRadius: AppRadii.card,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 10,
   },
-  historyText: { fontFamily: InterFont.medium, fontSize: 14, color: AppColors.onSurfaceMuted },
+  dot: { width: 9, height: 9, borderRadius: 4.5, marginRight: 12 },
+  rowMain: { flex: 1 },
+  amount: { fontFamily: InterFont.semibold, fontSize: 16, color: AppColors.onSurface },
+  method: {
+    fontFamily: InterFont.regular,
+    fontSize: 12.5,
+    color: AppColors.onSurfaceMuted,
+    marginTop: 3,
+  },
+  rowRight: { alignItems: 'flex-end' },
+  badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  badgeText: { fontFamily: InterFont.medium, fontSize: 12 },
+  date: {
+    fontFamily: InterFont.regular,
+    fontSize: 12,
+    color: AppColors.onSurfaceMuted,
+    marginTop: 6,
+  },
 });
 
 export default EarningsDashboardScreen;

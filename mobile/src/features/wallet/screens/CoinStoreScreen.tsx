@@ -23,6 +23,11 @@ type Nav = NativeStackNavigationProp<MaleAppStackParamList, 'CoinStore'>;
 
 const PAD = 24;
 
+// Per-package gradient intensity: the cheapest pack (30) gets the lightest
+// mauve wash, ramping up to the flagship's existing strength for the biggest.
+const MIN_GRADIENT_STRENGTH = 0.12;
+const MAX_GRADIENT_STRENGTH = 0.6;
+
 function badgeLabel(tag: CoinPackage['tag']): string | null {
   if (tag === 'maxValue') {
     return 'BEST VALUE';
@@ -66,11 +71,19 @@ function Wash({
 type PackageCardProps = {
   pkg: CoinPackage;
   selected: boolean;
+  /** Mauve wash strength for this pack (0 = none, ~0.6 = flagship). */
+  gradientStrength: number;
   onSelect: () => void;
   onBuy: () => void;
 };
 
-function PackageCard({ pkg, selected, onSelect, onBuy }: PackageCardProps): React.ReactElement {
+function PackageCard({
+  pkg,
+  selected,
+  gradientStrength,
+  onSelect,
+  onBuy,
+}: PackageCardProps): React.ReactElement {
   const total = totalCoinsFor(pkg);
   const highlight = pkg.tag === 'maxValue';
   const label = badgeLabel(pkg.tag);
@@ -84,9 +97,9 @@ function PackageCard({ pkg, selected, onSelect, onBuy }: PackageCardProps): Reac
     >
       {selected ? (
         <Wash radius={WR.lg - 2} color={WC.primary} strength={0.55} />
-      ) : highlight ? (
-        <Wash radius={WR.lg - 2} color={WC.mauve} />
-      ) : null}
+      ) : (
+        <Wash radius={WR.lg - 2} color={WC.mauve} strength={gradientStrength} />
+      )}
 
       <View style={styles.cardBody}>
         <View style={styles.cardInfo}>
@@ -165,6 +178,11 @@ function CoinStoreScreen(): React.ReactElement {
           <Animated.View key={pkg.id} entering={FadeInDown.duration(360).delay(index * 50)}>
             <PackageCard
               pkg={pkg}
+              gradientStrength={
+                MIN_GRADIENT_STRENGTH +
+                (MAX_GRADIENT_STRENGTH - MIN_GRADIENT_STRENGTH) *
+                  (index / Math.max(1, COIN_PACKAGES.length - 1))
+              }
               selected={selectedId === pkg.id}
               onSelect={() => setSelectedId(pkg.id)}
               onBuy={() => navigation.navigate('PaymentProcessing', { packageId: pkg.id })}

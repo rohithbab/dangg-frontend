@@ -1,7 +1,7 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
-import { MessageCircle, Search } from 'lucide-react-native';
+import { MessageCircle, SlidersHorizontal } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Platform,
@@ -16,7 +16,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
-import { AppRadii } from '@theme/radii';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -81,12 +80,10 @@ function MaleHomeScreen(): React.ReactElement {
   const firstName = firstNameFromSession(session?.user.user_metadata?.name);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  const activeFilterCount = useFemaleFiltersStore(s => s.activeCount)();
   const filters = useFemaleFiltersStore();
 
   const [items, setItems] = useState<ReadonlyArray<AvailableFemale>>([]);
   const [favorites, setFavorites] = useState<ReadonlyArray<AvailableFemale>>([]);
-  const [totalOnline, setTotalOnline] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -121,13 +118,12 @@ function MaleHomeScreen(): React.ReactElement {
 
   const loadFirstPage = useCallback(async (): Promise<void> => {
     try {
-      const [{ items: page, hasMore: more, totalOnline: online }, favs] = await Promise.all([
+      const [{ items: page, hasMore: more }, favs] = await Promise.all([
         browseFemales(filtersSnapshot, PAGE_SIZE, 0),
         listFavorites().catch(() => [] as ReadonlyArray<AvailableFemale>),
       ]);
       setItems(page);
       setHasMore(more);
-      setTotalOnline(online);
       setFavorites(favs);
       setInitialLoaded(true);
     } catch (e) {
@@ -312,52 +308,47 @@ function MaleHomeScreen(): React.ReactElement {
         }
         ListHeaderComponent={
           <View>
-            <Text style={styles.title}>Discover</Text>
-            <Text style={styles.subtitle}>{`${totalOnline} people online now`}</Text>
-
-            <Pressable
-              accessibilityRole="search"
-              onPress={() => setFilterSheetOpen(true)}
-              style={styles.search}
-            >
-              <Search size={20} color="#808087" strokeWidth={1.8} />
-              <Text style={styles.searchText}>Search people</Text>
-              {activeFilterCount > 0 ? <View style={styles.searchBadge} /> : null}
-            </Pressable>
-
             {favorites.length > 0 ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.rail}
-              >
-                {favorites.map(f => (
-                  <Pressable
-                    key={f.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={f.name}
-                    onPress={() => openProfile(f)}
-                    style={styles.railItem}
-                  >
-                    <GradientAvatar
-                      initials={f.name.slice(0, 1).toUpperCase()}
-                      seed={f.id}
-                      uri={f.imageUrl}
-                      size={56}
-                      online={f.isOnline}
-                    />
-                    <Text style={styles.railName} numberOfLines={1}>
-                      {f.name}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
+              <>
+                <Text style={styles.favLabel}>Favorites</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.rail}
+                >
+                  {favorites.map(f => (
+                    <Pressable
+                      key={f.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={f.name}
+                      onPress={() => openProfile(f)}
+                      style={styles.railItem}
+                    >
+                      <GradientAvatar
+                        initials={f.name.slice(0, 1).toUpperCase()}
+                        seed={f.id}
+                        uri={f.imageUrl}
+                        size={56}
+                        online={f.isOnline}
+                      />
+                      <Text style={styles.railName} numberOfLines={1}>
+                        {f.name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </>
             ) : null}
 
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Online now</Text>
-              <Pressable accessibilityRole="button" onPress={() => setFilterSheetOpen(true)}>
-                <Text style={styles.seeAll}>See all</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Filters"
+                hitSlop={10}
+                onPress={() => setFilterSheetOpen(true)}
+              >
+                <SlidersHorizontal size={20} color={AppColors.onSurface} strokeWidth={1.9} />
               </Pressable>
             </View>
           </View>
@@ -426,7 +417,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: AppSpacing.lg,
-    paddingTop: Platform.OS === 'android' ? AppSpacing.sm : AppSpacing.xs,
+    paddingTop: Platform.OS === 'android' ? AppSpacing.xl : AppSpacing.lg,
     paddingBottom: AppSpacing.sm,
   },
   greetWrap: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 },
@@ -464,40 +455,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   listContent: { paddingHorizontal: AppSpacing.lg, paddingBottom: BOTTOM_CLEAR },
-  title: {
+  favLabel: {
     fontFamily: InterFont.light,
-    fontSize: 32,
-    letterSpacing: -0.64,
+    fontSize: 22,
+    letterSpacing: -0.44,
     color: AppColors.onSurface,
-    marginTop: AppSpacing.sm,
+    marginTop: AppSpacing.xl,
   },
-  subtitle: {
-    fontFamily: InterFont.light,
-    fontSize: 14.5,
-    color: '#8C8C94',
-    marginTop: 6,
-  },
-  search: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    height: 50,
-    paddingHorizontal: 15,
-    borderRadius: AppRadii.lg,
-    backgroundColor: '#0E0E10',
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    marginTop: AppSpacing.lg,
-  },
-  searchText: { fontFamily: InterFont.light, fontSize: 15, color: '#808087' },
-  searchBadge: {
-    marginLeft: 'auto',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: AppColors.primary,
-  },
-  rail: { gap: 12, paddingTop: AppSpacing.lg, paddingRight: AppSpacing.lg },
+  rail: { gap: 12, paddingTop: AppSpacing.md, paddingRight: AppSpacing.lg },
   railItem: { width: 56, alignItems: 'center' },
   railName: {
     fontFamily: InterFont.light,
@@ -514,7 +479,6 @@ const styles = StyleSheet.create({
     marginBottom: AppSpacing.md,
   },
   sectionTitle: { fontFamily: InterFont.medium, fontSize: 15, color: AppColors.onSurface },
-  seeAll: { fontFamily: InterFont.light, fontSize: 13.5, color: AppColors.primary },
   rowWrap: { marginBottom: 8 },
   empty: { alignItems: 'center', paddingVertical: AppSpacing.xxl },
   emptyTitle: {

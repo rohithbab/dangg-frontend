@@ -1,13 +1,14 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
+  BadgeCheck,
   Bell,
+  Camera,
   ChevronRight,
   HelpCircle,
   Info,
   Landmark,
   LogOut,
-  Pencil,
   ReceiptText,
   ShieldCheck,
   Trash2,
@@ -22,6 +23,7 @@ import { AppColors } from '@theme/colors';
 import { InterFont } from '@theme/typography';
 
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
+import DanggLogo from '@core/components/DanggLogo';
 import GradientAvatar from '@core/components/GradientAvatar';
 import LogoMark from '@core/components/LogoMark';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
@@ -165,7 +167,7 @@ function FemaleProfileScreen(): React.ReactElement {
               size={60}
             />
             <View style={styles.cameraBadge}>
-              <Pencil size={11} color="#FFFFFF" strokeWidth={2.4} />
+              <Camera size={12} color="#FFFFFF" strokeWidth={2.2} />
             </View>
           </Pressable>
           <View style={styles.identity}>
@@ -174,7 +176,7 @@ function FemaleProfileScreen(): React.ReactElement {
                 {profile?.name ?? '—'}
               </Text>
               {profile?.verified ? (
-                <ShieldCheck size={16} color={AppColors.success} strokeWidth={2.2} />
+                <BadgeCheck size={16} color={AppColors.featureBlue} strokeWidth={2.2} />
               ) : null}
             </View>
             <Text style={styles.maskedPhone} numberOfLines={1}>
@@ -302,7 +304,7 @@ function FemaleProfileScreen(): React.ReactElement {
         <View style={styles.brandFooter}>
           <View style={styles.brandRow}>
             <LogoMark size={18} />
-            <Text style={styles.brandWord}>Dangg</Text>
+            <DanggLogo width={80} showTagline={false} color={AppColors.onSurface} />
           </View>
           <Text style={styles.brandVersion}>v1.0.0</Text>
         </View>
@@ -431,12 +433,6 @@ const styles = StyleSheet.create({
   statusText: { fontFamily: InterFont.medium, fontSize: 14 },
   brandFooter: { alignItems: 'center', marginTop: 28 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  brandWord: {
-    fontFamily: InterFont.regular,
-    fontSize: 18,
-    color: AppColors.onSurface,
-    letterSpacing: -0.36,
-  },
   brandVersion: {
     fontFamily: InterFont.regular,
     fontSize: 12,

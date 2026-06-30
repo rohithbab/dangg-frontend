@@ -367,3 +367,41 @@ export async function fetchOnlineFemaleIds(ids: ReadonlyArray<string>): Promise<
   }
   return new Set((data ?? []).map(r => (r as { female_id: string }).female_id));
 }
+
+export type ChatRatingResult = {
+  ratingAvg: number;
+  totalRatings: number;
+  stars: number;
+};
+
+/**
+ * Persists a male's post-chat star rating (1–5) for a female via the
+ * `submit_chat_rating` RPC, which upserts his score and recomputes her
+ * `rating_avg` (= mean of all stars) and `total_ratings`. Returns her
+ * updated aggregate.
+ */
+export async function submitChatRating(
+  femaleId: string,
+  stars: number,
+  comment?: string,
+): Promise<ChatRatingResult> {
+  if (USE_MOCK_DATA) {
+    const found = MOCK_FEMALES.find(f => f.id === femaleId);
+    return { ratingAvg: found?.rating ?? stars, totalRatings: found?.totalChats ?? 1, stars };
+  }
+  const trimmed = comment?.trim();
+  const { data, error } = await getSupabaseClient().rpc('submit_chat_rating', {
+    p_female_id: femaleId,
+    p_stars: stars,
+    p_comment: trimmed ? trimmed : null,
+  });
+  if (error) {
+    throw mapSupabaseError(error);
+  }
+  const row = (data ?? {}) as { ratingAvg?: number; totalRatings?: number };
+  return {
+    ratingAvg: Number(row.ratingAvg ?? 0),
+    totalRatings: Number(row.totalRatings ?? 0),
+    stars,
+  };
+}

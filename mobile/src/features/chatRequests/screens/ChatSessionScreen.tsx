@@ -44,6 +44,8 @@ import { logger } from '@core/utils/logger';
 
 import { type MaleAppStackParamList } from '@navigation/types';
 
+import { submitChatRating } from '@features/maleHome/api/maleHomeApi';
+
 import {
   type ChatMessage,
   endChatSession,
@@ -339,6 +341,8 @@ function ChatSessionScreen(): React.ReactElement {
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [selfId, setSelfId] = useState<string | null>(null);
+  // The female being chatted with — target of the post-chat star rating.
+  const [femaleId, setFemaleId] = useState<string | null>(null);
   // Real counterpart name (resolved from the session); falls back to the mock
   // until the live session loads.
   const [partnerName, setPartnerName] = useState(MOCK_FEMALE_NAME);
@@ -451,6 +455,13 @@ function ChatSessionScreen(): React.ReactElement {
 
   // Submit and show success screen
   const handleSubmitRating = () => {
+    // Persist the male's star rating for the female. Best-effort: a failure
+    // must never block the exit animation. The RPC recomputes her rating_avg.
+    if (rating > 0 && femaleId && !USE_MOCK_DATA) {
+      void submitChatRating(femaleId, rating).catch(e =>
+        logger.warn('ChatSession.submitRating failed', e),
+      );
+    }
     setChatEndState('success');
     cardScale.value = withSequence(
       withTiming(0.95, { duration: 100 }),
@@ -666,6 +677,7 @@ function ChatSessionScreen(): React.ReactElement {
 
       setSelfId(currentUserId);
       setSessionId(session.id);
+      setFemaleId(session.femaleId);
       if (session.partnerName) {
         setPartnerName(session.partnerName);
       }

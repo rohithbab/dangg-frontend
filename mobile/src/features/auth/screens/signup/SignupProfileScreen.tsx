@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Camera, Check, ChevronLeft, User } from 'lucide-react-native';
+import { Check, ChevronLeft } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -140,16 +140,7 @@ function SignupProfileScreen(): React.ReactElement {
         >
           <Text style={styles.title}>Set up{'\n'}your profile</Text>
 
-          <View style={styles.avatarWrap}>
-            <View style={styles.avatar}>
-              <User size={34} color="#8C8C94" strokeWidth={1.6} />
-            </View>
-            <View style={styles.cameraBadge}>
-              <Camera size={14} color="#FFFFFF" strokeWidth={2} />
-            </View>
-          </View>
-
-          <View style={styles.fieldsRow}>
+          <View style={[styles.fieldsRow, styles.fieldsRowTop]}>
             <View style={styles.nameField}>
               <Text style={styles.label}>DISPLAY NAME</Text>
               <View style={styles.field}>
@@ -244,31 +235,8 @@ const styles = StyleSheet.create({
     letterSpacing: -0.825,
     color: AppColors.onSurface,
   },
-  avatarWrap: { alignSelf: 'center', marginTop: AppSpacing.xl, marginBottom: AppSpacing.lg },
-  avatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: '#1A1A1E',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cameraBadge: {
-    position: 'absolute',
-    right: 2,
-    bottom: 2,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: AppColors.primary,
-    borderWidth: 2,
-    borderColor: AppColors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   fieldsRow: { flexDirection: 'row', gap: 12 },
+  fieldsRowTop: { marginTop: AppSpacing.xl },
   nameField: { flex: 1 },
   ageField: { width: 92 },
   label: {

@@ -142,9 +142,13 @@ function FemaleHomeScreen(): React.ReactElement {
     }
   }, [session, isVerified]);
 
-  useEffect(() => {
-    void loadAll();
-  }, [loadAll]);
+  // Reload stats (including her rating) every time Home regains focus, so a
+  // fresh rating shows up without needing a manual pull-to-refresh.
+  useFocusEffect(
+    useCallback(() => {
+      void loadAll();
+    }, [loadAll]),
+  );
 
   const handleRefresh = useCallback(async (): Promise<void> => {
     setRefreshing(true);
@@ -264,14 +268,6 @@ function FemaleHomeScreen(): React.ReactElement {
               {`≈ ₹${(stats?.weekEarningsInr ?? 0).toLocaleString()} this week`}
             </Text>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Withdraw earnings"
-            onPress={() => navigation.navigate('PayoutRequest')}
-            style={({ pressed }) => [styles.withdraw, pressed && styles.pressed]}
-          >
-            <Text style={styles.withdrawText}>Withdraw</Text>
-          </Pressable>
         </View>
 
         <View style={styles.divider} />
@@ -285,7 +281,10 @@ function FemaleHomeScreen(): React.ReactElement {
             label="This week"
           />
           <View style={styles.tripletDivider} />
-          <StatCol value={stats ? stats.ratingAvg.toFixed(1) : '—'} label="Rating" />
+          <StatCol
+            value={stats && stats.ratingCount > 0 ? stats.ratingAvg.toFixed(1) : '—'}
+            label={stats && stats.ratingCount > 0 ? `Rating (${stats.ratingCount})` : 'Rating'}
+          />
         </View>
 
         {/* Recent activity */}
@@ -394,7 +393,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: FC.bg },
   scroll: { paddingHorizontal: FS.md + 4, paddingBottom: BOTTOM_CLEAR },
 
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: FS.sm },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: FS.xxl },
   headerText: { flex: 1 },
   chatBtn: {
     width: 40,
@@ -471,16 +470,6 @@ const styles = StyleSheet.create({
   earningsLeft: { flex: 1 },
   earningsValue: { fontFamily: InterFont.light, fontSize: 52, letterSpacing: -1.6, color: FC.text },
   earningsSub: { fontFamily: InterFont.light, fontSize: 14, color: '#8C8C94', marginTop: 6 },
-  withdraw: {
-    height: 46,
-    paddingHorizontal: 26,
-    borderRadius: 15,
-    backgroundColor: FC.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  withdrawText: { fontFamily: InterFont.medium, fontSize: 15, color: '#FFFFFF' },
-  pressed: { opacity: 0.9 },
 
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginTop: FS.xl },
 
