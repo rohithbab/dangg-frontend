@@ -1,8 +1,8 @@
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ChevronLeft } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
@@ -146,9 +146,21 @@ function CoinStoreScreen(): React.ReactElement {
   const coinBalance = useCoinBalance();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const handleBack = useCallback((): void => {
+    navigation.navigate('MaleTabs', { screen: 'Wallet' });
+  }, [navigation]);
+
   useEffect(() => {
     fetchWalletSnapshot().catch(e => logger.warn('Coin store snapshot failed', e));
   }, []);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, [handleBack]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -157,7 +169,7 @@ function CoinStoreScreen(): React.ReactElement {
           accessibilityRole="button"
           accessibilityLabel="Back"
           hitSlop={12}
-          onPress={() => navigation.goBack()}
+          onPress={handleBack}
         >
           <ChevronLeft size={26} color={WC.text} strokeWidth={2} />
         </Pressable>

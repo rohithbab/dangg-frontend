@@ -48,19 +48,23 @@ function navigateFromPush(message: RemoteMessage): void {
         // Realtime once the app is foregrounded — no extra navigation needed.
         break;
       case 'chat_request_accepted':
-        navigationRef.navigate('ChatRequestAccepted' as never, { requestId } as never);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (navigationRef as any).navigate('ChatRequestAccepted', { requestId });
         break;
       case 'chat_request_declined':
-        navigationRef.navigate('ChatRequestDeclined' as never, { requestId } as never);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (navigationRef as any).navigate('ChatRequestDeclined', { requestId });
         break;
       case 'chat_request_expired':
       case 'chat_request_missed':
       case 'chat_request_cancelled':
-        navigationRef.navigate('ChatRequestTimeout' as never, { requestId } as never);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (navigationRef as any).navigate('ChatRequestTimeout', { requestId });
         break;
       default:
         // Verification, payouts, etc. → notifications inbox.
-        navigationRef.navigate('Notifications' as never);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (navigationRef as any).navigate('Notifications');
         break;
     }
   };

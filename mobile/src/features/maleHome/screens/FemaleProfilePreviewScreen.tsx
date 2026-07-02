@@ -1,15 +1,15 @@
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BadgeCheck, ChevronLeft, Clock, Heart, ShieldCheck, Star } from 'lucide-react-native';
+import { BadgeCheck, ChevronLeft, Heart, Star } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
+import { AppRadii } from '@theme/radii';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
-import FeatureCard from '@core/components/FeatureCard';
 import GradientAvatar from '@core/components/GradientAvatar';
 import PrimaryButton from '@core/components/PrimaryButton';
 import { logger } from '@core/utils/logger';
@@ -175,8 +175,6 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
           <Text style={styles.onlineText}>{female.isOnline ? 'Online' : 'Offline'}</Text>
         </View>
 
-        {female.bio ? <Text style={styles.bio}>{female.bio}</Text> : null}
-
         <View style={styles.statRow}>
           <StatCol value={String(female.totalChats)} label="Chats" />
           <View style={styles.statDivider} />
@@ -187,26 +185,20 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
 
         <Text style={styles.priceLine}>{`${female.coinPrice} coins / chat`}</Text>
 
-        <View style={styles.infoCards}>
-          <FeatureCard
-            tint={AppColors.featureGreen}
-            icon={<Clock size={20} color="#0E1A14" strokeWidth={2} />}
-            title="Quick to reply"
-            subtitle={`Usually within ~${female.averageResponseMinutes} min`}
-          />
-          {female.isVerified ? (
-            <FeatureCard
-              tint={AppColors.featureMauve}
-              icon={<ShieldCheck size={20} color="#1A0E18" strokeWidth={2} />}
-              title="Verified profile"
-              subtitle="Identity checked by our team"
-            />
-          ) : null}
-        </View>
+        {female.bio ? (
+          <View style={styles.bioCard}>
+            <Text style={styles.bioTitle}>About Me</Text>
+            <Text style={styles.bioText}>{female.bio}</Text>
+          </View>
+        ) : null}
       </ScrollView>
 
       <View style={[styles.ctaWrap, { paddingBottom: Math.max(insets.bottom, AppSpacing.md) }]}>
-        <PrimaryButton label="Send chat request" onPress={handleSendPress} />
+        <PrimaryButton
+          label="Send chat request"
+          disabled={!female.isOnline}
+          onPress={handleSendPress}
+        />
       </View>
 
       <ChatRequestConfirmModal
@@ -289,14 +281,26 @@ const styles = StyleSheet.create({
   metaDotGap: { width: 4 },
   onlineDot: { width: 7, height: 7, borderRadius: 3.5 },
   onlineText: { fontFamily: InterFont.regular, fontSize: 14, color: AppColors.onSurfaceMuted },
-  bio: {
-    fontFamily: InterFont.light,
-    fontSize: 14.5,
-    lineHeight: 21,
-    color: AppColors.onSurfaceMuted,
-    textAlign: 'center',
-    marginTop: AppSpacing.md,
-    maxWidth: 300,
+  bioCard: {
+    alignSelf: 'stretch',
+    borderRadius: AppRadii.card,
+    backgroundColor: AppColors.surface,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    padding: AppSpacing.lg,
+    marginTop: AppSpacing.lg,
+  },
+  bioTitle: {
+    fontFamily: InterFont.semibold,
+    fontSize: 16,
+    color: AppColors.primary,
+    marginBottom: AppSpacing.sm,
+  },
+  bioText: {
+    fontFamily: InterFont.regular,
+    fontSize: 16.5,
+    lineHeight: 24,
+    color: AppColors.onSurface,
   },
   statRow: {
     flexDirection: 'row',
@@ -325,7 +329,7 @@ const styles = StyleSheet.create({
     color: AppColors.primary,
     marginTop: AppSpacing.xl,
   },
-  infoCards: { alignSelf: 'stretch', gap: 12, marginTop: AppSpacing.lg },
+
   ctaWrap: {
     position: 'absolute',
     left: 0,

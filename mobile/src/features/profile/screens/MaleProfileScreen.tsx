@@ -4,14 +4,12 @@ import {
   Bell,
   Camera,
   ChevronRight,
-  Coins,
   HelpCircle,
   Info,
   LogOut,
   ShieldAlert,
   Trash2,
   User,
-  Wallet as WalletIcon,
 } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -168,14 +166,6 @@ function MaleProfileScreen(): React.ReactElement {
               {profile?.maskedPhone ?? '—'}
             </Text>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Edit profile"
-            onPress={() => navigation.navigate('EditProfile')}
-            style={({ pressed }) => [styles.editPill, pressed && styles.pressed]}
-          >
-            <Text style={styles.editPillText}>Edit</Text>
-          </Pressable>
         </View>
 
         {/* Coins */}
@@ -201,21 +191,6 @@ function MaleProfileScreen(): React.ReactElement {
             icon={mutedIcon(Bell)}
             label="Notifications"
             onPress={() => navigation.navigate('Settings')}
-            last
-          />
-        </Section>
-
-        {/* Coins & payments */}
-        <Section label="COINS & PAYMENTS">
-          <Row
-            icon={mutedIcon(Coins)}
-            label="Buy coins"
-            onPress={() => navigation.navigate('CoinStore')}
-          />
-          <Row
-            icon={mutedIcon(WalletIcon)}
-            label="Wallet & transactions"
-            onPress={() => navigation.navigate('MaleTabs', { screen: 'Wallet' })}
             last
           />
         </Section>
@@ -325,17 +300,6 @@ const styles = StyleSheet.create({
     color: AppColors.onSurfaceMuted,
     marginTop: 3,
   },
-  editPill: {
-    height: 34,
-    paddingHorizontal: 18,
-    borderRadius: 17,
-    backgroundColor: AppColors.surface,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editPillText: { fontFamily: InterFont.medium, fontSize: 13.5, color: AppColors.onSurface },
 
   // Coins
   coinCard: {

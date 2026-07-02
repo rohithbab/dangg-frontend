@@ -47,8 +47,9 @@ function PrimaryButton({
   const isBlocked = disabled || loading;
   const isWhite = variant === 'white';
 
-  const background =
-    variant === 'danger'
+  const background = disabled
+    ? '#2C2C30'
+    : variant === 'danger'
       ? AppColors.error
       : variant === 'success'
         ? AppColors.success
@@ -56,7 +57,11 @@ function PrimaryButton({
           ? '#FFFFFF'
           : AppColors.primary;
 
-  const labelColor = isWhite ? '#000000' : AppColors.onPrimary;
+  const labelColor = disabled
+    ? AppColors.onSurfaceDisabled
+    : isWhite
+      ? '#000000'
+      : AppColors.onPrimary;
 
   return (
     <Pressable
@@ -71,7 +76,7 @@ function PrimaryButton({
         { backgroundColor: background },
         AppShadows.e2,
         { opacity: pressed && !isBlocked ? 0.9 : 1 },
-        isBlocked && styles.disabled,
+        loading && { opacity: 0.8 },
       ]}
     >
       {loading ? (
@@ -97,7 +102,6 @@ const styles = StyleSheet.create({
   },
   full: { alignSelf: 'stretch' },
   inline: { alignSelf: 'flex-start' },
-  disabled: { opacity: 0.5 },
   content: { flexDirection: 'row', alignItems: 'center' },
   icon: { marginRight: AppSpacing.sm },
   label: {

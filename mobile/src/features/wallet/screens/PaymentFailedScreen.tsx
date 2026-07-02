@@ -1,6 +1,6 @@
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -35,10 +35,23 @@ function PaymentFailedScreen(): React.ReactElement {
   const route = useRoute<Route>();
   const { packageId, reason } = route.params;
 
+  const handleGoToStore = useCallback((): void => {
+    const routes = navigation.getState()?.routes;
+    const hasCoinStore = routes?.some(r => r.name === 'CoinStore');
+    if (hasCoinStore) {
+      navigation.navigate('CoinStore');
+    } else {
+      navigation.replace('CoinStore');
+    }
+  }, [navigation]);
+
   useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleGoToStore();
+      return true;
+    });
     return () => sub.remove();
-  }, []);
+  }, [handleGoToStore]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -61,7 +74,7 @@ function PaymentFailedScreen(): React.ReactElement {
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          onPress={() => navigation.replace('CoinStore')}
+          onPress={handleGoToStore}
           style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressedSoft]}
         >
           <Text style={styles.secondaryText}>Change package</Text>

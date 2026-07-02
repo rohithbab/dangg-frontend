@@ -3,6 +3,7 @@ import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Clock } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   AppState,
   BackHandler,
   KeyboardAvoidingView,
@@ -349,7 +350,8 @@ function ChatSessionScreen(): React.ReactElement {
   const [partnerAvatarUrl, setPartnerAvatarUrl] = useState<string | null>(null);
   // True only while the session is active. Old chats opened from the inbox/
   // history load as ended → read-only transcript, no timer, no time limit.
-  const [isLive, setIsLive] = useState(true);
+  const [isLive, setIsLive] = useState(USE_MOCK_DATA);
+  const [loading, setLoading] = useState(!USE_MOCK_DATA);
 
   const [chatEndState, setChatEndState] = useState<'active' | 'confirm' | 'rating' | 'success'>(
     'active',
@@ -689,6 +691,7 @@ function ChatSessionScreen(): React.ReactElement {
       }
       setMessages(history.map(message => mapChatMessage(message, currentUserId)));
       setIsLive(session.status === 'active');
+      setLoading(false);
 
       // Old chat opened from history (already ended): show a read-only
       // transcript and stop. No realtime/poll — and crucially no end-detection,
@@ -834,6 +837,14 @@ function ChatSessionScreen(): React.ReactElement {
 
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loading} edges={['top', 'bottom']}>
+        <ActivityIndicator size="large" color={AppColors.primary} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -1330,6 +1341,12 @@ const styles = StyleSheet.create({
   },
   ratingFeedbackTextSelected: {
     color: AppColors.coinGoldDark,
+  },
+  loading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: AppColors.background,
   },
 });
 

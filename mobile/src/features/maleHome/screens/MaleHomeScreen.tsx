@@ -1,7 +1,7 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
-import { MessageCircle, SlidersHorizontal } from 'lucide-react-native';
+import { MessageCircle } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Platform,
@@ -40,7 +40,6 @@ import { COIN_PACKAGES } from '@features/wallet/constants';
 import { useCoinBalance, useWalletStore } from '@features/wallet/store/walletStore';
 
 import { type AvailableFemale, browseFemales, listFavorites } from '../api/maleHomeApi';
-import FemaleSearchFilterSheet from '../components/FemaleSearchFilterSheet';
 import { useFemaleFiltersStore } from '../store/femaleFiltersStore';
 
 type Nav = NativeStackNavigationProp<MaleAppStackParamList>;
@@ -88,7 +87,6 @@ function MaleHomeScreen(): React.ReactElement {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [initialLoaded, setInitialLoaded] = useState(false);
-  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   const [selected, setSelected] = useState<AvailableFemale | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -342,14 +340,6 @@ function MaleHomeScreen(): React.ReactElement {
 
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Online now</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Filters"
-                hitSlop={10}
-                onPress={() => setFilterSheetOpen(true)}
-              >
-                <SlidersHorizontal size={20} color={AppColors.onSurface} strokeWidth={1.9} />
-              </Pressable>
             </View>
           </View>
         }
@@ -364,11 +354,6 @@ function MaleHomeScreen(): React.ReactElement {
         ListFooterComponent={
           items.length > 0 ? <PaginationLoader isLoading={loadingMore} hasMore={hasMore} /> : null
         }
-      />
-
-      <FemaleSearchFilterSheet
-        visible={filterSheetOpen}
-        onClose={() => setFilterSheetOpen(false)}
       />
 
       {selected ? (

@@ -3,6 +3,7 @@ import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Clock } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   BackHandler,
   KeyboardAvoidingView,
   Platform,
@@ -319,7 +320,8 @@ function FemaleChatSessionScreen(): React.ReactElement {
   const [isTyping, setIsTyping] = useState(USE_MOCK_DATA);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [endDialog, setEndDialog] = useState(false);
-  const [isLive, setIsLive] = useState(true);
+  const [isLive, setIsLive] = useState(USE_MOCK_DATA);
+  const [loading, setLoading] = useState(!USE_MOCK_DATA);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [selfId, setSelfId] = useState<string | null>(null);
   // Real counterpart name (resolved from the session); falls back to the mock
@@ -382,6 +384,7 @@ function FemaleChatSessionScreen(): React.ReactElement {
         return;
       }
       setMessages(history.map(message => mapChatMessage(message, currentUserId)));
+      setLoading(false);
 
       if (!live) {
         return;
@@ -549,6 +552,14 @@ function FemaleChatSessionScreen(): React.ReactElement {
     }
     remoteEndRef.current();
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loading} edges={['top', 'bottom']}>
+        <ActivityIndicator size="large" color={AppColors.primary} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -894,6 +905,12 @@ const styles = StyleSheet.create({
     ...AppTypography.bodyMedium,
     color: AppColors.onSurfaceMuted,
     fontWeight: '500',
+  },
+  loading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: AppColors.background,
   },
 });
 
