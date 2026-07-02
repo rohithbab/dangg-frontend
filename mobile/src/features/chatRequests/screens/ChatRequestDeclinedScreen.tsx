@@ -6,7 +6,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
-import { AppRadii } from '@theme/radii';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -15,11 +14,7 @@ import TextButton from '@core/components/TextButton';
 
 import { type MaleAppStackParamList } from '@navigation/types';
 
-import { useWalletStore } from '@features/wallet/store/walletStore';
-
 type Nav = NativeStackNavigationProp<MaleAppStackParamList, 'ChatRequestDeclined'>;
-
-const REFUND_AMOUNT = 50;
 
 function SadIcon(): React.ReactElement {
   return (
@@ -32,24 +27,14 @@ function SadIcon(): React.ReactElement {
   );
 }
 
-function CheckBadge(): React.ReactElement {
-  return (
-    <Svg width={18} height={18} viewBox="0 0 24 24">
-      <Path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill={AppColors.success} />
-    </Svg>
-  );
-}
-
 /** Outcome screen when the female actively declines the request. */
 function ChatRequestDeclinedScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
-  const credit = useWalletStore(s => s.credit);
 
   useEffect(() => {
-    credit(REFUND_AMOUNT);
     const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
     return () => sub.remove();
-  }, [credit]);
+  }, []);
 
   const goHome = (): void => {
     navigation.popToTop();
@@ -63,10 +48,6 @@ function ChatRequestDeclinedScreen(): React.ReactElement {
         </View>
         <Text style={styles.title}>Request Declined</Text>
         <Text style={styles.subtitle}>She isn't available right now</Text>
-        <View style={styles.refundBox}>
-          <CheckBadge />
-          <Text style={styles.refundText}>{`${REFUND_AMOUNT} coins refunded to your wallet`}</Text>
-        </View>
       </View>
       <View style={styles.footer}>
         <PrimaryButton label="Try Someone Else" onPress={goHome} />
@@ -102,21 +83,6 @@ const styles = StyleSheet.create({
     color: AppColors.onSurfaceMuted,
     marginTop: AppSpacing.xs,
     textAlign: 'center',
-  },
-  refundBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: AppSpacing.xs,
-    marginTop: AppSpacing.lg,
-    paddingHorizontal: AppSpacing.md,
-    paddingVertical: AppSpacing.sm,
-    backgroundColor: AppColors.successLight,
-    borderRadius: AppRadii.md,
-  },
-  refundText: {
-    ...AppTypography.bodyMedium,
-    color: AppColors.success,
-    fontWeight: '600',
   },
   footer: {
     padding: AppSpacing.md,

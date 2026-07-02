@@ -41,7 +41,6 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
 
   const coinBalance = useWalletStore(s => s.coinBalance);
-  const spend = useWalletStore(s => s.spend);
 
   const [female, setFemale] = useState<AvailableFemale | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -84,20 +83,18 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
     }
     setSubmitting(true);
     try {
-      spend(female.coinPrice);
       const { requestId } = await sendChatRequest({
         femaleId: female.id,
-        coinCost: female.coinPrice,
+        coinCost: 0,
       });
       setConfirmOpen(false);
       navigation.replace('ChatRequestSent', { requestId, femaleName: female.name });
     } catch (e) {
       logger.warn('sendChatRequest failed', e);
-      useWalletStore.getState().credit(female.coinPrice);
     } finally {
       setSubmitting(false);
     }
-  }, [female, navigation, spend, submitting]);
+  }, [female, navigation, submitting]);
 
   if (!female) {
     return (
@@ -182,8 +179,6 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
           <View style={styles.statDivider} />
           <StatCol value={`~${female.averageResponseMinutes}m`} label="Replies in" />
         </View>
-
-        <Text style={styles.priceLine}>{`${female.coinPrice} coins / chat`}</Text>
 
         {female.bio ? (
           <View style={styles.bioCard}>
@@ -323,12 +318,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   statDivider: { width: StyleSheet.hairlineWidth, height: 30, backgroundColor: AppColors.border },
-  priceLine: {
-    fontFamily: InterFont.medium,
-    fontSize: 15,
-    color: AppColors.primary,
-    marginTop: AppSpacing.xl,
-  },
 
   ctaWrap: {
     position: 'absolute',

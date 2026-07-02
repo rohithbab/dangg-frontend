@@ -28,7 +28,6 @@ function PersonRow({
   name,
   age,
   rating,
-  coinPrice,
   imageUrl,
   seed,
   onPress,
@@ -55,8 +54,6 @@ function PersonRow({
         <View style={styles.metaRow}>
           <Star size={12} color={AppColors.onSurfaceMuted} fill={AppColors.onSurfaceMuted} />
           <Text style={styles.rating}>{rating.toFixed(1)}</Text>
-          <Text style={styles.dotSep}>·</Text>
-          <Text style={styles.price}>{`${coinPrice} coins / chat`}</Text>
         </View>
       </View>
       <Pressable
@@ -97,17 +94,7 @@ const styles = StyleSheet.create({
     color: AppColors.onSurfaceMuted,
     marginLeft: 5,
   },
-  dotSep: {
-    fontFamily: InterFont.light,
-    fontSize: 12.5,
-    color: AppColors.onSurfaceMuted,
-    marginHorizontal: 7,
-  },
-  price: {
-    fontFamily: InterFont.light,
-    fontSize: 12.5,
-    color: '#ED80BD',
-  },
+
   chatBtn: {
     width: 72,
     height: 38,

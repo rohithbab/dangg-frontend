@@ -95,7 +95,7 @@ const MOCK_MESSAGES: ReadonlyArray<MockMessage> = [
   },
 ];
 
-const COINS_PER_MESSAGE_EARNED = 5;
+const REVENUE_PER_SECOND = 0.04;
 const MOCK_MALE_NAME = 'Amit';
 
 function formatMessageTime(iso: string): string {
@@ -472,7 +472,7 @@ function FemaleChatSessionScreen(): React.ReactElement {
     };
   }, [route.params.requestId]);
 
-  const coinsEarned = messages.filter(m => m.kind === 'sent').length * COINS_PER_MESSAGE_EARNED;
+  const earnings = (secondsElapsed * REVENUE_PER_SECOND).toFixed(2);
 
   const handleSend = async (): Promise<void> => {
     const text = inputText.trim();
@@ -583,11 +583,11 @@ function FemaleChatSessionScreen(): React.ReactElement {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
-        <View style={styles.earnPill}>
-          <Text
-            style={styles.earnPillText}
-          >{`+₹${COINS_PER_MESSAGE_EARNED} per reply you send`}</Text>
-        </View>
+        {isLive ? (
+          <View style={styles.earnPill}>
+            <Text style={styles.earnPillText}>+₹0.04 per second</Text>
+          </View>
+        ) : null}
 
         <ScrollView
           ref={scrollRef}
@@ -647,7 +647,7 @@ function FemaleChatSessionScreen(): React.ReactElement {
       <ConfirmationDialog
         visible={endDialog}
         title="End chat?"
-        body={`You'll keep the ₹${coinsEarned} you earned this session.`}
+        body={`You'll keep the ₹${earnings} you earned this session.`}
         confirmLabel="End chat"
         cancelLabel="Keep chatting"
         destructive

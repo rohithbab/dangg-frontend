@@ -74,7 +74,7 @@ function greetingForNow(): string {
 function MaleHomeScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const coinBalance = useCoinBalance();
-  const spend = useWalletStore(s => s.spend);
+
   const session = useSessionStore(s => s.session);
   const firstName = firstNameFromSession(session?.user.user_metadata?.name);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -204,12 +204,15 @@ function MaleHomeScreen(): React.ReactElement {
     if (!selected || submitting) {
       return;
     }
+    if (coinBalance < selected.coinPrice) {
+      setInsufficientOpen(true);
+      return;
+    }
     setSubmitting(true);
     try {
-      spend(selected.coinPrice);
       const { requestId, newCoinBalance } = await sendChatRequest({
         femaleId: selected.id,
-        coinCost: selected.coinPrice,
+        coinCost: 0,
       });
       if (newCoinBalance !== null) {
         useWalletStore.getState().setBalance(newCoinBalance);
@@ -218,11 +221,10 @@ function MaleHomeScreen(): React.ReactElement {
       navigation.navigate('ChatRequestSent', { requestId, femaleName: selected.name });
     } catch (e) {
       logger.warn('sendChatRequest failed', e);
-      useWalletStore.getState().credit(selected.coinPrice);
     } finally {
       setSubmitting(false);
     }
-  }, [selected, submitting, spend, navigation]);
+  }, [selected, submitting, coinBalance, navigation]);
 
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<AvailableFemale>): React.ReactElement => (

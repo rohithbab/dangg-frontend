@@ -27,7 +27,6 @@ function ChatRequestConfirmModal({
   visible,
   femaleName,
   femaleAvatarUrl,
-  coinCost,
   currentBalance,
   submitting = false,
   onCancel,
@@ -55,9 +54,7 @@ function ChatRequestConfirmModal({
           </View>
 
           <Text style={styles.title}>{`Chat with ${femaleName}`}</Text>
-          <Text style={styles.cost}>
-            This costs <Text style={styles.costValue}>{`${coinCost} coins`}</Text>
-          </Text>
+
           <Text style={styles.balance}>{`Balance: ${currentBalance.toLocaleString()}`}</Text>
 
           <View style={styles.cta}>
@@ -119,13 +116,7 @@ const styles = StyleSheet.create({
     color: AppColors.onSurface,
     marginTop: AppSpacing.md,
   },
-  cost: {
-    fontFamily: InterFont.regular,
-    fontSize: 14.5,
-    color: AppColors.onSurfaceMuted,
-    marginTop: 6,
-  },
-  costValue: { fontFamily: InterFont.medium, color: AppColors.primary },
+
   balance: {
     fontFamily: InterFont.regular,
     fontSize: 13,

@@ -100,7 +100,6 @@ const MOCK_MESSAGES: ReadonlyArray<MockMessage> = [
 ];
 
 const MOCK_FEMALE_NAME = 'Priya';
-const COINS_PER_MESSAGE = 5;
 
 function formatMessageTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -871,7 +870,7 @@ function ChatSessionScreen(): React.ReactElement {
         {isLive ? (
           <View style={styles.coinPill}>
             <CoinIcon size={12} />
-            <Text style={styles.coinPillText}>{COINS_PER_MESSAGE} coins per message</Text>
+            <Text style={styles.coinPillText}>1 coin per 3 seconds</Text>
           </View>
         ) : null}
 

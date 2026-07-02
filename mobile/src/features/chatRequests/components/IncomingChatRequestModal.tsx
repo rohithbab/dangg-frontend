@@ -138,10 +138,6 @@ function IncomingChatRequestModal(): React.ReactElement | null {
         <Text style={styles.name}>{displayRequest.requesterName}</Text>
         <Text style={styles.wants}>wants to chat</Text>
 
-        <View style={styles.offerPill}>
-          <Text style={styles.offerText}>{`${displayRequest.coinAmount} coins`}</Text>
-        </View>
-
         <Text style={styles.countdown}>{`Auto-declines in ${formatCountdown(secondsLeft)}`}</Text>
 
         <View style={styles.actions}>
@@ -219,16 +215,7 @@ const styles = StyleSheet.create({
     color: AppColors.onSurfaceMuted,
     marginTop: 4,
   },
-  offerPill: {
-    backgroundColor: AppColors.surface,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginTop: 18,
-  },
-  offerText: { fontFamily: InterFont.medium, fontSize: 14, color: AppColors.onSurface },
+
   countdown: {
     fontFamily: InterFont.regular,
     fontSize: 13,
