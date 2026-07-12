@@ -93,14 +93,14 @@ function VerificationInfoScreen(): React.ReactElement {
         <Text style={styles.title}>Get verified</Text>
 
         <View style={styles.hero}>
-          <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
+          <Svg style={StyleSheet.absoluteFill} preserveAspectRatio="none" viewBox="0 0 1 1">
             <Defs>
               <LinearGradient id="verifyHero" x1="0" y1="0" x2="1" y2="1">
                 <Stop offset="0" stopColor={AppColors.featureGreen} stopOpacity={0.55} />
                 <Stop offset="1" stopColor={AppColors.featureMauve} stopOpacity={0.55} />
               </LinearGradient>
             </Defs>
-            <Rect width="100%" height="100%" rx={AppRadii.card} fill="url(#verifyHero)" />
+            <Rect x="0" y="0" width="1" height="1" fill="url(#verifyHero)" />
           </Svg>
           <View style={styles.heroIcon}>
             <ShieldCheck size={20} color="#FFFFFF" strokeWidth={2} />

@@ -1,13 +1,13 @@
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { UserX } from 'lucide-react-native';
 import React, { useEffect } from 'react';
 import { BackHandler, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppSpacing } from '@theme/spacing';
-import { AppTypography } from '@theme/typography';
+import { InterFont } from '@theme/typography';
 
 import PrimaryButton from '@core/components/PrimaryButton';
 import TextButton from '@core/components/TextButton';
@@ -15,17 +15,6 @@ import TextButton from '@core/components/TextButton';
 import { type MaleAppStackParamList } from '@navigation/types';
 
 type Nav = NativeStackNavigationProp<MaleAppStackParamList, 'ChatRequestDeclined'>;
-
-function SadIcon(): React.ReactElement {
-  return (
-    <Svg width={80} height={80} viewBox="0 0 24 24">
-      <Path
-        d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-3.5-9.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5S7 8.17 7 9s.67 1.5 1.5 1.5zm7 0c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5S14 8.17 14 9s.67 1.5 1.5 1.5zM12 14c-2.33 0-4.31 1.46-5.11 3.5h10.22c-.8-2.04-2.78-3.5-5.11-3.5z"
-        fill={AppColors.onSurfaceMuted}
-      />
-    </Svg>
-  );
-}
 
 /** Outcome screen when the female actively declines the request. */
 function ChatRequestDeclinedScreen(): React.ReactElement {
@@ -44,14 +33,16 @@ function ChatRequestDeclinedScreen(): React.ReactElement {
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.body}>
         <View style={styles.iconCircle}>
-          <SadIcon />
+          <UserX size={44} color={AppColors.error} strokeWidth={1.8} />
         </View>
-        <Text style={styles.title}>Request Declined</Text>
-        <Text style={styles.subtitle}>She isn't available right now</Text>
+        <Text style={styles.title}>Request declined</Text>
+        <Text style={styles.subtitle}>
+          She isn't available to chat right now. Try someone else who's online.
+        </Text>
       </View>
       <View style={styles.footer}>
-        <PrimaryButton label="Try Someone Else" onPress={goHome} />
-        <TextButton label="Back to Home" onPress={goHome} />
+        <PrimaryButton label="Try someone else" onPress={goHome} />
+        <TextButton label="Back to home" onPress={goHome} />
       </View>
     </SafeAreaView>
   );
@@ -63,29 +54,35 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: AppSpacing.lg,
+    paddingHorizontal: AppSpacing.xl,
   },
   iconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: AppColors.surfaceVariant,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: AppColors.errorLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    ...AppTypography.headlineLarge,
-    color: AppColors.primaryDark,
-    marginTop: AppSpacing.lg,
+    fontFamily: InterFont.semibold,
+    fontSize: 24,
+    letterSpacing: -0.5,
+    color: AppColors.onSurface,
+    marginTop: AppSpacing.xl,
   },
   subtitle: {
-    ...AppTypography.bodyLarge,
+    fontFamily: InterFont.regular,
+    fontSize: 15,
+    lineHeight: 22,
     color: AppColors.onSurfaceMuted,
-    marginTop: AppSpacing.xs,
+    marginTop: AppSpacing.sm,
     textAlign: 'center',
+    maxWidth: 300,
   },
   footer: {
-    padding: AppSpacing.md,
+    paddingHorizontal: AppSpacing.lg,
+    paddingBottom: AppSpacing.md,
     gap: AppSpacing.xs,
     alignItems: 'center',
   },

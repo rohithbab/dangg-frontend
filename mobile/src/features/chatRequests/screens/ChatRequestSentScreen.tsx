@@ -11,6 +11,7 @@ import { InterFont } from '@theme/typography';
 
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import GradientAvatar from '@core/components/GradientAvatar';
+import { CHAT_REQUEST_AUTO_DECLINE_S } from '@core/config/constants';
 import { USE_MOCK_DATA } from '@core/config/env';
 import { duration as fmtDuration } from '@core/utils/formatters';
 import { logger } from '@core/utils/logger';
@@ -26,7 +27,8 @@ import {
 type Nav = NativeStackNavigationProp<MaleAppStackParamList, 'ChatRequestSent'>;
 type Route = RouteProp<MaleAppStackParamList, 'ChatRequestSent'>;
 
-const REQUEST_EXPIRY_S = 300;
+// Mirror the female-side auto-decline window so both ends show the same clock.
+const REQUEST_EXPIRY_S = CHAT_REQUEST_AUTO_DECLINE_S;
 const POLL_INTERVAL_MS = 3000;
 
 /**

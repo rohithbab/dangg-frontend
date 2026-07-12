@@ -114,7 +114,7 @@ function AddUpiScreen(): React.ReactElement {
           {error ? (
             <Text style={styles.errorText}>{error}</Text>
           ) : (
-            <Text style={styles.hint}>We'll send ₹1 to verify.</Text>
+            <Text style={styles.hint}>Double-check your UPI ID before saving.</Text>
           )}
         </View>
 
