@@ -1,6 +1,6 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { MessageCircle } from 'lucide-react-native';
+import { ChevronRight, MessageCircle } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -290,6 +290,18 @@ function FemaleHomeScreen(): React.ReactElement {
         {/* Recent activity */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Recent activity</Text>
+          {activity.length > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="See all activity"
+              hitSlop={8}
+              onPress={() => navigation.navigate('RecentActivity')}
+              style={({ pressed }) => [styles.seeAll, pressed && styles.seeAllPressed]}
+            >
+              <Text style={styles.seeAllText}>See all</Text>
+              <ChevronRight size={15} color={FC.textDim} strokeWidth={2} />
+            </Pressable>
+          ) : null}
         </View>
 
         {activity.length === 0 ? (
@@ -479,8 +491,17 @@ const styles = StyleSheet.create({
   statValue: { fontFamily: InterFont.light, fontSize: 24, color: FC.text },
   statLabel: { fontFamily: InterFont.light, fontSize: 12, color: '#8C8C94', marginTop: 8 },
 
-  sectionHeader: { marginTop: FS.xl, marginBottom: FS.md },
+  sectionHeader: {
+    marginTop: FS.xl,
+    marginBottom: FS.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   sectionTitle: { fontFamily: InterFont.medium, fontSize: 15, color: FC.text },
+  seeAll: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  seeAllPressed: { opacity: 0.6 },
+  seeAllText: { fontFamily: InterFont.regular, fontSize: 13, color: FC.textDim },
 
   activityCard: {
     backgroundColor: '#0E0E10',

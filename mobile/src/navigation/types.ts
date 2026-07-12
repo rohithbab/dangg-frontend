@@ -34,6 +34,7 @@ export type FemaleTabParamList = {
 export type FemaleAppStackParamList = {
   FemaleTabs: NavigatorScreenParams<FemaleTabParamList>;
   ChatsInbox: undefined;
+  RecentActivity: undefined;
   Notifications: undefined;
   BankUpiUpdate: undefined;
   HelpSupport: undefined;

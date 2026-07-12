@@ -18,6 +18,7 @@ import PayoutRequestScreen from '@features/earnings/screens/PayoutRequestScreen'
 import ReviewWithdrawalScreen from '@features/earnings/screens/ReviewWithdrawalScreen';
 import WithdrawAmountScreen from '@features/earnings/screens/WithdrawAmountScreen';
 import WithdrawResultScreen from '@features/earnings/screens/WithdrawResultScreen';
+import RecentActivityScreen from '@features/femaleHome/screens/RecentActivityScreen';
 import NotificationsScreen from '@features/notifications/screens/NotificationsScreen';
 import AboutAppScreen from '@features/profile/screens/AboutAppScreen';
 import DeleteAccountConfirmScreen from '@features/profile/screens/DeleteAccountConfirmScreen';
@@ -42,6 +43,7 @@ function FemaleAppStack(): React.ReactElement {
     <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <Stack.Screen name="FemaleTabs" component={FemaleTabNavigator} />
       <Stack.Screen name="ChatsInbox" component={ChatsInboxScreen} />
+      <Stack.Screen name="RecentActivity" component={RecentActivityScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="BankUpiUpdate" component={FemaleBankUpiUpdateScreen} />
       <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
