@@ -229,12 +229,14 @@ export async function sendAvailabilityHeartbeat(): Promise<void> {
   }
 }
 
-/** Last ~5 user-facing events for the Recent Activity feed. */
-export async function getRecentActivity(): Promise<ReadonlyArray<RecentActivity>> {
+/** Last N user-facing events for the Recent Activity feed (default 5 for the home card). */
+export async function getRecentActivity(limit = 5): Promise<ReadonlyArray<RecentActivity>> {
   if (USE_MOCK_DATA) {
-    return MOCK_ACTIVITIES();
+    return MOCK_ACTIVITIES().slice(0, limit);
   }
-  const { data, error } = await getSupabaseClient().rpc('female_recent_activity', { limit_: 5 });
+  const { data, error } = await getSupabaseClient().rpc('female_recent_activity', {
+    limit_: limit,
+  });
   if (error) {
     throw mapSupabaseError(error);
   }

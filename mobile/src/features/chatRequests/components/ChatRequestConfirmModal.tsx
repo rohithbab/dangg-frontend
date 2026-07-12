@@ -56,6 +56,7 @@ function ChatRequestConfirmModal({
           <Text style={styles.title}>{`Chat with ${femaleName}`}</Text>
 
           <Text style={styles.balance}>{`Balance: ${currentBalance.toLocaleString()}`}</Text>
+          <Text style={styles.rateHint}>Billed by time · 1 coin / 3s · nothing charged to send</Text>
 
           <View style={styles.cta}>
             <PrimaryButton label="Send request" onPress={onConfirm} loading={submitting} />
@@ -122,6 +123,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: AppColors.onSurfaceMuted,
     marginTop: 3,
+  },
+  rateHint: {
+    fontFamily: InterFont.regular,
+    fontSize: 11.5,
+    color: AppColors.onSurfaceMuted,
+    marginTop: 6,
+    textAlign: 'center',
   },
   cta: { alignSelf: 'stretch', marginTop: AppSpacing.lg },
   cancelBtn: { alignItems: 'center', paddingVertical: 14, marginTop: 2 },

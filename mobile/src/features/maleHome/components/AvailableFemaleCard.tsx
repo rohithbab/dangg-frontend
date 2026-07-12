@@ -126,7 +126,8 @@ function AvailableFemaleCard({
             </View>
             <View style={styles.coinPill}>
               <CoinIcon size={13} />
-              <Text style={styles.coinPillText}>{String(female.coinPrice)}</Text>
+              {/* Duration billing: everyone is 1 coin / 3s, not a flat per-chat price. */}
+              <Text style={styles.coinPillText}>1/3s</Text>
             </View>
           </View>
         </View>
