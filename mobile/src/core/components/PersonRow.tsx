@@ -20,6 +20,8 @@ export type PersonRowProps = {
   imageUrl?: string | null;
   /** Seed for the avatar gradient. Defaults to the name. */
   seed?: string;
+  /** She is in an active chat — show a "Busy" state and disable the CTA. */
+  isBusy?: boolean;
   onPress?: () => void;
   onChat?: () => void;
 };
@@ -30,6 +32,7 @@ function PersonRow({
   rating,
   imageUrl,
   seed,
+  isBusy,
   onPress,
   onChat,
 }: PersonRowProps): React.ReactElement {
@@ -54,15 +57,28 @@ function PersonRow({
         <View style={styles.metaRow}>
           <Star size={12} color={AppColors.onSurfaceMuted} fill={AppColors.onSurfaceMuted} />
           <Text style={styles.rating}>{rating.toFixed(1)}</Text>
+          {isBusy ? (
+            <View style={styles.busyPill}>
+              <View style={styles.busyDot} />
+              <Text style={styles.busyText}>Busy</Text>
+            </View>
+          ) : null}
         </View>
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Chat with ${name}`}
-        onPress={onChat}
-        style={({ pressed }) => [styles.chatBtn, pressed && styles.chatPressed]}
+        accessibilityLabel={isBusy ? `${name} is busy` : `Chat with ${name}`}
+        onPress={isBusy ? undefined : onChat}
+        disabled={isBusy}
+        style={({ pressed }) => [
+          styles.chatBtn,
+          isBusy && styles.chatBtnBusy,
+          pressed && !isBusy && styles.chatPressed,
+        ]}
       >
-        <Text style={styles.chatLabel}>Chat</Text>
+        <Text style={[styles.chatLabel, isBusy && styles.chatLabelBusy]}>
+          {isBusy ? 'Busy' : 'Chat'}
+        </Text>
       </Pressable>
     </Pressable>
   );
@@ -95,6 +111,24 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
 
+  busyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  busyDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: AppColors.warning,
+    marginRight: 4,
+  },
+  busyText: {
+    fontFamily: InterFont.medium,
+    fontSize: 12,
+    color: AppColors.warning,
+  },
+
   chatBtn: {
     width: 72,
     height: 38,
@@ -103,12 +137,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  chatBtnBusy: { backgroundColor: AppColors.surfaceVariant },
   chatPressed: { opacity: 0.88 },
   chatLabel: {
     fontFamily: InterFont.medium,
     fontSize: 14.5,
     color: '#FFFFFF',
   },
+  chatLabelBusy: { color: AppColors.onSurfaceMuted },
 });
 
 export default PersonRow;

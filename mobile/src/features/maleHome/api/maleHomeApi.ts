@@ -25,6 +25,8 @@ export type AvailableFemale = {
   averageResponseMinutes: number;
   bio: string;
   isFavorited: boolean;
+  /** True while she is in an active chat — cannot receive new requests. */
+  isBusy?: boolean;
 };
 
 const MOCK_FEMALES: AvailableFemale[] = [

@@ -4,6 +4,7 @@ import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { MessageCircle } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Platform,
   Pressable,
   RefreshControl,
@@ -25,6 +26,7 @@ import PaginationLoader from '@core/components/PaginationLoader';
 import PersonRow from '@core/components/PersonRow';
 import { BOTTOM_NAV_HEIGHT } from '@core/config/constants';
 import { useRealtimeChannel } from '@core/hooks/useRealtimeChannel';
+import { AppException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
 
 import { type MaleAppStackParamList } from '@navigation/types';
@@ -221,6 +223,12 @@ function MaleHomeScreen(): React.ReactElement {
       navigation.navigate('ChatRequestSent', { requestId, femaleName: selected.name });
     } catch (e) {
       logger.warn('sendChatRequest failed', e);
+      setConfirmOpen(false);
+      // Surface the reason (e.g. "She is busy in another chat…") instead of
+      // silently swallowing it, so the male knows to try again later.
+      const message =
+        e instanceof AppException ? e.message : 'Could not send the request. Please try again.';
+      Alert.alert('Couldn’t send request', message);
     } finally {
       setSubmitting(false);
     }
@@ -235,6 +243,7 @@ function MaleHomeScreen(): React.ReactElement {
           rating={item.rating}
           coinPrice={item.coinPrice}
           imageUrl={item.imageUrl}
+          isBusy={item.isBusy}
           onPress={() => openProfile(item)}
           onChat={() => handleChatPress(item)}
         />
@@ -308,37 +317,39 @@ function MaleHomeScreen(): React.ReactElement {
         }
         ListHeaderComponent={
           <View>
+            <Text style={styles.favLabel}>Favorites</Text>
             {favorites.length > 0 ? (
-              <>
-                <Text style={styles.favLabel}>Favorites</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.rail}
-                >
-                  {favorites.map(f => (
-                    <Pressable
-                      key={f.id}
-                      accessibilityRole="button"
-                      accessibilityLabel={f.name}
-                      onPress={() => openProfile(f)}
-                      style={styles.railItem}
-                    >
-                      <GradientAvatar
-                        initials={f.name.slice(0, 1).toUpperCase()}
-                        seed={f.id}
-                        uri={f.imageUrl}
-                        size={56}
-                        online={f.isOnline}
-                      />
-                      <Text style={styles.railName} numberOfLines={1}>
-                        {f.name}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </>
-            ) : null}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.rail}
+              >
+                {favorites.map(f => (
+                  <Pressable
+                    key={f.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={f.name}
+                    onPress={() => openProfile(f)}
+                    style={styles.railItem}
+                  >
+                    <GradientAvatar
+                      initials={f.name.slice(0, 1).toUpperCase()}
+                      seed={f.id}
+                      uri={f.imageUrl}
+                      size={56}
+                      online={f.isOnline}
+                    />
+                    <Text style={styles.railName} numberOfLines={1}>
+                      {f.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.favEmpty}>
+                <Text style={styles.favEmptyText}>No favorites added yet</Text>
+              </View>
+            )}
 
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Online now</Text>
@@ -450,6 +461,15 @@ const styles = StyleSheet.create({
     marginTop: AppSpacing.xl,
   },
   rail: { gap: 12, paddingTop: AppSpacing.md, paddingRight: AppSpacing.lg },
+  favEmpty: {
+    paddingTop: AppSpacing.md,
+    paddingBottom: AppSpacing.xs,
+  },
+  favEmptyText: {
+    fontFamily: InterFont.light,
+    fontSize: 14,
+    color: '#8C8C94',
+  },
   railItem: { width: 56, alignItems: 'center' },
   railName: {
     fontFamily: InterFont.light,

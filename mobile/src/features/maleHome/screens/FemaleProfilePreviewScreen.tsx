@@ -2,7 +2,7 @@ import { type RouteProp, useNavigation, useRoute } from '@react-navigation/nativ
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BadgeCheck, ChevronLeft, Heart, Star } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
@@ -12,6 +12,7 @@ import { InterFont } from '@theme/typography';
 
 import GradientAvatar from '@core/components/GradientAvatar';
 import PrimaryButton from '@core/components/PrimaryButton';
+import { AppException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
 
 import { type MaleAppStackParamList } from '@navigation/types';
@@ -91,6 +92,10 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
       navigation.replace('ChatRequestSent', { requestId, femaleName: female.name });
     } catch (e) {
       logger.warn('sendChatRequest failed', e);
+      setConfirmOpen(false);
+      const message =
+        e instanceof AppException ? e.message : 'Could not send the request. Please try again.';
+      Alert.alert('Couldn’t send request', message);
     } finally {
       setSubmitting(false);
     }
