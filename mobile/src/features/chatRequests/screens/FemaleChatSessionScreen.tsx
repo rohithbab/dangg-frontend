@@ -1,11 +1,14 @@
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Clock } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import { Clock, Play, Plus } from 'lucide-react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  AppState,
   BackHandler,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -15,6 +18,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -36,16 +40,22 @@ import { AppTypography } from '@theme/typography';
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import GradientAvatar from '@core/components/GradientAvatar';
 import { USE_MOCK_DATA } from '@core/config/env';
+import { isBareMediaKey } from '@core/network/mediaService';
 import { getSupabaseClient } from '@core/network/supabaseClient';
 import { logger } from '@core/utils/logger';
 
 import { type FemaleAppStackParamList } from '@navigation/types';
 
+import { pickChatMedia, uploadAndSendChatMedia, type ChatMediaSource } from '../api/chatMedia';
+import { useSignedChatMedia } from '../hooks/useSignedChatMedia';
 import {
   type ChatMessage,
+  type ChatMessageType,
+  chatSessionHeartbeat,
+  chatSessionSetBackground,
   endChatSession,
   getChatSessionForRequest,
-  getChatSessionStatus,
+  getChatSessionLiveness,
   listChatMessages,
   sendChatMessage,
 } from '../api/chatRequestApi';
@@ -60,6 +70,11 @@ type MockMessage = {
   kind: MessageKind;
   text: string;
   time: string;
+  /** 'image' | 'video' for media messages; undefined for plain text. */
+  mediaKind?: 'image' | 'video';
+  mediaUrl?: string | null;
+  /** True while the local optimistic bubble is still uploading. */
+  uploading?: boolean;
 };
 
 const MOCK_MESSAGES: ReadonlyArray<MockMessage> = [
@@ -97,6 +112,13 @@ const MOCK_MESSAGES: ReadonlyArray<MockMessage> = [
 
 const REVENUE_PER_SECOND = 0.04;
 const MOCK_MALE_NAME = 'Amit';
+// Presence heartbeat cadence, and how long a peer may be unseen before the
+// surviving side treats them as gone (force-closed / crashed) and ends the chat.
+const HEARTBEAT_MS = 7000;
+const PEER_STALE_SECONDS = 35;
+// A backgrounded peer is "stepped away" (timer pauses, session held open) until
+// this grace elapses; beyond it — or a force-close with no marker — we end.
+const PEER_BACKGROUND_GRACE_SECONDS = 90;
 
 function formatMessageTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -108,6 +130,8 @@ function mapChatMessage(message: ChatMessage, selfId: string): MockMessage {
     kind: message.senderId === selfId ? 'sent' : 'received',
     text: message.body,
     time: formatMessageTime(message.sentAt),
+    mediaKind: message.messageType === 'text' ? undefined : message.messageType,
+    mediaUrl: message.mediaUrl,
   };
 }
 
@@ -189,6 +213,48 @@ function DoubleCheckIcon({ size = 12, color = 'rgba(255,255,255,0.7)' }): React.
   );
 }
 
+function MediaContent({ msg }: { msg: MockMessage }): React.ReactElement {
+  const openMedia = (): void => {
+    if (msg.mediaUrl && !msg.uploading) {
+      void Linking.openURL(msg.mediaUrl).catch(e => logger.warn('open media failed', e));
+    }
+  };
+
+  if (msg.mediaKind === 'video') {
+    return (
+      <Pressable onPress={openMedia} style={styles.mediaTile}>
+        <View style={styles.videoTile}>
+          {msg.uploading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Play size={26} color="#FFFFFF" fill="#FFFFFF" />
+          )}
+          <Text style={styles.videoLabel}>{msg.uploading ? 'Uploading…' : 'Video'}</Text>
+        </View>
+      </Pressable>
+    );
+  }
+
+  return (
+    <Pressable onPress={openMedia} style={styles.mediaTile}>
+      {msg.mediaUrl ? (
+        <FastImage
+          source={{ uri: msg.mediaUrl }}
+          style={styles.mediaImage}
+          resizeMode={FastImage.resizeMode.cover}
+        />
+      ) : (
+        <View style={[styles.mediaImage, styles.mediaPlaceholder]} />
+      )}
+      {msg.uploading ? (
+        <View style={styles.mediaUploadingOverlay}>
+          <ActivityIndicator color="#FFFFFF" />
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
 function MessageBubble({ msg, index }: { msg: MockMessage; index: number }): React.ReactElement {
   const opacity = useSharedValue(0);
   const tx = useSharedValue(msg.kind === 'sent' ? 20 : -20);
@@ -208,17 +274,27 @@ function MessageBubble({ msg, index }: { msg: MockMessage; index: number }): Rea
   }));
 
   const isSent = msg.kind === 'sent';
+  const hasMedia = msg.mediaKind !== undefined;
 
   return (
     <Animated.View
       style={[styles.msgRow, isSent ? styles.msgRowSent : styles.msgRowReceived, style]}
     >
-      <View style={[styles.bubble, isSent ? styles.bubbleSent : styles.bubbleReceived]}>
-        <Text
-          style={[styles.bubbleText, isSent ? styles.bubbleTextSent : styles.bubbleTextReceived]}
-        >
-          {msg.text}
-        </Text>
+      <View
+        style={[
+          styles.bubble,
+          isSent ? styles.bubbleSent : styles.bubbleReceived,
+          hasMedia && styles.bubbleMedia,
+        ]}
+      >
+        {hasMedia ? <MediaContent msg={msg} /> : null}
+        {msg.text ? (
+          <Text
+            style={[styles.bubbleText, isSent ? styles.bubbleTextSent : styles.bubbleTextReceived]}
+          >
+            {msg.text}
+          </Text>
+        ) : null}
         <View style={styles.bubbleTimeRow}>
           <Text style={[styles.timeText, isSent ? styles.timeTextSent : styles.timeTextReceived]}>
             {msg.time}
@@ -317,11 +393,27 @@ function FemaleChatSessionScreen(): React.ReactElement {
   const scrollRef = useRef<ScrollView>(null);
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState<MockMessage[]>(USE_MOCK_DATA ? [...MOCK_MESSAGES] : []);
+  // Chat media is stored as bare R2 object keys (private bucket). Resolve them
+  // to short-lived presigned GET URLs so FastImage can display the image/video.
+  const signedMedia = useSignedChatMedia(messages.map(m => m.mediaUrl));
+  const displayMessages = useMemo(
+    () =>
+      messages.map(m =>
+        isBareMediaKey(m.mediaUrl) && signedMedia[m.mediaUrl]
+          ? { ...m, mediaUrl: signedMedia[m.mediaUrl] }
+          : m,
+      ),
+    [messages, signedMedia],
+  );
   const [isTyping, setIsTyping] = useState(USE_MOCK_DATA);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
+  // The male stepped away (backgrounded) — pause the timer + show a banner.
+  const [peerAway, setPeerAway] = useState(false);
   const [endDialog, setEndDialog] = useState(false);
   const [isLive, setIsLive] = useState(USE_MOCK_DATA);
   const [loading, setLoading] = useState(!USE_MOCK_DATA);
+  // Set when the chat can't be opened so we show an error, not an infinite spinner.
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [selfId, setSelfId] = useState<string | null>(null);
   // Real counterpart name (resolved from the session); falls back to the mock
@@ -340,12 +432,29 @@ function FemaleChatSessionScreen(): React.ReactElement {
   }, []);
 
   useEffect(() => {
-    if (!isLive) {
+    if (!isLive || peerAway) {
       return;
     }
     const t = setInterval(() => setSecondsElapsed(s => s + 1), 1000);
     return () => clearInterval(t);
-  }, [isLive]);
+  }, [isLive, peerAway]);
+
+  // Backgrounding marks "stepped away" (not ended) so the male pauses his timer
+  // and waits (#19/#23). Resume on return; a real force-close is caught by the
+  // heartbeat + background grace on the male side.
+  useEffect(() => {
+    if (!isLive || !sessionId) {
+      return;
+    }
+    const sub = AppState.addEventListener('change', next => {
+      if (next === 'background') {
+        void chatSessionSetBackground(sessionId, true).catch(() => undefined);
+      } else if (next === 'active') {
+        void chatSessionSetBackground(sessionId, false).catch(() => undefined);
+      }
+    });
+    return () => sub.remove();
+  }, [isLive, sessionId]);
 
   useEffect(() => {
     if (USE_MOCK_DATA) {
@@ -358,14 +467,34 @@ function FemaleChatSessionScreen(): React.ReactElement {
     const client = getSupabaseClient();
 
     async function bootstrap(): Promise<void> {
-      const { data: userData } = await client.auth.getUser();
-      const currentUserId = userData.user?.id;
-      if (!currentUserId) {
+      let currentUserId: string;
+      let session: Awaited<ReturnType<typeof getChatSessionForRequest>>;
+      try {
+        const { data: userData } = await client.auth.getUser();
+        if (!userData.user?.id) {
+          if (mounted) {
+            setLoadError('You need to be signed in to open this chat.');
+            setLoading(false);
+          }
+          return;
+        }
+        currentUserId = userData.user.id;
+        session = await getChatSessionForRequest(route.params.requestId);
+      } catch (e) {
+        logger.error('FemaleChatSession bootstrap failed', e);
+        if (mounted) {
+          setLoadError("Couldn't open the chat. Check your connection and try again.");
+          setLoading(false);
+        }
         return;
       }
 
-      const session = await getChatSessionForRequest(route.params.requestId);
-      if (!session || !mounted) {
+      if (!mounted) {
+        return;
+      }
+      if (!session) {
+        setLoadError('This chat is no longer available.');
+        setLoading(false);
         return;
       }
 
@@ -379,7 +508,17 @@ function FemaleChatSessionScreen(): React.ReactElement {
       const live = session.status === 'active';
       setIsLive(live);
 
-      const history = await listChatMessages(session.id);
+      let history: Awaited<ReturnType<typeof listChatMessages>>;
+      try {
+        history = await listChatMessages(session.id);
+      } catch (e) {
+        logger.error('FemaleChatSession loadMessages failed', e);
+        if (mounted) {
+          setLoadError("Couldn't load the conversation. Check your connection and try again.");
+          setLoading(false);
+        }
+        return;
+      }
       if (!mounted) {
         return;
       }
@@ -406,6 +545,8 @@ function FemaleChatSessionScreen(): React.ReactElement {
               chat_session_id: string;
               sender_id: string;
               body: string;
+              message_type: ChatMessageType | null;
+              media_url: string | null;
               sent_at: string;
             };
             const next = mapChatMessage(
@@ -414,6 +555,8 @@ function FemaleChatSessionScreen(): React.ReactElement {
                 sessionId: row.chat_session_id,
                 senderId: row.sender_id,
                 body: row.body,
+                messageType: row.message_type ?? 'text',
+                mediaUrl: row.media_url ?? null,
                 sentAt: row.sent_at,
               },
               currentUserId,
@@ -447,10 +590,34 @@ function FemaleChatSessionScreen(): React.ReactElement {
                 .map(m => mapChatMessage(m, currentUserId));
               return additions.length > 0 ? [...prev, ...additions] : prev;
             });
-            // If the other participant ended the session, disconnect this side too.
-            const status = await getChatSessionStatus(session.id);
-            if (mounted && status === 'ended') {
+            // Reconcile the peer's presence: ended → disconnect; stepped away
+            // (backgrounded within grace) → wait + pause timer; gone (bg past
+            // grace, or heartbeat stale with no bg = force-close) → end; else
+            // present → normal.
+            const liveness = await getChatSessionLiveness(session.id);
+            if (!mounted) {
+              return;
+            }
+            if (liveness.status === 'ended') {
               remoteEndRef.current();
+            } else if (liveness.status === 'active') {
+              const peerStepped =
+                liveness.peerBackgrounded &&
+                liveness.peerBackgroundedSecondsAgo < PEER_BACKGROUND_GRACE_SECONDS;
+              const peerGone =
+                (liveness.peerBackgrounded &&
+                  liveness.peerBackgroundedSecondsAgo >= PEER_BACKGROUND_GRACE_SECONDS) ||
+                (!liveness.peerBackgrounded && liveness.peerSecondsAgo > PEER_STALE_SECONDS);
+              if (peerGone) {
+                setPeerAway(false);
+                await endChatSession(session.id).catch(() => undefined);
+                if (mounted) {
+                  Alert.alert('Chat ended', 'The other person left the chat.');
+                  remoteEndRef.current();
+                }
+              } else {
+                setPeerAway(peerStepped);
+              }
             }
           } catch (e) {
             logger.warn('FemaleChatSessionScreen message poll failed', e);
@@ -471,6 +638,20 @@ function FemaleChatSessionScreen(): React.ReactElement {
       }
     };
   }, [route.params.requestId]);
+
+  // Presence heartbeat — while the chat is live and this screen is mounted
+  // (foregrounded), stamp presence every few seconds. A force-close simply
+  // stops these, which is how the male side detects we vanished.
+  useEffect(() => {
+    if (!isLive || !sessionId) {
+      return;
+    }
+    void chatSessionHeartbeat(sessionId);
+    const hb = setInterval(() => {
+      void chatSessionHeartbeat(sessionId);
+    }, HEARTBEAT_MS);
+    return () => clearInterval(hb);
+  }, [isLive, sessionId]);
 
   const earnings = (secondsElapsed * REVENUE_PER_SECOND).toFixed(2);
 
@@ -530,6 +711,70 @@ function FemaleChatSessionScreen(): React.ReactElement {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
+  const sendMediaFrom = async (source: ChatMediaSource): Promise<void> => {
+    const picked = await pickChatMedia(source);
+    if (!picked) {
+      return;
+    }
+    const tempId = `local-media-${Date.now()}`;
+    const optimistic: MockMessage = {
+      id: tempId,
+      kind: 'sent',
+      text: '',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      mediaKind: picked.kind,
+      mediaUrl: picked.uri,
+      uploading: true,
+    };
+    setMessages(prev => [...prev, optimistic]);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+
+    if (USE_MOCK_DATA) {
+      setMessages(prev => prev.map(m => (m.id === tempId ? { ...m, uploading: false } : m)));
+      return;
+    }
+
+    try {
+      const inserted = await uploadAndSendChatMedia(sessionId!, picked);
+      const mapped = mapChatMessage(inserted, selfId!);
+      setMessages(prev => {
+        const withoutTemp = prev.filter(m => m.id !== tempId);
+        return withoutTemp.some(m => m.id === mapped.id) ? withoutTemp : [...withoutTemp, mapped];
+      });
+    } catch (e) {
+      logger.warn('Failed to send chat media:', e);
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      Alert.alert('Upload failed', 'Could not send that file. Please try again.');
+    }
+  };
+
+  const handleAttachMedia = (): void => {
+    if (!USE_MOCK_DATA && (!sessionId || !selfId)) {
+      return;
+    }
+    Alert.alert('Send media', undefined, [
+      {
+        text: 'Take photo',
+        onPress: () => {
+          void sendMediaFrom('camera-photo');
+        },
+      },
+      {
+        text: 'Record video',
+        onPress: () => {
+          void sendMediaFrom('camera-video');
+        },
+      },
+      {
+        text: 'Choose from gallery',
+        onPress: () => {
+          void sendMediaFrom('gallery');
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   // Disconnect this screen to Home. Idempotent via disconnectedRef so the
   // poll and a manual end can't both navigate.
   remoteEndRef.current = (): void => {
@@ -552,6 +797,21 @@ function FemaleChatSessionScreen(): React.ReactElement {
     }
     remoteEndRef.current();
   };
+
+  if (loadError) {
+    return (
+      <SafeAreaView style={styles.loading} edges={['top', 'bottom']}>
+        <Text style={styles.loadErrorText}>{loadError}</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => navigation.goBack()}
+          style={styles.loadErrorBtn}
+        >
+          <Text style={styles.loadErrorBtnText}>Go back</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
 
   if (loading) {
     return (
@@ -583,9 +843,9 @@ function FemaleChatSessionScreen(): React.ReactElement {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
-        {isLive ? (
-          <View style={styles.earnPill}>
-            <Text style={styles.earnPillText}>+₹0.04 per second</Text>
+        {peerAway ? (
+          <View style={styles.awayBanner}>
+            <Text style={styles.awayBannerText}>{`${partnerName} stepped away — waiting for them to return…`}</Text>
           </View>
         ) : null}
 
@@ -602,7 +862,7 @@ function FemaleChatSessionScreen(): React.ReactElement {
             </View>
           </View>
 
-          {messages.map((msg, idx) => (
+          {displayMessages.map((msg, idx) => (
             <MessageBubble key={msg.id} msg={msg} index={idx} />
           ))}
 
@@ -615,6 +875,15 @@ function FemaleChatSessionScreen(): React.ReactElement {
 
         {isLive ? (
           <View style={[styles.inputBar, AppShadows.e2]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Attach photo or video"
+              onPress={handleAttachMedia}
+              hitSlop={8}
+              style={({ pressed }) => [styles.attachBtn, pressed && { opacity: 0.6 }]}
+            >
+              <Plus size={22} color={AppColors.onSurfaceMuted} strokeWidth={2.2} />
+            </Pressable>
             <TextInput
               style={styles.input}
               value={inputText}
@@ -746,32 +1015,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  earnPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    alignSelf: 'center',
-    marginTop: AppSpacing.sm,
-    marginBottom: AppSpacing.xs,
-    backgroundColor: AppColors.successLight,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: AppRadii.full,
-    borderWidth: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  earnPillText: {
-    ...AppTypography.labelSmall,
-    color: AppColors.success,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-
   msgList: { flex: 1 },
+  awayBanner: {
+    backgroundColor: AppColors.warningLight,
+    paddingVertical: 8,
+    paddingHorizontal: AppSpacing.lg,
+    alignItems: 'center',
+  },
+  awayBannerText: {
+    ...AppTypography.labelSmall,
+    color: AppColors.warning,
+    textAlign: 'center',
+  },
   msgListContent: {
     paddingHorizontal: AppSpacing.md,
     paddingBottom: AppSpacing.md,
@@ -806,6 +1061,37 @@ const styles = StyleSheet.create({
     paddingTop: 9,
     paddingBottom: 8,
     gap: 3,
+  },
+  bubbleMedia: { paddingHorizontal: 4, paddingTop: 4, paddingBottom: 6 },
+  mediaTile: {
+    width: 200,
+    height: 200,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  mediaImage: { width: '100%', height: '100%' },
+  mediaPlaceholder: { backgroundColor: 'rgba(255,255,255,0.08)' },
+  mediaUploadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  videoTile: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#1A1A1F',
+  },
+  videoLabel: { ...AppTypography.labelSmall, color: '#FFFFFF', fontSize: 11 },
+  attachBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bubbleSent: {
     backgroundColor: AppColors.primary,
@@ -911,6 +1197,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: AppColors.background,
+    paddingHorizontal: AppSpacing.xl,
+  },
+  loadErrorText: {
+    ...AppTypography.bodyLarge,
+    color: AppColors.onSurfaceMuted,
+    textAlign: 'center',
+  },
+  loadErrorBtn: {
+    marginTop: AppSpacing.lg,
+    paddingHorizontal: AppSpacing.xl,
+    paddingVertical: AppSpacing.sm,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: AppColors.primary,
+  },
+  loadErrorBtnText: {
+    ...AppTypography.labelLarge,
+    color: AppColors.primary,
   },
 });
 

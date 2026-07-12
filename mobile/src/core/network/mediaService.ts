@@ -81,3 +81,66 @@ export async function uploadToR2(
   logger.info('uploadToR2 ok', { category, objectKey: signed.objectKey });
   return { objectKey: signed.objectKey, publicUrl: signed.publicUrl };
 }
+
+/**
+ * True when a stored media reference is a bare R2 object key (e.g.
+ * `chat/images/{uid}/{uuid}.png`) that must be resolved to a presigned GET URL
+ * before it can be displayed. Full http(s) URLs and `dev://` stubs pass through.
+ */
+export function isBareMediaKey(url: string | null | undefined): url is string {
+  return !!url && !/^(https?|dev):\/\//.test(url);
+}
+
+type ReadSignResponse = { data?: { urls: Record<string, string>; expiresInSeconds: number } };
+
+// Presigned GET URLs are ~1h; cache them and refresh a few minutes early so a
+// long-lived screen never renders an expired URL.
+const readUrlCache = new Map<string, { url: string; expiresAt: number }>();
+
+/**
+ * Batch-resolves bare R2 object keys into short-lived presigned GET URLs via the
+ * `media-sign-read` Edge Function, so private-bucket media (chat images/videos,
+ * profile/gallery images) can be displayed without a public bucket. Cached +
+ * deduped; returns a { key -> signedUrl } map (keys that fail to sign are
+ * omitted). Never throws — on error it returns whatever is already cached.
+ */
+export async function signMediaReadUrls(keys: string[]): Promise<Record<string, string>> {
+  const now = Date.now();
+  const result: Record<string, string> = {};
+  const missing = new Set<string>();
+  for (const key of keys) {
+    if (!key) {
+      continue;
+    }
+    const cached = readUrlCache.get(key);
+    if (cached && cached.expiresAt > now) {
+      result[key] = cached.url;
+    } else {
+      missing.add(key);
+    }
+  }
+  if (missing.size === 0) {
+    return result;
+  }
+
+  try {
+    const client = getSupabaseClient();
+    const { data, error } = await client.functions.invoke('media-sign-read', {
+      body: { keys: [...missing] },
+    });
+    if (error) {
+      throw error;
+    }
+    const payload = (data as ReadSignResponse)?.data;
+    const urls = payload?.urls ?? {};
+    const ttlMs = Math.max(((payload?.expiresInSeconds ?? 3600) - 300) * 1000, 60_000);
+    const expiresAt = now + ttlMs;
+    for (const [key, url] of Object.entries(urls)) {
+      readUrlCache.set(key, { url, expiresAt });
+      result[key] = url;
+    }
+  } catch (e) {
+    logger.warn('signMediaReadUrls failed', e);
+  }
+  return result;
+}

@@ -2,7 +2,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList } from '@shopify/flash-list';
 import React, { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -16,7 +16,7 @@ import Avatar from '@core/components/Avatar';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
 import { logger } from '@core/utils/logger';
 
-import { type ChatHistoryItem, listChatHistory } from '../api/chatRequestApi';
+import { type ChatHistoryItem, hideChatSession, listChatHistory } from '../api/chatRequestApi';
 
 /** Both the male and female app stacks register `ChatSession: { requestId }`. */
 type InboxNav = NativeStackNavigationProp<{ ChatSession: { requestId: string } }>;
@@ -62,15 +62,19 @@ function relativeTime(date: Date | null): string {
 function ChatRow({
   item,
   onPress,
+  onLongPress,
 }: {
   item: ChatHistoryItem;
   onPress: (item: ChatHistoryItem) => void;
+  onLongPress: (item: ChatHistoryItem) => void;
 }): React.ReactElement {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Open chat with ${item.counterpartName}`}
       onPress={() => onPress(item)}
+      onLongPress={() => onLongPress(item)}
+      delayLongPress={350}
       style={({ pressed }) => [styles.row, AppShadows.e1, pressed && styles.rowPressed]}
     >
       <View>
@@ -156,9 +160,36 @@ function ChatsInboxScreen(): React.ReactElement {
     [navigation],
   );
 
+  // Long-press to delete a chat from this user's history (soft, per-user).
+  const handleDelete = useCallback(
+    (item: ChatHistoryItem) => {
+      Alert.alert(
+        'Delete chat?',
+        `Remove your chat with ${item.counterpartName} from history? This only affects your side.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => {
+              setItems(prev => prev.filter(i => i.sessionId !== item.sessionId));
+              void hideChatSession(item.sessionId).catch(e => {
+                logger.warn('ChatsInboxScreen.delete failed', e);
+                void load();
+              });
+            },
+          },
+        ],
+      );
+    },
+    [load],
+  );
+
   const renderItem = useCallback(
-    ({ item }: { item: ChatHistoryItem }) => <ChatRow item={item} onPress={handleOpen} />,
-    [handleOpen],
+    ({ item }: { item: ChatHistoryItem }) => (
+      <ChatRow item={item} onPress={handleOpen} onLongPress={handleDelete} />
+    ),
+    [handleOpen, handleDelete],
   );
 
   return (

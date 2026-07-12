@@ -1,12 +1,14 @@
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Clock } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import { Clock, Play, Plus, X } from 'lucide-react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   AppState,
   BackHandler,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -16,6 +18,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import Animated, {
   Easing,
   runOnJS,
@@ -37,9 +40,9 @@ import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import Avatar from '@core/components/Avatar';
-import CoinIcon from '@core/components/CoinIcon';
 import GradientAvatar from '@core/components/GradientAvatar';
 import { USE_MOCK_DATA } from '@core/config/env';
+import { isBareMediaKey } from '@core/network/mediaService';
 import { getSupabaseClient } from '@core/network/supabaseClient';
 import { logger } from '@core/utils/logger';
 
@@ -47,11 +50,16 @@ import { type MaleAppStackParamList } from '@navigation/types';
 
 import { submitChatRating } from '@features/maleHome/api/maleHomeApi';
 
+import { pickChatMedia, uploadAndSendChatMedia, type ChatMediaSource } from '../api/chatMedia';
+import { useSignedChatMedia } from '../hooks/useSignedChatMedia';
 import {
   type ChatMessage,
+  type ChatMessageType,
+  chatSessionHeartbeat,
+  chatSessionSetBackground,
   endChatSession,
   getChatSessionForRequest,
-  getChatSessionStatus,
+  getChatSessionLiveness,
   listChatMessages,
   sendChatMessage,
 } from '../api/chatRequestApi';
@@ -68,6 +76,11 @@ type MockMessage = {
   kind: MessageKind;
   text: string;
   time: string;
+  /** 'image' | 'video' for media messages; undefined for plain text. */
+  mediaKind?: 'image' | 'video';
+  mediaUrl?: string | null;
+  /** True while the local optimistic bubble is still uploading. */
+  uploading?: boolean;
 };
 
 const MOCK_MESSAGES: ReadonlyArray<MockMessage> = [
@@ -100,6 +113,14 @@ const MOCK_MESSAGES: ReadonlyArray<MockMessage> = [
 ];
 
 const MOCK_FEMALE_NAME = 'Priya';
+// Presence heartbeat cadence, and how long a peer may be unseen before the
+// surviving side treats them as gone (force-closed / crashed) and ends the chat.
+const HEARTBEAT_MS = 7000;
+const PEER_STALE_SECONDS = 35;
+// A backgrounded peer is "stepped away" (timer pauses, session held open) until
+// this grace elapses; beyond it — or a force-close with no background marker —
+// the session is ended.
+const PEER_BACKGROUND_GRACE_SECONDS = 90;
 
 function formatMessageTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -111,6 +132,8 @@ function mapChatMessage(message: ChatMessage, selfId: string): MockMessage {
     kind: message.senderId === selfId ? 'sent' : 'received',
     text: message.body,
     time: formatMessageTime(message.sentAt),
+    mediaKind: message.messageType === 'text' ? undefined : message.messageType,
+    mediaUrl: message.mediaUrl,
   };
 }
 
@@ -187,6 +210,48 @@ function DoubleCheckIcon({ size = 12, color = 'rgba(255,255,255,0.7)' }): React.
   );
 }
 
+function MediaContent({ msg }: { msg: MockMessage }): React.ReactElement {
+  const openMedia = (): void => {
+    if (msg.mediaUrl && !msg.uploading) {
+      void Linking.openURL(msg.mediaUrl).catch(e => logger.warn('open media failed', e));
+    }
+  };
+
+  if (msg.mediaKind === 'video') {
+    return (
+      <Pressable onPress={openMedia} style={styles.mediaTile}>
+        <View style={styles.videoTile}>
+          {msg.uploading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Play size={26} color="#FFFFFF" fill="#FFFFFF" />
+          )}
+          <Text style={styles.videoLabel}>{msg.uploading ? 'Uploading…' : 'Video'}</Text>
+        </View>
+      </Pressable>
+    );
+  }
+
+  return (
+    <Pressable onPress={openMedia} style={styles.mediaTile}>
+      {msg.mediaUrl ? (
+        <FastImage
+          source={{ uri: msg.mediaUrl }}
+          style={styles.mediaImage}
+          resizeMode={FastImage.resizeMode.cover}
+        />
+      ) : (
+        <View style={[styles.mediaImage, styles.mediaPlaceholder]} />
+      )}
+      {msg.uploading ? (
+        <View style={styles.mediaUploadingOverlay}>
+          <ActivityIndicator color="#FFFFFF" />
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
 function MessageBubble({ msg, index }: { msg: MockMessage; index: number }): React.ReactElement {
   const opacity = useSharedValue(0);
   const tx = useSharedValue(msg.kind === 'sent' ? 20 : -20);
@@ -206,17 +271,27 @@ function MessageBubble({ msg, index }: { msg: MockMessage; index: number }): Rea
   }));
 
   const isSent = msg.kind === 'sent';
+  const hasMedia = msg.mediaKind !== undefined;
 
   return (
     <Animated.View
       style={[styles.msgRow, isSent ? styles.msgRowSent : styles.msgRowReceived, style]}
     >
-      <View style={[styles.bubble, isSent ? styles.bubbleSent : styles.bubbleReceived]}>
-        <Text
-          style={[styles.bubbleText, isSent ? styles.bubbleTextSent : styles.bubbleTextReceived]}
-        >
-          {msg.text}
-        </Text>
+      <View
+        style={[
+          styles.bubble,
+          isSent ? styles.bubbleSent : styles.bubbleReceived,
+          hasMedia && styles.bubbleMedia,
+        ]}
+      >
+        {hasMedia ? <MediaContent msg={msg} /> : null}
+        {msg.text ? (
+          <Text
+            style={[styles.bubbleText, isSent ? styles.bubbleTextSent : styles.bubbleTextReceived]}
+          >
+            {msg.text}
+          </Text>
+        ) : null}
         <View style={styles.bubbleTimeRow}>
           <Text style={[styles.timeText, isSent ? styles.timeTextSent : styles.timeTextReceived]}>
             {msg.time}
@@ -235,12 +310,15 @@ function ChatHeader({
   avatarUri,
   secondsElapsed,
   onBack,
+  onEnd,
   isLive,
 }: {
   name: string;
   avatarUri: string | null;
   secondsElapsed: number;
   onBack: () => void;
+  /** Explicit "cancel/end this chat" action — shown only while live. */
+  onEnd: () => void;
   /** Live session shows the running timer; an ended (history) chat does not. */
   isLive: boolean;
 }): React.ReactElement {
@@ -277,9 +355,20 @@ function ChatHeader({
       </View>
 
       {isLive ? (
-        <View style={styles.countdownChip}>
-          <Clock size={13} color={AppColors.onSurface} strokeWidth={2} />
-          <Text style={styles.countdownText}>{`${mm}:${ss}`}</Text>
+        <View style={styles.headerRightCol}>
+          <View style={styles.countdownChip}>
+            <Clock size={13} color={AppColors.onSurface} strokeWidth={2} />
+            <Text style={styles.countdownText}>{`${mm}:${ss}`}</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Cancel chat"
+            hitSlop={6}
+            onPress={onEnd}
+            style={styles.endBtn}
+          >
+            <X size={18} color={AppColors.error} strokeWidth={2.4} />
+          </Pressable>
         </View>
       ) : null}
     </View>
@@ -337,8 +426,23 @@ function ChatSessionScreen(): React.ReactElement {
   const scrollRef = useRef<ScrollView>(null);
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState<MockMessage[]>(USE_MOCK_DATA ? [...MOCK_MESSAGES] : []);
+  // Chat media is stored as bare R2 object keys (private bucket). Resolve them
+  // to short-lived presigned GET URLs so FastImage can display the image/video.
+  const signedMedia = useSignedChatMedia(messages.map(m => m.mediaUrl));
+  const displayMessages = useMemo(
+    () =>
+      messages.map(m =>
+        isBareMediaKey(m.mediaUrl) && signedMedia[m.mediaUrl]
+          ? { ...m, mediaUrl: signedMedia[m.mediaUrl] }
+          : m,
+      ),
+    [messages, signedMedia],
+  );
   const [isTyping, setIsTyping] = useState(USE_MOCK_DATA);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
+  // The other participant stepped away (backgrounded) — pause the timer and show
+  // a waiting banner instead of ending the chat.
+  const [peerAway, setPeerAway] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [selfId, setSelfId] = useState<string | null>(null);
   // The female being chatted with — target of the post-chat star rating.
@@ -351,6 +455,9 @@ function ChatSessionScreen(): React.ReactElement {
   // history load as ended → read-only transcript, no timer, no time limit.
   const [isLive, setIsLive] = useState(USE_MOCK_DATA);
   const [loading, setLoading] = useState(!USE_MOCK_DATA);
+  // Set when the chat can't be opened (no session, not signed in, network down)
+  // so we show an actionable error instead of an infinite spinner.
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [chatEndState, setChatEndState] = useState<'active' | 'confirm' | 'rating' | 'success'>(
     'active',
@@ -363,6 +470,10 @@ function ChatSessionScreen(): React.ReactElement {
   const chatEndStateRef = useRef(chatEndState);
   chatEndStateRef.current = chatEndState;
   const remoteEndRef = useRef<() => void>(() => undefined);
+  // True while the system camera/gallery picker is open. Opening the picker
+  // backgrounds the app, which must NOT be treated as "left the chat" — else we
+  // end the live session out from under the pending media upload.
+  const pickingMediaRef = useRef(false);
 
   // Animated values for modal container
   const backdropOpacity = useSharedValue(0);
@@ -628,27 +739,44 @@ function ChatSessionScreen(): React.ReactElement {
     }
   };
 
-  // Session timer — runs ONLY for a live session. An old chat viewed from
-  // history has no time limit, so there is no countdown.
+  // Session timer — runs ONLY for a live session, and PAUSES while the other
+  // person has stepped away (#23), so it resumes from where it left off.
   useEffect(() => {
-    if (!isLive) {
+    if (!isLive || peerAway) {
       return;
     }
     const t = setInterval(() => setSecondsElapsed(s => s + 1), 1000);
     return () => clearInterval(t);
-  }, [isLive]);
+  }, [isLive, peerAway]);
 
-  // End the LIVE session when the app is backgrounded/closed — best-effort,
-  // runs while JS is still alive on a graceful close. A hard force-kill (no JS)
-  // is caught instead by the backend sweep_stale_chat_sessions cron. The other
-  // participant sees status='ended' (poll/Realtime) and disconnects too.
+  // Presence heartbeat — while the chat is live and foregrounded, stamp
+  // presence every few seconds. A hard force-close (no JS) stops these, letting
+  // the female side detect we vanished within PEER_STALE_SECONDS and end the
+  // chat (the 5-min message-idle sweep remains a last-resort backstop).
+  useEffect(() => {
+    if (!isLive || !sessionId) {
+      return;
+    }
+    void chatSessionHeartbeat(sessionId);
+    const hb = setInterval(() => {
+      void chatSessionHeartbeat(sessionId);
+    }, HEARTBEAT_MS);
+    return () => clearInterval(hb);
+  }, [isLive, sessionId]);
+
+  // Backgrounding the app no longer ENDS the chat (#19) — it marks us "stepped
+  // away" so the other side pauses the timer and waits instead of being ejected.
+  // We resume on return. A genuine force-close (no JS, no un-mark) is still
+  // caught by the presence heartbeat + background grace on the peer side.
   useEffect(() => {
     if (!isLive || !sessionId) {
       return;
     }
     const sub = AppState.addEventListener('change', next => {
-      if (next === 'background') {
-        void endChatSession(sessionId).catch(e => logger.warn('end-on-background failed', e));
+      if (next === 'background' && !pickingMediaRef.current) {
+        void chatSessionSetBackground(sessionId, true).catch(() => undefined);
+      } else if (next === 'active') {
+        void chatSessionSetBackground(sessionId, false).catch(() => undefined);
       }
     });
     return () => sub.remove();
@@ -665,14 +793,37 @@ function ChatSessionScreen(): React.ReactElement {
     const client = getSupabaseClient();
 
     async function bootstrap(): Promise<void> {
-      const { data: userData } = await client.auth.getUser();
-      const currentUserId = userData.user?.id;
-      if (!currentUserId) {
+      let currentUserId: string;
+      let session: Awaited<ReturnType<typeof getChatSessionForRequest>>;
+      try {
+        const { data: userData } = await client.auth.getUser();
+        if (!userData.user?.id) {
+          if (mounted) {
+            setLoadError('You need to be signed in to open this chat.');
+            setLoading(false);
+          }
+          return;
+        }
+        currentUserId = userData.user.id;
+
+        session = await getChatSessionForRequest(route.params.requestId);
+      } catch (e) {
+        // Network/DB failure (e.g. server unreachable) — surface it instead of
+        // spinning forever. The bootstrap has no other exit for a thrown error.
+        logger.error('ChatSession bootstrap failed', e);
+        if (mounted) {
+          setLoadError("Couldn't open the chat. Check your connection and try again.");
+          setLoading(false);
+        }
         return;
       }
 
-      const session = await getChatSessionForRequest(route.params.requestId);
-      if (!session || !mounted) {
+      if (!mounted) {
+        return;
+      }
+      if (!session) {
+        setLoadError('This chat is no longer available.');
+        setLoading(false);
         return;
       }
 
@@ -684,7 +835,17 @@ function ChatSessionScreen(): React.ReactElement {
       }
       setPartnerAvatarUrl(session.partnerAvatarUrl);
 
-      const history = await listChatMessages(session.id);
+      let history: Awaited<ReturnType<typeof listChatMessages>>;
+      try {
+        history = await listChatMessages(session.id);
+      } catch (e) {
+        logger.error('ChatSession loadMessages failed', e);
+        if (mounted) {
+          setLoadError("Couldn't load the conversation. Check your connection and try again.");
+          setLoading(false);
+        }
+        return;
+      }
       if (!mounted) {
         return;
       }
@@ -715,6 +876,8 @@ function ChatSessionScreen(): React.ReactElement {
               chat_session_id: string;
               sender_id: string;
               body: string;
+              message_type: ChatMessageType | null;
+              media_url: string | null;
               sent_at: string;
             };
             const next = mapChatMessage(
@@ -723,6 +886,8 @@ function ChatSessionScreen(): React.ReactElement {
                 sessionId: row.chat_session_id,
                 senderId: row.sender_id,
                 body: row.body,
+                messageType: row.message_type ?? 'text',
+                mediaUrl: row.media_url ?? null,
                 sentAt: row.sent_at,
               },
               currentUserId,
@@ -756,10 +921,36 @@ function ChatSessionScreen(): React.ReactElement {
                 .map(m => mapChatMessage(m, currentUserId));
               return additions.length > 0 ? [...prev, ...additions] : prev;
             });
-            // If the other participant ended the session, disconnect this side too.
-            const status = await getChatSessionStatus(session.id);
-            if (mounted && status === 'ended') {
+            // Reconcile the peer's presence:
+            //  • ended                          → disconnect this side too.
+            //  • stepped away (backgrounded)     → wait (pause timer, banner).
+            //  • gone (bg past grace, OR heartbeat stale with no bg marker =
+            //    force-close/crash)              → end + "the other person left".
+            //  • present                         → normal.
+            const liveness = await getChatSessionLiveness(session.id);
+            if (!mounted) {
+              return;
+            }
+            if (liveness.status === 'ended') {
               remoteEndRef.current();
+            } else if (liveness.status === 'active') {
+              const peerStepped =
+                liveness.peerBackgrounded &&
+                liveness.peerBackgroundedSecondsAgo < PEER_BACKGROUND_GRACE_SECONDS;
+              const peerGone =
+                (liveness.peerBackgrounded &&
+                  liveness.peerBackgroundedSecondsAgo >= PEER_BACKGROUND_GRACE_SECONDS) ||
+                (!liveness.peerBackgrounded && liveness.peerSecondsAgo > PEER_STALE_SECONDS);
+              if (peerGone) {
+                setPeerAway(false);
+                await endChatSession(session.id).catch(() => undefined);
+                if (mounted) {
+                  Alert.alert('Chat ended', 'The other person left the chat.');
+                  remoteEndRef.current();
+                }
+              } else {
+                setPeerAway(peerStepped);
+              }
             }
           } catch (e) {
             logger.warn('ChatSessionScreen message poll failed', e);
@@ -837,6 +1028,93 @@ function ChatSessionScreen(): React.ReactElement {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
+  const sendMediaFrom = async (source: ChatMediaSource): Promise<void> => {
+    // Suppress the background-end while the picker is foregrounded (see
+    // pickingMediaRef). Reset in finally so a genuine later background still ends.
+    pickingMediaRef.current = true;
+    let picked: Awaited<ReturnType<typeof pickChatMedia>>;
+    try {
+      picked = await pickChatMedia(source);
+    } finally {
+      pickingMediaRef.current = false;
+    }
+    if (!picked) {
+      return;
+    }
+    const tempId = `local-media-${Date.now()}`;
+    const optimistic: MockMessage = {
+      id: tempId,
+      kind: 'sent',
+      text: '',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      mediaKind: picked.kind,
+      mediaUrl: picked.uri,
+      uploading: true,
+    };
+    setMessages(prev => [...prev, optimistic]);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+
+    if (USE_MOCK_DATA) {
+      setMessages(prev => prev.map(m => (m.id === tempId ? { ...m, uploading: false } : m)));
+      return;
+    }
+
+    try {
+      const inserted = await uploadAndSendChatMedia(sessionId!, picked);
+      const mapped = mapChatMessage(inserted, selfId!);
+      setMessages(prev => {
+        const withoutTemp = prev.filter(m => m.id !== tempId);
+        return withoutTemp.some(m => m.id === mapped.id) ? withoutTemp : [...withoutTemp, mapped];
+      });
+    } catch (e) {
+      logger.warn('Failed to send chat media:', e);
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      Alert.alert('Upload failed', 'Could not send that file. Please try again.');
+    }
+  };
+
+  const handleAttachMedia = (): void => {
+    if (!USE_MOCK_DATA && (!sessionId || !selfId)) {
+      return;
+    }
+    Alert.alert('Send media', undefined, [
+      {
+        text: 'Take photo',
+        onPress: () => {
+          void sendMediaFrom('camera-photo');
+        },
+      },
+      {
+        text: 'Record video',
+        onPress: () => {
+          void sendMediaFrom('camera-video');
+        },
+      },
+      {
+        text: 'Choose from gallery',
+        onPress: () => {
+          void sendMediaFrom('gallery');
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  if (loadError) {
+    return (
+      <SafeAreaView style={styles.loading} edges={['top', 'bottom']}>
+        <Text style={styles.loadErrorText}>{loadError}</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => navigation.goBack()}
+          style={styles.loadErrorBtn}
+        >
+          <Text style={styles.loadErrorBtnText}>Go back</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
+
   if (loading) {
     return (
       <SafeAreaView style={styles.loading} edges={['top', 'bottom']}>
@@ -859,6 +1137,7 @@ function ChatSessionScreen(): React.ReactElement {
         secondsElapsed={secondsElapsed}
         isLive={isLive}
         onBack={isLive ? handleInitiateEndChat : () => navigation.goBack()}
+        onEnd={handleInitiateEndChat}
       />
 
       <KeyboardAvoidingView
@@ -866,11 +1145,9 @@ function ChatSessionScreen(): React.ReactElement {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
-        {/* Coin cost pill — live session only */}
-        {isLive ? (
-          <View style={styles.coinPill}>
-            <CoinIcon size={12} />
-            <Text style={styles.coinPillText}>1 coin per 3 seconds</Text>
+        {peerAway ? (
+          <View style={styles.awayBanner}>
+            <Text style={styles.awayBannerText}>{`${partnerName} stepped away — waiting for them to return…`}</Text>
           </View>
         ) : null}
 
@@ -888,7 +1165,7 @@ function ChatSessionScreen(): React.ReactElement {
             </View>
           </View>
 
-          {messages.map((msg, idx) => (
+          {displayMessages.map((msg, idx) => (
             <MessageBubble key={msg.id} msg={msg} index={idx} />
           ))}
 
@@ -902,6 +1179,15 @@ function ChatSessionScreen(): React.ReactElement {
         {/* Composer — live session only. An ended chat is a read-only transcript. */}
         {isLive ? (
           <View style={[styles.inputBar, AppShadows.e2]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Attach photo or video"
+              onPress={handleAttachMedia}
+              hitSlop={8}
+              style={({ pressed }) => [styles.attachBtn, pressed && { opacity: 0.6 }]}
+            >
+              <Plus size={22} color={AppColors.onSurfaceMuted} strokeWidth={2.2} />
+            </Pressable>
             <TextInput
               style={styles.input}
               value={inputText}
@@ -1031,6 +1317,19 @@ const styles = StyleSheet.create({
     ...AppTypography.bodySmall,
     color: AppColors.onSurfaceMuted,
   },
+  headerRightCol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  endBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: AppColors.errorLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   countdownChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1048,33 +1347,19 @@ const styles = StyleSheet.create({
     color: AppColors.onSurface,
   },
 
-  // Coin cost pill
-  coinPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    alignSelf: 'center',
-    marginTop: AppSpacing.sm,
-    marginBottom: AppSpacing.xs,
-    backgroundColor: AppColors.surface,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: AppRadii.full,
-    borderWidth: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  coinPillText: {
-    ...AppTypography.labelSmall,
-    color: AppColors.onSurfaceMuted,
-    fontSize: 11,
-  },
-
   // Messages list
   msgList: { flex: 1 },
+  awayBanner: {
+    backgroundColor: AppColors.warningLight,
+    paddingVertical: 8,
+    paddingHorizontal: AppSpacing.lg,
+    alignItems: 'center',
+  },
+  awayBannerText: {
+    ...AppTypography.labelSmall,
+    color: AppColors.warning,
+    textAlign: 'center',
+  },
   msgListContent: {
     paddingHorizontal: AppSpacing.md,
     paddingBottom: AppSpacing.md,
@@ -1110,6 +1395,37 @@ const styles = StyleSheet.create({
     paddingTop: 9,
     paddingBottom: 8,
     gap: 3,
+  },
+  bubbleMedia: { paddingHorizontal: 4, paddingTop: 4, paddingBottom: 6 },
+  mediaTile: {
+    width: 200,
+    height: 200,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  mediaImage: { width: '100%', height: '100%' },
+  mediaPlaceholder: { backgroundColor: 'rgba(255,255,255,0.08)' },
+  mediaUploadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  videoTile: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#1A1A1F',
+  },
+  videoLabel: { ...AppTypography.labelSmall, color: '#FFFFFF', fontSize: 11 },
+  attachBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bubbleSent: {
     backgroundColor: AppColors.primary,
@@ -1346,6 +1662,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: AppColors.background,
+    paddingHorizontal: AppSpacing.xl,
+  },
+  loadErrorText: {
+    ...AppTypography.bodyLarge,
+    color: AppColors.onSurfaceMuted,
+    textAlign: 'center',
+  },
+  loadErrorBtn: {
+    marginTop: AppSpacing.lg,
+    paddingHorizontal: AppSpacing.xl,
+    paddingVertical: AppSpacing.sm,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: AppColors.primary,
+  },
+  loadErrorBtnText: {
+    ...AppTypography.labelLarge,
+    color: AppColors.primary,
   },
 });
 

@@ -11,7 +11,11 @@
  * few seconds until the row's status flips to accepted/declined/expired.
  */
 import { USE_MOCK_DATA } from '@core/config/env';
-import { mapSupabaseError } from '@core/network/apiErrorMapper';
+import {
+  appExceptionFromStatus,
+  extractEdgeFunctionError,
+  mapSupabaseError,
+} from '@core/network/apiErrorMapper';
 import { getSupabaseClient } from '@core/network/supabaseClient';
 
 import { type IncomingChatRequest } from '../store/chatRequestStore';
@@ -29,11 +33,16 @@ export type ChatSession = {
   partnerAvatarUrl: string | null;
 };
 
+export type ChatMessageType = 'text' | 'image' | 'video';
+
 export type ChatMessage = {
   id: string;
   sessionId: string;
   senderId: string;
   body: string;
+  messageType: ChatMessageType;
+  /** R2 public URL for image/video messages; null for text. */
+  mediaUrl: string | null;
   sentAt: string;
 };
 
@@ -74,6 +83,11 @@ export async function acceptRequest(requestId: string): Promise<{ chatSessionId?
     body: { chatRequestId: requestId, action: 'accept' },
   });
   if (error) {
+    // Surface the real message (e.g. "You are already in an active chat…").
+    const detail = await extractEdgeFunctionError(error);
+    if (detail) {
+      throw appExceptionFromStatus(detail.status, detail.message, error);
+    }
     throw mapSupabaseError(error);
   }
   const body = unwrapFunctionData<{ chatSessionId?: string }>(data);
@@ -119,6 +133,12 @@ export async function sendChatRequest(payload: {
     body: { femaleId: payload.femaleId },
   });
   if (error) {
+    // Surface the Edge Function's real message (e.g. "She is busy in another
+    // chat…") instead of the generic "non-2xx status code" from functions.invoke.
+    const detail = await extractEdgeFunctionError(error);
+    if (detail) {
+      throw appExceptionFromStatus(detail.status, detail.message, error);
+    }
     throw mapSupabaseError(error);
   }
   const body = unwrapFunctionData<{ chatRequestId: string; newCoinBalance?: number }>(data);
@@ -251,7 +271,7 @@ export async function listChatMessages(sessionId: string): Promise<ChatMessage[]
 
   const { data, error } = await getSupabaseClient()
     .from('chat_messages')
-    .select('id, chat_session_id, sender_id, body, sent_at')
+    .select('id, chat_session_id, sender_id, body, message_type, media_url, sent_at')
     .eq('chat_session_id', sessionId)
     .order('sent_at', { ascending: true });
 
@@ -264,6 +284,8 @@ export async function listChatMessages(sessionId: string): Promise<ChatMessage[]
     sessionId: row.chat_session_id,
     senderId: row.sender_id,
     body: row.body,
+    messageType: (row.message_type as ChatMessageType | null) ?? 'text',
+    mediaUrl: (row.media_url as string | null) ?? null,
     sentAt: row.sent_at,
   }));
 }
@@ -293,13 +315,16 @@ export async function listChatHistory(): Promise<ReadonlyArray<ChatHistoryItem>>
   //    first; rows with no messages yet (null last_message_at) sort to the end.
   const { data: sessions, error } = await client
     .from('chat_sessions')
-    .select('id, chat_request_id, male_id, female_id, status, started_at, last_message_at')
+    .select(
+      'id, chat_request_id, male_id, female_id, status, started_at, last_message_at, ' +
+        'hidden_for_male, hidden_for_female',
+    )
     .order('last_message_at', { ascending: false, nullsFirst: false })
     .order('started_at', { ascending: false });
   if (error) {
     throw mapSupabaseError(error);
   }
-  const rows = (sessions ?? []) as Array<{
+  const allRows = (sessions ?? []) as unknown as Array<{
     id: string;
     chat_request_id: string;
     male_id: string;
@@ -307,7 +332,13 @@ export async function listChatHistory(): Promise<ReadonlyArray<ChatHistoryItem>>
     status: 'active' | 'ended';
     started_at: string;
     last_message_at: string | null;
+    hidden_for_male: boolean;
+    hidden_for_female: boolean;
   }>;
+  // Hide the chats the caller soft-deleted from their own history.
+  const rows = allRows.filter(r =>
+    r.male_id === selfId ? !r.hidden_for_male : !r.hidden_for_female,
+  );
   if (rows.length === 0) {
     return [];
   }
@@ -330,13 +361,15 @@ export async function listChatHistory(): Promise<ReadonlyArray<ChatHistoryItem>>
   const sessionIds = rows.map(r => r.id);
   const { data: messages } = await client
     .from('chat_messages')
-    .select('chat_session_id, body, sent_at')
+    .select('chat_session_id, body, message_type, sent_at')
     .in('chat_session_id', sessionIds)
     .order('sent_at', { ascending: false });
   const snippetBySession = new Map<string, { body: string; sentAt: string }>();
   (messages ?? []).forEach(m => {
     if (!snippetBySession.has(m.chat_session_id)) {
-      snippetBySession.set(m.chat_session_id, { body: m.body, sentAt: m.sent_at });
+      const label =
+        m.message_type === 'image' ? '📷 Photo' : m.message_type === 'video' ? '🎥 Video' : m.body;
+      snippetBySession.set(m.chat_session_id, { body: label, sentAt: m.sent_at });
     }
   });
 
@@ -378,27 +411,103 @@ export async function getChatSessionStatus(sessionId: string): Promise<'active' 
   return (data as { status?: 'active' | 'ended' }).status ?? null;
 }
 
+export type ChatSessionLiveness = {
+  status: 'active' | 'ended' | null;
+  /** Seconds since the OTHER participant was last seen (heartbeat) in the chat. */
+  peerSecondsAgo: number;
+  /** The other participant has explicitly backgrounded the app (stepped away). */
+  peerBackgrounded: boolean;
+  /** Seconds since the other participant backgrounded (0 if not backgrounded). */
+  peerBackgroundedSecondsAgo: number;
+};
+
+/** Marks the caller backgrounded (stepped away) or foregrounded in the chat. */
+export async function chatSessionSetBackground(
+  sessionId: string,
+  backgrounded: boolean,
+): Promise<void> {
+  if (USE_MOCK_DATA) {
+    return;
+  }
+  await getSupabaseClient().rpc('chat_session_set_background', {
+    p_session_id: sessionId,
+    p_backgrounded: backgrounded,
+  });
+}
+
 /**
- * Ends a chat session for BOTH participants. Either side may call it; the
- * `chat_sessions_end_participant` RLS policy restricts the update to ending.
- * Idempotent — a no-op if the session is already ended (the `.eq('status',
- * 'active')` guard means a second call simply matches no rows).
+ * Marks the caller present in the chat. Called on a short interval while the
+ * chat screen is foregrounded; a force-close / crash simply stops these, which
+ * is how the peer detects the participant has vanished. No-op if the session
+ * isn't active or the caller isn't a participant. Fire-and-forget.
+ */
+export async function chatSessionHeartbeat(sessionId: string): Promise<void> {
+  if (USE_MOCK_DATA) {
+    return;
+  }
+  await getSupabaseClient().rpc('chat_session_heartbeat', { p_session_id: sessionId });
+}
+
+/**
+ * Returns the session status plus how long ago the OTHER participant was last
+ * seen — so the surviving side can end a session whose peer force-closed.
+ */
+export async function getChatSessionLiveness(sessionId: string): Promise<ChatSessionLiveness> {
+  if (USE_MOCK_DATA) {
+    return { status: 'active', peerSecondsAgo: 0, peerBackgrounded: false, peerBackgroundedSecondsAgo: 0 };
+  }
+  const { data, error } = await getSupabaseClient().rpc('get_chat_session_liveness', {
+    p_session_id: sessionId,
+  });
+  if (error || !data) {
+    return { status: null, peerSecondsAgo: 0, peerBackgrounded: false, peerBackgroundedSecondsAgo: 0 };
+  }
+  const row = data as {
+    status?: 'active' | 'ended';
+    peerSecondsAgo?: number;
+    peerBackgrounded?: boolean;
+    peerBackgroundedSecondsAgo?: number;
+  };
+  return {
+    status: row.status ?? null,
+    peerSecondsAgo: typeof row.peerSecondsAgo === 'number' ? row.peerSecondsAgo : 0,
+    peerBackgrounded: row.peerBackgrounded === true,
+    peerBackgroundedSecondsAgo:
+      typeof row.peerBackgroundedSecondsAgo === 'number' ? row.peerBackgroundedSecondsAgo : 0,
+  };
+}
+
+/**
+ * Soft-deletes a chat from the caller's OWN history (per-user hide). The row and
+ * its messages are preserved for the other participant. No-op in mock mode.
+ */
+export async function hideChatSession(sessionId: string): Promise<void> {
+  if (USE_MOCK_DATA) {
+    return;
+  }
+  const { error } = await getSupabaseClient().rpc('hide_chat_session', {
+    p_session_id: sessionId,
+  });
+  if (error) {
+    throw mapSupabaseError(error);
+  }
+}
+
+/**
+ * Ends a chat session for BOTH participants and settles earnings by actual
+ * duration — the `chat-sessions-end` Edge Function refunds the male's unused
+ * escrow and reverses the female's excess credit so she's paid for the real
+ * chat length instead of the flat upfront estimate. Either side may call it.
+ * Idempotent — ending an already-ended session just returns its settled
+ * values, so a second call (unmount + app-background both fire this) is safe.
  */
 export async function endChatSession(sessionId: string): Promise<void> {
   if (USE_MOCK_DATA) {
     return;
   }
-  const client = getSupabaseClient();
-  const { data: userData } = await client.auth.getUser();
-  const uid = userData.user?.id;
-  if (!uid) {
-    return;
-  }
-  const { error } = await client
-    .from('chat_sessions')
-    .update({ status: 'ended', ended_at: new Date().toISOString(), ended_by: uid })
-    .eq('id', sessionId)
-    .eq('status', 'active');
+  const { error } = await getSupabaseClient().functions.invoke('chat-sessions-end', {
+    body: { chatSessionId: sessionId },
+  });
   if (error) {
     throw mapSupabaseError(error);
   }
@@ -412,6 +521,8 @@ export async function sendChatMessage(sessionId: string, body: string): Promise<
       sessionId,
       senderId: 'local-self',
       body,
+      messageType: 'text',
+      mediaUrl: null,
       sentAt: new Date().toISOString(),
     };
   }
@@ -432,7 +543,7 @@ export async function sendChatMessage(sessionId: string, body: string): Promise<
       sender_id: userData.user.id,
       body,
     })
-    .select('id, chat_session_id, sender_id, body, sent_at')
+    .select('id, chat_session_id, sender_id, body, message_type, media_url, sent_at')
     .single();
 
   if (error) {
@@ -444,6 +555,66 @@ export async function sendChatMessage(sessionId: string, body: string): Promise<
     sessionId: data.chat_session_id,
     senderId: data.sender_id,
     body: data.body,
+    messageType: (data.message_type as ChatMessageType | null) ?? 'text',
+    mediaUrl: (data.media_url as string | null) ?? null,
+    sentAt: data.sent_at,
+  };
+}
+
+/**
+ * Inserts an image/video message. The caller has already uploaded the file to
+ * R2 (via uploadToR2('chat', …)) and passes the resulting public URL. Realtime
+ * delivers it to the other participant just like a text message.
+ */
+export async function sendChatMediaMessage(
+  sessionId: string,
+  mediaUrl: string,
+  kind: 'image' | 'video',
+): Promise<ChatMessage> {
+  if (USE_MOCK_DATA) {
+    return {
+      id: String(Date.now()),
+      sessionId,
+      senderId: 'local-self',
+      body: '',
+      messageType: kind,
+      mediaUrl,
+      sentAt: new Date().toISOString(),
+    };
+  }
+
+  const client = getSupabaseClient();
+  const { data: userData, error: userError } = await client.auth.getUser();
+  if (userError) {
+    throw mapSupabaseError(userError);
+  }
+  if (!userData.user) {
+    throw new Error('You must be signed in to send a message.');
+  }
+
+  const { data, error } = await client
+    .from('chat_messages')
+    .insert({
+      chat_session_id: sessionId,
+      sender_id: userData.user.id,
+      body: '',
+      message_type: kind,
+      media_url: mediaUrl,
+    })
+    .select('id, chat_session_id, sender_id, body, message_type, media_url, sent_at')
+    .single();
+
+  if (error) {
+    throw mapSupabaseError(error);
+  }
+
+  return {
+    id: data.id,
+    sessionId: data.chat_session_id,
+    senderId: data.sender_id,
+    body: data.body,
+    messageType: (data.message_type as ChatMessageType | null) ?? kind,
+    mediaUrl: (data.media_url as string | null) ?? mediaUrl,
     sentAt: data.sent_at,
   };
 }
