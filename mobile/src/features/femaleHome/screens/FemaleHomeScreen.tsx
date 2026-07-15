@@ -113,7 +113,10 @@ function FemaleHomeScreen(): React.ReactElement {
         logger.info('DEV_MODE: Auto-toggling female availability to online');
         availabilityVal = { ...availabilityVal, online: true };
         setAvailability(true).catch(e => {
-          logger.error('Failed to auto-toggle availability in DEV_MODE', e);
+          // Best-effort dev convenience. A legitimate rejection — e.g. the
+          // female hasn't added payout details yet, so female-availability-toggle
+          // returns 409 — must NOT surface as a fatal console error.
+          logger.warn('DEV_MODE auto-toggle skipped', e);
         });
       }
       setAvailabilityState(availabilityVal);
