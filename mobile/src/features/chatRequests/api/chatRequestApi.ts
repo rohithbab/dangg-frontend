@@ -335,10 +335,18 @@ export async function listChatHistory(): Promise<ReadonlyArray<ChatHistoryItem>>
     hidden_for_male: boolean;
     hidden_for_female: boolean;
   }>;
-  // Hide the chats the caller soft-deleted from their own history.
-  const rows = allRows.filter(r =>
-    r.male_id === selfId ? !r.hidden_for_male : !r.hidden_for_female,
-  );
+  // Hide from the caller's history: (a) chats they soft-deleted, and (b) chats
+  // with no activity in the last 7 days — the rows stay in the DB, they just
+  // drop off the UI list.
+  const cutoffMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const rows = allRows.filter(r => {
+    const hidden = r.male_id === selfId ? r.hidden_for_male : r.hidden_for_female;
+    if (hidden) {
+      return false;
+    }
+    const lastActivity = new Date(r.last_message_at ?? r.started_at).getTime();
+    return lastActivity >= cutoffMs;
+  });
   if (rows.length === 0) {
     return [];
   }
