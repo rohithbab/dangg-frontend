@@ -35,7 +35,9 @@ const Stack = createNativeStackNavigator<MaleAppStackParamList>();
  */
 function MaleAppStack(): React.ReactElement {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <Stack.Navigator
+      screenOptions={{ headerShown: false, animation: 'slide_from_right', gestureEnabled: true }}
+    >
       <Stack.Screen name="MaleTabs" component={MaleTabNavigator} />
       <Stack.Screen name="ChatsInbox" component={ChatsInboxScreen} />
       <Stack.Screen name="FemaleProfilePreview" component={FemaleProfilePreviewScreen} />

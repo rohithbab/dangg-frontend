@@ -49,7 +49,7 @@ function AuthNavigator(): React.ReactElement {
   return (
     <Stack.Navigator
       initialRouteName={initialRoute}
-      screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
+      screenOptions={{ headerShown: false, animation: 'slide_from_right', gestureEnabled: true }}
     >
       <Stack.Screen
         name="Splash"

@@ -40,7 +40,7 @@ const Stack = createNativeStackNavigator<FemaleAppStackParamList>();
  */
 function FemaleAppStack(): React.ReactElement {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right', gestureEnabled: true }}>
       <Stack.Screen name="FemaleTabs" component={FemaleTabNavigator} />
       <Stack.Screen name="ChatsInbox" component={ChatsInboxScreen} />
       <Stack.Screen name="RecentActivity" component={RecentActivityScreen} />
