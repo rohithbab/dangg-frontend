@@ -40,18 +40,24 @@ import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import Avatar from '@core/components/Avatar';
+import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import GradientAvatar from '@core/components/GradientAvatar';
 import { USE_MOCK_DATA } from '@core/config/env';
 import { isBareMediaKey } from '@core/network/mediaService';
 import { getSupabaseClient } from '@core/network/supabaseClient';
+import { AppPermissionStatus, permissionService } from '@core/services/permissionService';
 import { logger } from '@core/utils/logger';
 
 import { type MaleAppStackParamList } from '@navigation/types';
 
 import { submitChatRating } from '@features/maleHome/api/maleHomeApi';
 
-import { pickChatMedia, uploadAndSendChatMedia, type ChatMediaSource } from '../api/chatMedia';
-import { useSignedChatMedia } from '../hooks/useSignedChatMedia';
+import {
+  ensureChatMediaPermission,
+  pickChatMedia,
+  uploadAndSendChatMedia,
+  type ChatMediaSource,
+} from '../api/chatMedia';
 import {
   type ChatMessage,
   type ChatMessageType,
@@ -63,6 +69,8 @@ import {
   listChatMessages,
   sendChatMessage,
 } from '../api/chatRequestApi';
+import ChatMediaViewer from '../components/ChatMediaViewer';
+import { useSignedChatMedia } from '../hooks/useSignedChatMedia';
 
 type Nav = NativeStackNavigationProp<MaleAppStackParamList, 'ChatSession'>;
 type Route = RouteProp<MaleAppStackParamList, 'ChatSession'>;
@@ -116,11 +124,12 @@ const MOCK_FEMALE_NAME = 'Priya';
 // Presence heartbeat cadence, and how long a peer may be unseen before the
 // surviving side treats them as gone (force-closed / crashed) and ends the chat.
 const HEARTBEAT_MS = 7000;
-const PEER_STALE_SECONDS = 35;
+// Force-close / crash: peer heartbeat stale past this ends the chat (~1 min).
+const PEER_STALE_SECONDS = 60;
 // A backgrounded peer is "stepped away" (timer pauses, session held open) until
 // this grace elapses; beyond it — or a force-close with no background marker —
 // the session is ended.
-const PEER_BACKGROUND_GRACE_SECONDS = 90;
+const PEER_BACKGROUND_GRACE_SECONDS = 60;
 
 function formatMessageTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -210,10 +219,16 @@ function DoubleCheckIcon({ size = 12, color = 'rgba(255,255,255,0.7)' }): React.
   );
 }
 
-function MediaContent({ msg }: { msg: MockMessage }): React.ReactElement {
+function MediaContent({
+  msg,
+  onOpen,
+}: {
+  msg: MockMessage;
+  onOpen: (uri: string, kind: 'image' | 'video') => void;
+}): React.ReactElement {
   const openMedia = (): void => {
-    if (msg.mediaUrl && !msg.uploading) {
-      void Linking.openURL(msg.mediaUrl).catch(e => logger.warn('open media failed', e));
+    if (msg.mediaUrl && !msg.uploading && msg.mediaKind) {
+      onOpen(msg.mediaUrl, msg.mediaKind);
     }
   };
 
@@ -252,7 +267,15 @@ function MediaContent({ msg }: { msg: MockMessage }): React.ReactElement {
   );
 }
 
-function MessageBubble({ msg, index }: { msg: MockMessage; index: number }): React.ReactElement {
+function MessageBubble({
+  msg,
+  index,
+  onOpen,
+}: {
+  msg: MockMessage;
+  index: number;
+  onOpen: (uri: string, kind: 'image' | 'video') => void;
+}): React.ReactElement {
   const opacity = useSharedValue(0);
   const tx = useSharedValue(msg.kind === 'sent' ? 20 : -20);
 
@@ -284,7 +307,7 @@ function MessageBubble({ msg, index }: { msg: MockMessage; index: number }): Rea
           hasMedia && styles.bubbleMedia,
         ]}
       >
-        {hasMedia ? <MediaContent msg={msg} /> : null}
+        {hasMedia ? <MediaContent msg={msg} onOpen={onOpen} /> : null}
         {msg.text ? (
           <Text
             style={[styles.bubbleText, isSent ? styles.bubbleTextSent : styles.bubbleTextReceived]}
@@ -443,6 +466,17 @@ function ChatSessionScreen(): React.ReactElement {
   // The other participant stepped away (backgrounded) — pause the timer and show
   // a waiting banner instead of ending the chat.
   const [peerAway, setPeerAway] = useState(false);
+  // Tapped chat image → open the in-app viewer; video falls back to external.
+  const [viewerUri, setViewerUri] = useState<string | null>(null);
+  const openMediaViewer = (uri: string, kind: 'image' | 'video'): void => {
+    if (kind === 'video') {
+      void Linking.openURL(uri).catch(e => logger.warn('open video failed', e));
+    } else {
+      setViewerUri(uri);
+    }
+  };
+  // Which permission was permanently denied → drives the "open Settings" dialog.
+  const [permDenied, setPermDenied] = useState<'camera' | 'gallery' | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [selfId, setSelfId] = useState<string | null>(null);
   // The female being chatted with — target of the post-chat star rating.
@@ -1029,11 +1063,21 @@ function ChatSessionScreen(): React.ReactElement {
   };
 
   const sendMediaFrom = async (source: ChatMediaSource): Promise<void> => {
-    // Suppress the background-end while the picker is foregrounded (see
-    // pickingMediaRef). Reset in finally so a genuine later background still ends.
+    // Suppress the background-end while the permission prompt / picker is
+    // foregrounded (see pickingMediaRef). Reset in finally so a genuine later
+    // background still ends the chat.
     pickingMediaRef.current = true;
-    let picked: Awaited<ReturnType<typeof pickChatMedia>>;
+    let picked: Awaited<ReturnType<typeof pickChatMedia>> = null;
     try {
+      const perm = await ensureChatMediaPermission(source);
+      if (perm !== AppPermissionStatus.Granted) {
+        // Permanently denied → guide the user to Settings; a plain deny this
+        // time just aborts silently (the OS prompt already showed).
+        if (perm === AppPermissionStatus.PermanentlyDenied) {
+          setPermDenied(source === 'gallery' ? 'gallery' : 'camera');
+        }
+        return;
+      }
       picked = await pickChatMedia(source);
     } finally {
       pickingMediaRef.current = false;
@@ -1166,7 +1210,7 @@ function ChatSessionScreen(): React.ReactElement {
           </View>
 
           {displayMessages.map((msg, idx) => (
-            <MessageBubble key={msg.id} msg={msg} index={idx} />
+            <MessageBubble key={msg.id} msg={msg} index={idx} onOpen={openMediaViewer} />
           ))}
 
           {isTyping ? (
@@ -1228,6 +1272,28 @@ function ChatSessionScreen(): React.ReactElement {
           </View>
         </View>
       )}
+
+      <ChatMediaViewer
+        visible={viewerUri !== null}
+        uri={viewerUri}
+        onClose={() => setViewerUri(null)}
+      />
+      <ConfirmationDialog
+        visible={permDenied !== null}
+        title={permDenied === 'gallery' ? 'Photos access needed' : 'Camera access needed'}
+        body={
+          permDenied === 'gallery'
+            ? 'Enable Photos access in Settings to send images from your gallery.'
+            : 'Enable Camera access in Settings to take and send photos.'
+        }
+        confirmLabel="Open Settings"
+        cancelLabel="Not now"
+        onConfirm={() => {
+          setPermDenied(null);
+          void permissionService.openAppSettings();
+        }}
+        onCancel={() => setPermDenied(null)}
+      />
     </SafeAreaView>
   );
 }
