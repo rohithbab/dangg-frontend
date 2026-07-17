@@ -8,11 +8,24 @@
 import { type Asset, launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
 import { uploadToR2 } from '@core/network/mediaService';
+import { type AppPermissionStatus, permissionService } from '@core/services/permissionService';
 import { logger } from '@core/utils/logger';
 
 import { type ChatMessage, sendChatMediaMessage } from './chatRequestApi';
 
 export type ChatMediaSource = 'camera-photo' | 'camera-video' | 'gallery';
+
+/**
+ * Requests the OS permission that `source` needs (camera for capture, photos
+ * for the gallery), showing the first-time prompt. Returns the collapsed status
+ * so the caller can offer a Settings redirect when it's permanently denied —
+ * the picker alone can't recover a blocked permission on Android.
+ */
+export function ensureChatMediaPermission(source: ChatMediaSource): Promise<AppPermissionStatus> {
+  return source === 'gallery'
+    ? permissionService.requestGallery()
+    : permissionService.requestCamera();
+}
 
 export type PickedChatMedia = {
   uri: string;
