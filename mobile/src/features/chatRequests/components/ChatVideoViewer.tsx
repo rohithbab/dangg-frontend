@@ -1,10 +1,24 @@
 import { X } from 'lucide-react-native';
 import React from 'react';
-import { Modal, Pressable, StatusBar, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, StatusBar, StyleSheet, UIManager, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Video from 'react-native-video';
 
 import { logger } from '@core/utils/logger';
+
+/**
+ * True only when the react-native-video native view is actually compiled into
+ * the running binary. It is absent until the APK is rebuilt after adding the
+ * dependency — rendering <Video> without it red-screens ("bubblingEventTypes
+ * of null"). Callers check this and fall back to an external player instead.
+ */
+export const isVideoPlayerAvailable: boolean = (() => {
+  try {
+    return UIManager.getViewManagerConfig?.('RCTVideo') != null;
+  } catch {
+    return false;
+  }
+})();
 
 /**
  * Full-screen in-app video player for a chat video — the counterpart to
@@ -44,7 +58,7 @@ function ChatVideoViewer({ visible, uri, onClose }: ChatVideoViewerProps): React
           </Pressable>
         </SafeAreaView>
         <View style={styles.body}>
-          {visible && uri ? (
+          {visible && uri && isVideoPlayerAvailable ? (
             <Video
               source={{ uri }}
               style={styles.video}

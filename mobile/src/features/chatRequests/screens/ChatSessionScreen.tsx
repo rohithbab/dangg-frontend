@@ -8,6 +8,7 @@ import {
   AppState,
   BackHandler,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -69,7 +70,7 @@ import {
   sendChatMessage,
 } from '../api/chatRequestApi';
 import ChatMediaViewer from '../components/ChatMediaViewer';
-import ChatVideoViewer from '../components/ChatVideoViewer';
+import ChatVideoViewer, { isVideoPlayerAvailable } from '../components/ChatVideoViewer';
 import { useSignedChatMedia } from '../hooks/useSignedChatMedia';
 
 type Nav = NativeStackNavigationProp<MaleAppStackParamList, 'ChatSession'>;
@@ -471,7 +472,13 @@ function ChatSessionScreen(): React.ReactElement {
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const openMediaViewer = (uri: string, kind: 'image' | 'video'): void => {
     if (kind === 'video') {
-      setVideoUri(uri);
+      // In-app player only when its native module is present (post-rebuild);
+      // otherwise fall back to the device's external player so we never crash.
+      if (isVideoPlayerAvailable) {
+        setVideoUri(uri);
+      } else {
+        void Linking.openURL(uri).catch(e => logger.warn('open video failed', e));
+      }
     } else {
       setViewerUri(uri);
     }
