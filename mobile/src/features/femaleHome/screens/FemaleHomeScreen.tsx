@@ -230,17 +230,24 @@ function FemaleHomeScreen(): React.ReactElement {
       >
         {/* Header */}
         <View style={styles.header}>
-          <GradientAvatar
-            initials={firstName.slice(0, 1).toUpperCase()}
-            seed={session?.user.id ?? firstName}
-            uri={avatarUrl}
-            size={46}
-            shape="squircle"
-          />
-          <View style={styles.headerText}>
-            <Text style={styles.greeting}>{greetingForNow()}</Text>
-            <Text style={styles.name}>{firstName}</Text>
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Profile"
+            onPress={() => navigation.navigate('FemaleTabs', { screen: 'Profile' })}
+            style={styles.headerGreet}
+          >
+            <GradientAvatar
+              initials={firstName.slice(0, 1).toUpperCase()}
+              seed={session?.user.id ?? firstName}
+              uri={avatarUrl}
+              size={46}
+              shape="squircle"
+            />
+            <View style={styles.headerText}>
+              <Text style={styles.greeting}>{greetingForNow()}</Text>
+              <Text style={styles.name}>{firstName}</Text>
+            </View>
+          </Pressable>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Chats"
@@ -445,6 +452,7 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: FS.md + 4, paddingBottom: BOTTOM_CLEAR },
 
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: FS.xxl },
+  headerGreet: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   headerText: { flex: 1 },
   chatBtn: {
     width: 40,

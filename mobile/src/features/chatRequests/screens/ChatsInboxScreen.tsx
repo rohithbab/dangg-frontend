@@ -1,8 +1,9 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList } from '@shopify/flash-list';
+import { Check, Clock, Trash2, X } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -62,22 +63,41 @@ function relativeTime(date: Date | null): string {
 
 function ChatRow({
   item,
+  selectionMode,
+  selected,
   onPress,
   onLongPress,
 }: {
   item: ChatHistoryItem;
+  selectionMode: boolean;
+  selected: boolean;
   onPress: (item: ChatHistoryItem) => void;
   onLongPress: (item: ChatHistoryItem) => void;
 }): React.ReactElement {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Open chat with ${item.counterpartName}`}
+      accessibilityLabel={
+        selectionMode
+          ? `${selected ? 'Deselect' : 'Select'} chat with ${item.counterpartName}`
+          : `Open chat with ${item.counterpartName}`
+      }
       onPress={() => onPress(item)}
       onLongPress={() => onLongPress(item)}
       delayLongPress={350}
-      style={({ pressed }) => [styles.row, AppShadows.e1, pressed && styles.rowPressed]}
+      style={({ pressed }) => [
+        styles.row,
+        AppShadows.e1,
+        selected && styles.rowSelected,
+        pressed && styles.rowPressed,
+      ]}
     >
+      {selectionMode ? (
+        <View style={[styles.checkCircle, selected && styles.checkCircleOn]}>
+          {selected ? <Check size={16} color={AppColors.onPrimary} strokeWidth={3} /> : null}
+        </View>
+      ) : null}
+
       <View>
         <Avatar
           uri={item.counterpartAvatarUrl}
@@ -130,7 +150,9 @@ function ChatsInboxScreen(): React.ReactElement {
   const [items, setItems] = useState<ReadonlyArray<ChatHistoryItem>>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<ChatHistoryItem | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
 
   const load = useCallback(async (): Promise<void> => {
     try {
@@ -149,6 +171,25 @@ function ChatsInboxScreen(): React.ReactElement {
     }, [load]),
   );
 
+  const exitSelection = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  // In selection mode, Android back exits selection instead of the screen.
+  useFocusEffect(
+    useCallback(() => {
+      if (!selectionMode) {
+        return undefined;
+      }
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        exitSelection();
+        return true;
+      });
+      return () => sub.remove();
+    }, [selectionMode, exitSelection]),
+  );
+
   const handleRefresh = useCallback(async (): Promise<void> => {
     setRefreshing(true);
     await load();
@@ -162,54 +203,141 @@ function ChatsInboxScreen(): React.ReactElement {
     [navigation],
   );
 
-  // Long-press to delete a chat from this user's history (soft, per-user).
-  const handleDelete = useCallback((item: ChatHistoryItem) => {
-    setPendingDelete(item);
+  const toggleSelect = useCallback((item: ChatHistoryItem) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(item.sessionId)) {
+        next.delete(item.sessionId);
+      } else {
+        next.add(item.sessionId);
+      }
+      return next;
+    });
   }, []);
 
-  const cancelDelete = useCallback(() => {
-    setPendingDelete(null);
-  }, []);
+  // Tap: open (normal) or toggle (selection mode). Long-press: enter selection.
+  const handleRowPress = useCallback(
+    (item: ChatHistoryItem) => {
+      if (selectionMode) {
+        toggleSelect(item);
+      } else {
+        handleOpen(item);
+      }
+    },
+    [selectionMode, toggleSelect, handleOpen],
+  );
+
+  const handleRowLongPress = useCallback(
+    (item: ChatHistoryItem) => {
+      if (selectionMode) {
+        toggleSelect(item);
+      } else {
+        setSelectionMode(true);
+        setSelectedIds(new Set([item.sessionId]));
+      }
+    },
+    [selectionMode, toggleSelect],
+  );
+
+  const allSelected = items.length > 0 && selectedIds.size === items.length;
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds(prev =>
+      prev.size === items.length ? new Set() : new Set(items.map(i => i.sessionId)),
+    );
+  }, [items]);
 
   const confirmDelete = useCallback(() => {
-    const item = pendingDelete;
-    if (!item) {
-      return;
-    }
-    setPendingDelete(null);
-    setItems(prev => prev.filter(i => i.sessionId !== item.sessionId));
-    void hideChatSession(item.sessionId).catch(e => {
-      logger.warn('ChatsInboxScreen.delete failed', e);
-      void load();
+    const ids = Array.from(selectedIds);
+    setConfirmBulkDelete(false);
+    setItems(prev => prev.filter(i => !selectedIds.has(i.sessionId)));
+    exitSelection();
+    void Promise.allSettled(ids.map(id => hideChatSession(id))).then(results => {
+      if (results.some(r => r.status === 'rejected')) {
+        logger.warn('ChatsInboxScreen.bulkDelete: some deletes failed; reloading');
+        void load();
+      }
     });
-  }, [pendingDelete, load]);
+  }, [selectedIds, exitSelection, load]);
 
   const renderItem = useCallback(
     ({ item }: { item: ChatHistoryItem }) => (
-      <ChatRow item={item} onPress={handleOpen} onLongPress={handleDelete} />
+      <ChatRow
+        item={item}
+        selectionMode={selectionMode}
+        selected={selectedIds.has(item.sessionId)}
+        onPress={handleRowPress}
+        onLongPress={handleRowLongPress}
+      />
     ),
-    [handleOpen, handleDelete],
+    [selectionMode, selectedIds, handleRowPress, handleRowLongPress],
   );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          hitSlop={12}
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <BackIcon />
-        </Pressable>
-        <Text style={styles.headerTitle}>Chats</Text>
-      </View>
+      {selectionMode ? (
+        <View style={styles.header}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Cancel selection"
+            hitSlop={12}
+            onPress={exitSelection}
+            style={styles.backButton}
+          >
+            <X size={24} color={AppColors.onSurface} />
+          </Pressable>
+          <Text style={styles.selectionTitle}>{selectedIds.size} selected</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={allSelected ? 'Deselect all' : 'Select all'}
+            hitSlop={8}
+            onPress={toggleSelectAll}
+            style={styles.selectAllBtn}
+          >
+            <Text style={styles.selectAllText}>{allSelected ? 'Deselect all' : 'Select all'}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Delete selected chats"
+            hitSlop={8}
+            disabled={selectedIds.size === 0}
+            onPress={() => setConfirmBulkDelete(true)}
+            style={styles.deleteBtn}
+          >
+            <Trash2
+              size={22}
+              color={selectedIds.size === 0 ? AppColors.onSurfaceDisabled : AppColors.error}
+              strokeWidth={2}
+            />
+          </Pressable>
+        </View>
+      ) : (
+        <View style={styles.header}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            hitSlop={12}
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <BackIcon />
+          </Pressable>
+          <Text style={styles.headerTitle}>Chats</Text>
+        </View>
+      )}
+
+      {items.length > 0 ? (
+        <View style={styles.infoBanner}>
+          <Clock size={14} color={AppColors.onSurfaceMuted} strokeWidth={2} />
+          <Text style={styles.infoText}>Chats are automatically deleted after 7 days.</Text>
+        </View>
+      ) : null}
 
       <FlashList<ChatHistoryItem>
         data={items}
         keyExtractor={item => item.sessionId}
         renderItem={renderItem}
+        extraData={selectedIds}
         estimatedItemSize={84}
         contentContainerStyle={styles.listContent}
         refreshControl={
@@ -235,14 +363,18 @@ function ChatsInboxScreen(): React.ReactElement {
       />
 
       <ConfirmationDialog
-        visible={pendingDelete !== null}
-        title="Delete chat?"
-        body={`Remove your chat with ${pendingDelete?.counterpartName ?? ''} from history? This only affects your side.`}
+        visible={confirmBulkDelete}
+        title={selectedIds.size > 1 ? `Delete ${selectedIds.size} chats?` : 'Delete chat?'}
+        body={
+          selectedIds.size > 1
+            ? `Remove ${selectedIds.size} chats from your history? This only affects your side.`
+            : 'Remove this chat from your history? This only affects your side.'
+        }
         confirmLabel="Delete"
         cancelLabel="Cancel"
         destructive
         onConfirm={confirmDelete}
-        onCancel={cancelDelete}
+        onCancel={() => setConfirmBulkDelete(false)}
       />
     </SafeAreaView>
   );
@@ -265,6 +397,31 @@ const styles = StyleSheet.create({
     ...AppTypography.headlineMedium,
     color: AppColors.primaryDark,
   },
+  selectionTitle: {
+    ...AppTypography.titleLarge,
+    color: AppColors.onSurface,
+    flex: 1,
+    marginLeft: AppSpacing.xs,
+  },
+  selectAllBtn: { paddingHorizontal: AppSpacing.sm, paddingVertical: AppSpacing.xs },
+  selectAllText: { ...AppTypography.labelLarge, color: AppColors.primary },
+  deleteBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: AppSpacing.xs,
+    paddingHorizontal: AppSpacing.md,
+    paddingBottom: AppSpacing.sm,
+  },
+  infoText: {
+    ...AppTypography.bodySmall,
+    color: AppColors.onSurfaceMuted,
+  },
   listContent: {
     paddingHorizontal: AppSpacing.md,
     paddingTop: AppSpacing.sm,
@@ -279,7 +436,25 @@ const styles = StyleSheet.create({
     marginBottom: AppSpacing.sm,
     gap: AppSpacing.sm,
   },
+  rowSelected: {
+    borderWidth: 1,
+    borderColor: AppColors.primary,
+    backgroundColor: AppColors.primarySubtle,
+  },
   rowPressed: { opacity: 0.7 },
+  checkCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: AppColors.onSurfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkCircleOn: {
+    backgroundColor: AppColors.primary,
+    borderColor: AppColors.primary,
+  },
   onlineDot: {
     position: 'absolute',
     right: 0,

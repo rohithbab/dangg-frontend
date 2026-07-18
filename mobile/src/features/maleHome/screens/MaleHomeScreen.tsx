@@ -272,7 +272,12 @@ function MaleHomeScreen(): React.ReactElement {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       <View style={styles.topBar}>
-        <View style={styles.greetWrap}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Profile"
+          onPress={() => navigation.navigate('MaleTabs', { screen: 'Profile' })}
+          style={styles.greetWrap}
+        >
           <GradientAvatar
             initials={firstName.slice(0, 1).toUpperCase()}
             seed={session?.user.id ?? firstName}
@@ -286,7 +291,7 @@ function MaleHomeScreen(): React.ReactElement {
               {firstName}
             </Text>
           </View>
-        </View>
+        </Pressable>
         <View style={styles.topRight}>
           <Pressable
             accessibilityRole="button"
