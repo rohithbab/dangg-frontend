@@ -8,7 +8,6 @@ import {
   AppState,
   BackHandler,
   KeyboardAvoidingView,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -65,6 +64,7 @@ import {
   sendChatMessage,
 } from '../api/chatRequestApi';
 import ChatMediaViewer from '../components/ChatMediaViewer';
+import ChatVideoViewer from '../components/ChatVideoViewer';
 import { useSignedChatMedia } from '../hooks/useSignedChatMedia';
 
 type Nav = NativeStackNavigationProp<FemaleAppStackParamList, 'ChatSession'>;
@@ -430,11 +430,12 @@ function FemaleChatSessionScreen(): React.ReactElement {
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   // The male stepped away (backgrounded) — pause the timer + show a banner.
   const [peerAway, setPeerAway] = useState(false);
-  // Tapped chat image → open the in-app viewer; video falls back to external.
+  // Tapped chat media → open the matching in-app viewer (image or video).
   const [viewerUri, setViewerUri] = useState<string | null>(null);
+  const [videoUri, setVideoUri] = useState<string | null>(null);
   const openMediaViewer = (uri: string, kind: 'image' | 'video'): void => {
     if (kind === 'video') {
-      void Linking.openURL(uri).catch(e => logger.warn('open video failed', e));
+      setVideoUri(uri);
     } else {
       setViewerUri(uri);
     }
@@ -979,6 +980,11 @@ function FemaleChatSessionScreen(): React.ReactElement {
         visible={viewerUri !== null}
         uri={viewerUri}
         onClose={() => setViewerUri(null)}
+      />
+      <ChatVideoViewer
+        visible={videoUri !== null}
+        uri={videoUri}
+        onClose={() => setVideoUri(null)}
       />
       <ConfirmationDialog
         visible={permDenied !== null}

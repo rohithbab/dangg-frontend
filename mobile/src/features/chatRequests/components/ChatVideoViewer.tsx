@@ -1,21 +1,27 @@
 import { X } from 'lucide-react-native';
 import React from 'react';
 import { Modal, Pressable, StatusBar, StyleSheet, View } from 'react-native';
-import FastImage from 'react-native-fast-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Video from 'react-native-video';
+
+import { logger } from '@core/utils/logger';
 
 /**
- * Full-screen in-app viewer for a chat image (WhatsApp-style) instead of
- * kicking the user out to the browser. Tap anywhere or the ✕ to close.
- * Video has its own player — see ChatVideoViewer.
+ * Full-screen in-app video player for a chat video — the counterpart to
+ * ChatMediaViewer (images). Native controls (play/pause/seek/fullscreen); tap
+ * the ✕ to close. Replaces the previous Linking.openURL hand-off to an external
+ * player.
+ *
+ * The <Video> is mounted only while visible, so closing unmounts the player and
+ * stops playback/audio instead of leaving it running in the background.
  */
-export type ChatMediaViewerProps = {
+export type ChatVideoViewerProps = {
   visible: boolean;
   uri: string | null;
   onClose: () => void;
 };
 
-function ChatMediaViewer({ visible, uri, onClose }: ChatMediaViewerProps): React.ReactElement {
+function ChatVideoViewer({ visible, uri, onClose }: ChatVideoViewerProps): React.ReactElement {
   return (
     <Modal
       visible={visible}
@@ -32,20 +38,23 @@ function ChatMediaViewer({ visible, uri, onClose }: ChatMediaViewerProps): React
             hitSlop={16}
             style={styles.closeBtn}
             accessibilityRole="button"
-            accessibilityLabel="Close image"
+            accessibilityLabel="Close video"
           >
             <X size={26} color="#FFFFFF" strokeWidth={2} />
           </Pressable>
         </SafeAreaView>
-        <Pressable style={styles.body} onPress={onClose}>
-          {uri ? (
-            <FastImage
+        <View style={styles.body}>
+          {visible && uri ? (
+            <Video
               source={{ uri }}
-              style={styles.image}
-              resizeMode={FastImage.resizeMode.contain}
+              style={styles.video}
+              controls
+              resizeMode="contain"
+              paused={false}
+              onError={e => logger.warn('ChatVideoViewer playback error', e)}
             />
           ) : null}
-        </Pressable>
+        </View>
       </View>
     </Modal>
   );
@@ -69,7 +78,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  image: { width: '100%', height: '100%' },
+  video: { width: '100%', height: '100%' },
 });
 
-export default ChatMediaViewer;
+export default ChatVideoViewer;
