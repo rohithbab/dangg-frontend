@@ -81,8 +81,17 @@ let deviceSessionAppStateSub: { remove: () => void } | null = null;
 
 const DEVICE_SESSION_POLL_MS = 30000;
 
+/**
+ * Math.random-based UUID v4. Not cryptographically strong, but doesn't need
+ * to be — this is a device-liveness marker for equality comparison, not a
+ * security token (see the migration header for the real security boundary).
+ * Must be a real UUID string: `active_session_id` is a UUID column.
+ */
 function generateDeviceSessionId(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
+    const value = char === 'x' ? Math.floor(Math.random() * 16) : 8 + Math.floor(Math.random() * 4);
+    return value.toString(16);
+  });
 }
 
 function teardownDeviceSession(client: SupabaseClient): void {
@@ -104,12 +113,17 @@ function teardownDeviceSession(client: SupabaseClient): void {
  * Another device claimed this account (single-device login). Tear down our
  * own device-session watchers, sign out (revokes little locally — the real
  * revocation already happened server-side via GOTRUE_SESSIONS_SINGLE_PER_USER
- * — but keeps local state honest), and flag it so a global notice can tell
- * the user why.
+ * — but keeps local state honest), clear the now-stale local device id, and
+ * flag it so a global notice can tell the user why.
  */
 async function handleDeviceKicked(client: SupabaseClient): Promise<void> {
   teardownDeviceSession(client);
   useDeviceKickStore.getState().setKicked(true);
+  try {
+    await secureStorage.removeItem(SecureKey.DeviceSessionId);
+  } catch (e) {
+    logger.warn('handleDeviceKicked: failed to clear local device id', e);
+  }
   try {
     const { error } = await client.auth.signOut();
     if (error) {
@@ -123,21 +137,15 @@ async function handleDeviceKicked(client: SupabaseClient): Promise<void> {
 }
 
 /**
- * Single-device login (see migration `20260718120000_users_active_session.sql`
- * for the full design). This device claims "current" by writing a fresh id to
- * `public.users.active_session_id` and remembering it locally, then watches
- * for another device overwriting it — via Realtime (fast path) plus a 30s
- * poll and an app-foreground recheck, since this stack is known to drop
- * `postgres_changes` events (see presence-liveness-model memory).
+ * Writes a fresh device-session id for `userId`, both locally and on the
+ * row, and returns it. Callers use the returned id to key the Realtime/poll
+ * comparisons below.
  */
-async function registerDeviceSession(client: SupabaseClient, session: Session): Promise<void> {
-  // Defensive: idempotent, closes a race where two onAuthStateChange events
-  // fire back-to-back and would otherwise leak a duplicate channel/poll.
-  teardownDeviceSession(client);
-
-  const userId = session.user.id;
+async function claimDeviceSession(
+  client: SupabaseClient,
+  userId: string,
+): Promise<string | null> {
   const myId = generateDeviceSessionId();
-
   try {
     await secureStorage.setItem(SecureKey.DeviceSessionId, myId);
     const { error } = await client
@@ -145,11 +153,61 @@ async function registerDeviceSession(client: SupabaseClient, session: Session): 
       .update({ active_session_id: myId })
       .eq('id', userId);
     if (error) {
-      logger.warn('registerDeviceSession: failed to claim session', error);
-      return;
+      logger.warn('claimDeviceSession: failed to claim session', error);
+      return null;
     }
+    return myId;
   } catch (e) {
-    logger.warn('registerDeviceSession: exception claiming session', e);
+    logger.warn('claimDeviceSession: exception claiming session', e);
+    return null;
+  }
+}
+
+/**
+ * Single-device login (see migration `20260718120000_users_active_session.sql`
+ * for the full design). A genuine fresh login (`isFreshSignIn`) claims "current"
+ * outright. A session *restore* (cold start / token refresh) checks the row
+ * against the id we last claimed BEFORE writing anything — if another device
+ * claimed it while this device was closed, this is where that surfaces: the
+ * kicked notice fires the moment the app is reopened, instead of this device
+ * silently re-claiming itself and un-kicking. Either way, once "current" is
+ * settled, this device watches for another device overwriting it — via
+ * Realtime (fast path) plus a 30s poll and an app-foreground recheck, since
+ * this stack is known to drop `postgres_changes` events (see
+ * presence-liveness-model memory).
+ */
+async function registerDeviceSession(
+  client: SupabaseClient,
+  session: Session,
+  isFreshSignIn: boolean,
+): Promise<void> {
+  // Defensive: idempotent, closes a race where two onAuthStateChange events
+  // fire back-to-back and would otherwise leak a duplicate channel/poll.
+  teardownDeviceSession(client);
+
+  const userId = session.user.id;
+  let myId: string | null = null;
+
+  if (isFreshSignIn) {
+    myId = await claimDeviceSession(client, userId);
+  } else {
+    const priorLocalId = await secureStorage.getItem(SecureKey.DeviceSessionId);
+    if (priorLocalId) {
+      const { data, error } = await client
+        .from('users')
+        .select('active_session_id')
+        .eq('id', userId)
+        .maybeSingle();
+      const serverId = (data as { active_session_id?: string | null } | null)?.active_session_id;
+      if (!error && serverId && serverId !== priorLocalId) {
+        await handleDeviceKicked(client);
+        return;
+      }
+    }
+    myId = await claimDeviceSession(client, userId);
+  }
+
+  if (!myId) {
     return;
   }
 
@@ -203,7 +261,7 @@ async function registerDeviceSession(client: SupabaseClient, session: Session): 
  * subscription handle — caller can `.unsubscribe()` it on app teardown.
  */
 export function subscribeSupabaseAuth(client: SupabaseClient): { unsubscribe: () => void } {
-  const { data } = client.auth.onAuthStateChange((_event, session) => {
+  const { data } = client.auth.onAuthStateChange((event, session) => {
     const store = useSessionStore.getState();
 
     // CRITICAL: Clear persisted mock session if we are running against real database (USE_MOCK_DATA === false)
@@ -275,9 +333,11 @@ export function subscribeSupabaseAuth(client: SupabaseClient): { unsubscribe: ()
     }, 0);
 
     // Claim single-device login for this account (deferred — same lock reason
-    // as above).
+    // as above). A fresh SIGNED_IN claims outright; any other event with a
+    // session (cold-start restore, token refresh) checks first — see
+    // registerDeviceSession's doc comment for why that distinction matters.
     setTimeout(() => {
-      void registerDeviceSession(client, session);
+      void registerDeviceSession(client, session, event === 'SIGNED_IN');
     }, 0);
 
     // Subscribe to realtime updates on females table for the current user to get live verification status updates
@@ -405,7 +465,11 @@ async function hydrateSessionRoleAndStatus(
         }
       }
     } catch (e) {
-      logger.error('Failed to fetch user role from db', e);
+      // Best-effort hydration — role falls back to the JWT-derived value, so a
+      // transient failure (e.g. an access token expiring right before
+      // auto-refresh catches up) is not fatal. warn, not error, so it doesn't
+      // trip the dev red-box for an expected/recoverable condition.
+      logger.warn('Failed to fetch user role from db', e);
     }
   }
 
@@ -417,12 +481,12 @@ async function hydrateSessionRoleAndStatus(
         .eq('id', session.user.id)
         .maybeSingle();
       if (error) {
-        logger.error('Failed to fetch female verification status', error);
+        logger.warn('Failed to fetch female verification status', error);
         return;
       }
       store.setVerificationStatus(parseVerificationStatus(resData?.verification_status));
     } catch (err) {
-      logger.error(
+      logger.warn(
         'Failed to fetch female verification status',
         err instanceof Error ? err.message : String(err),
       );

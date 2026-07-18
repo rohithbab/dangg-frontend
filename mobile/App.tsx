@@ -12,7 +12,16 @@
  */
 import { DefaultTheme, DarkTheme, NavigationContainer } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import { Platform, StatusBar, StyleSheet, Text, ToastAndroid, View } from 'react-native';
+import {
+  AppState,
+  type AppStateStatus,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  ToastAndroid,
+  View,
+} from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -127,6 +136,20 @@ function App(): React.JSX.Element {
       const client = initSupabase();
       const sub = subscribeSupabaseAuth(client);
 
+      // supabase-js only refreshes the access token while its auto-refresh
+      // ticker runs, and on React Native that ticker must be gated on app
+      // foreground — background timers are frozen by the OS. Without this the
+      // token silently expires (~1h) while backgrounded and never recovers,
+      // surfacing as "JWT expired" on the next request until a full restart.
+      client.auth.startAutoRefresh().catch(err => logger.warn('startAutoRefresh failed', err));
+      const authRefreshSub = AppState.addEventListener('change', (state: AppStateStatus) => {
+        if (state === 'active') {
+          client.auth.startAutoRefresh().catch(err => logger.warn('startAutoRefresh failed', err));
+        } else {
+          client.auth.stopAutoRefresh().catch(err => logger.warn('stopAutoRefresh failed', err));
+        }
+      });
+
       const stopNet = connectivityService.subscribe(isOnline => {
         useConnectivityStore.getState().setOnline(isOnline);
       });
@@ -147,6 +170,8 @@ function App(): React.JSX.Element {
 
       return () => {
         sub.unsubscribe();
+        authRefreshSub.remove();
+        client.auth.stopAutoRefresh().catch(err => logger.warn('stopAutoRefresh failed', err));
         stopNet();
       };
     } catch (e) {
