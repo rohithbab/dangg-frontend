@@ -1,9 +1,11 @@
 import { type RealtimeChannel, type Session, type SupabaseClient } from '@supabase/supabase-js';
+import { AppState, type AppStateStatus } from 'react-native';
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 
 import { USE_MOCK_DATA } from '@core/config/env';
 import { fcmService } from '@core/services/fcmService';
+import { SecureKey, secureStorage } from '@core/storage/secureStorage';
 import { logger } from '@core/utils/logger';
 
 import {
@@ -14,6 +16,8 @@ import {
 } from '@app-types/domain';
 
 import { useChatRequestStore } from '../features/chatRequests/store/chatRequestStore';
+
+import { useDeviceKickStore } from './deviceKickStore';
 
 export type SessionState = {
   session: Session | null;
@@ -71,6 +75,128 @@ export const useVerificationStatus = (): VerificationStatus =>
 
 let activeChannel: RealtimeChannel | null = null;
 let chatRequestsChannel: RealtimeChannel | null = null;
+let deviceSessionChannel: RealtimeChannel | null = null;
+let deviceSessionPollId: ReturnType<typeof setInterval> | null = null;
+let deviceSessionAppStateSub: { remove: () => void } | null = null;
+
+const DEVICE_SESSION_POLL_MS = 30000;
+
+function generateDeviceSessionId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function teardownDeviceSession(client: SupabaseClient): void {
+  if (deviceSessionChannel) {
+    void client.removeChannel(deviceSessionChannel);
+    deviceSessionChannel = null;
+  }
+  if (deviceSessionPollId) {
+    clearInterval(deviceSessionPollId);
+    deviceSessionPollId = null;
+  }
+  if (deviceSessionAppStateSub) {
+    deviceSessionAppStateSub.remove();
+    deviceSessionAppStateSub = null;
+  }
+}
+
+/**
+ * Another device claimed this account (single-device login). Tear down our
+ * own device-session watchers, sign out (revokes little locally — the real
+ * revocation already happened server-side via GOTRUE_SESSIONS_SINGLE_PER_USER
+ * — but keeps local state honest), and flag it so a global notice can tell
+ * the user why.
+ */
+async function handleDeviceKicked(client: SupabaseClient): Promise<void> {
+  teardownDeviceSession(client);
+  useDeviceKickStore.getState().setKicked(true);
+  try {
+    const { error } = await client.auth.signOut();
+    if (error) {
+      logger.warn('handleDeviceKicked: signOut returned an error', error);
+    }
+  } catch (e) {
+    logger.warn('handleDeviceKicked: signOut threw', e);
+  } finally {
+    useSessionStore.getState().clear();
+  }
+}
+
+/**
+ * Single-device login (see migration `20260718120000_users_active_session.sql`
+ * for the full design). This device claims "current" by writing a fresh id to
+ * `public.users.active_session_id` and remembering it locally, then watches
+ * for another device overwriting it — via Realtime (fast path) plus a 30s
+ * poll and an app-foreground recheck, since this stack is known to drop
+ * `postgres_changes` events (see presence-liveness-model memory).
+ */
+async function registerDeviceSession(client: SupabaseClient, session: Session): Promise<void> {
+  // Defensive: idempotent, closes a race where two onAuthStateChange events
+  // fire back-to-back and would otherwise leak a duplicate channel/poll.
+  teardownDeviceSession(client);
+
+  const userId = session.user.id;
+  const myId = generateDeviceSessionId();
+
+  try {
+    await secureStorage.setItem(SecureKey.DeviceSessionId, myId);
+    const { error } = await client
+      .from('users')
+      .update({ active_session_id: myId })
+      .eq('id', userId);
+    if (error) {
+      logger.warn('registerDeviceSession: failed to claim session', error);
+      return;
+    }
+  } catch (e) {
+    logger.warn('registerDeviceSession: exception claiming session', e);
+    return;
+  }
+
+  const checkForKick = async (): Promise<void> => {
+    try {
+      const { data, error } = await client
+        .from('users')
+        .select('active_session_id')
+        .eq('id', userId)
+        .maybeSingle();
+      if (error || !data) {
+        return;
+      }
+      const currentId = (data as { active_session_id?: string | null }).active_session_id;
+      if (currentId && currentId !== myId) {
+        await handleDeviceKicked(client);
+      }
+    } catch (e) {
+      logger.warn('registerDeviceSession: poll check failed', e);
+    }
+  };
+
+  deviceSessionChannel = client
+    .channel(`public:users:device-session:${userId}`)
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${userId}` },
+      payload => {
+        const newId = (payload.new as { active_session_id?: string | null } | undefined)
+          ?.active_session_id;
+        if (newId && newId !== myId) {
+          void handleDeviceKicked(client);
+        }
+      },
+    )
+    .subscribe();
+
+  deviceSessionPollId = setInterval(() => {
+    void checkForKick();
+  }, DEVICE_SESSION_POLL_MS);
+
+  deviceSessionAppStateSub = AppState.addEventListener('change', (state: AppStateStatus) => {
+    if (state === 'active') {
+      void checkForKick();
+    }
+  });
+}
 
 /**
  * Wires Supabase Auth's `onAuthStateChange` into the store. Returns the
@@ -108,6 +234,7 @@ export function subscribeSupabaseAuth(client: SupabaseClient): { unsubscribe: ()
       void client.removeChannel(chatRequestsChannel);
       chatRequestsChannel = null;
     }
+    teardownDeviceSession(client);
 
     if (!session) {
       return;
@@ -145,6 +272,12 @@ export function subscribeSupabaseAuth(client: SupabaseClient): { unsubscribe: ()
     // so the GoTrue auth lock is released first — same reason as above).
     setTimeout(() => {
       void fcmService.syncToken();
+    }, 0);
+
+    // Claim single-device login for this account (deferred — same lock reason
+    // as above).
+    setTimeout(() => {
+      void registerDeviceSession(client, session);
     }, 0);
 
     // Subscribe to realtime updates on females table for the current user to get live verification status updates
@@ -233,6 +366,7 @@ export function subscribeSupabaseAuth(client: SupabaseClient): { unsubscribe: ()
         void client.removeChannel(chatRequestsChannel);
         chatRequestsChannel = null;
       }
+      teardownDeviceSession(client);
     },
   };
 }

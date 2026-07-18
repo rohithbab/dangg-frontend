@@ -34,6 +34,7 @@ import { subscribeSupabaseAuth } from '@store/sessionStore';
 
 import IncomingChatRequestListener from '@features/chatRequests/components/IncomingChatRequestListener';
 import IncomingChatRequestModal from '@features/chatRequests/components/IncomingChatRequestModal';
+import DeviceKickedNotice from '@features/common/DeviceKickedNotice';
 import OfflineOverlay from '@features/common/OfflineOverlay';
 
 /** Navigate to the appropriate screen when the user taps a push notification. */
@@ -188,6 +189,7 @@ function App(): React.JSX.Element {
             <RootNavigator />
             <IncomingChatRequestListener />
             <IncomingChatRequestModal />
+            <DeviceKickedNotice />
           </NavigationContainer>
         </OfflineOverlay>
       </SafeAreaProvider>

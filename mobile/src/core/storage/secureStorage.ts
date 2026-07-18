@@ -8,6 +8,7 @@ export enum SecureKey {
   RefreshToken = 'REFRESH_TOKEN',
   FcmToken = 'FCM_TOKEN',
   BiometricEnabled = 'BIOMETRIC_ENABLED',
+  DeviceSessionId = 'DEVICE_SESSION_ID',
 }
 
 /**
