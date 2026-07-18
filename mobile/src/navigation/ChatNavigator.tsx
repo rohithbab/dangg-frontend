@@ -19,7 +19,7 @@ function ChatNavigator(): React.ReactElement {
   return (
     <Stack.Navigator
       initialRouteName="ChatRequestSent"
-      screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
+      screenOptions={{ headerShown: false, animation: 'slide_from_right', gestureEnabled: true }}
     >
       <Stack.Screen name="ChatRequestSent" component={ChatRequestSentScreen} />
       <Stack.Screen name="ChatRequestAccepted" component={ChatRequestAcceptedScreen} />

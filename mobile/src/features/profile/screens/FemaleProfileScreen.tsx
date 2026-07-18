@@ -25,7 +25,6 @@ import { InterFont } from '@theme/typography';
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import DanggLogo from '@core/components/DanggLogo';
 import GradientAvatar from '@core/components/GradientAvatar';
-import LogoMark from '@core/components/LogoMark';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
 import { inr } from '@core/utils/formatters';
 import { logger } from '@core/utils/logger';
@@ -295,7 +294,6 @@ function FemaleProfileScreen(): React.ReactElement {
 
         <View style={styles.brandFooter}>
           <View style={styles.brandRow}>
-            <LogoMark size={18} />
             <DanggLogo width={80} showTagline={false} color={AppColors.onSurface} />
           </View>
           <Text style={styles.brandVersion}>v1.0.0</Text>

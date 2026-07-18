@@ -25,9 +25,9 @@ const Stack = createNativeStackNavigator<AuthStackParamList>();
  * Auth + onboarding stack. Every route resolves to its real screen.
  *
  * Custom transitions:
- *   * Splash and AccountType fade in/out.
- *   * VerificationSubmitted and ForgotPasswordNew disable back gesture +
- *     hide the back affordance so users can't slip back into prior steps.
+ *   * Splash, AccountType, and VerificationSubmitted fade in/out.
+ *   * Swipe-back gesture is enabled on every screen (including these), no
+ *     exceptions.
  */
 function AuthNavigator(): React.ReactElement {
   const authed = useIsAuthenticated();
@@ -51,11 +51,7 @@ function AuthNavigator(): React.ReactElement {
       initialRouteName={initialRoute}
       screenOptions={{ headerShown: false, animation: 'slide_from_right', gestureEnabled: true }}
     >
-      <Stack.Screen
-        name="Splash"
-        component={SplashScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
-      />
+      <Stack.Screen name="Splash" component={SplashScreen} options={{ animation: 'fade' }} />
       <Stack.Screen
         name="AccountType"
         component={AccountTypeScreen}
@@ -73,7 +69,7 @@ function AuthNavigator(): React.ReactElement {
       <Stack.Screen
         name="FemaleSignupVerificationSubmitted"
         component={VerificationSubmittedScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
+        options={{ animation: 'fade' }}
       />
 
       <Stack.Screen name="LoginPhone" component={LoginPhoneScreen} />

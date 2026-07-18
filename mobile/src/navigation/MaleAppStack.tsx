@@ -45,38 +45,34 @@ function MaleAppStack(): React.ReactElement {
       <Stack.Screen
         name="ChatRequestAccepted"
         component={ChatRequestAcceptedScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
+        options={{ animation: 'fade' }}
       />
-      <Stack.Screen
-        name="ChatSession"
-        component={ChatSessionScreen}
-        options={{ animation: 'slide_from_right', gestureEnabled: false }}
-      />
+      <Stack.Screen name="ChatSession" component={ChatSessionScreen} />
       <Stack.Screen
         name="ChatRequestDeclined"
         component={ChatRequestDeclinedScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
+        options={{ animation: 'fade' }}
       />
       <Stack.Screen
         name="ChatRequestTimeout"
         component={ChatRequestTimeoutScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
+        options={{ animation: 'fade' }}
       />
       <Stack.Screen name="CoinStore" component={CoinStoreScreen} />
       <Stack.Screen
         name="PaymentProcessing"
         component={PaymentProcessingScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
+        options={{ animation: 'fade' }}
       />
       <Stack.Screen
         name="PaymentSuccess"
         component={PaymentSuccessScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
+        options={{ animation: 'fade' }}
       />
       <Stack.Screen
         name="PaymentFailed"
         component={PaymentFailedScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
+        options={{ animation: 'fade' }}
       />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
@@ -90,7 +86,7 @@ function MaleAppStack(): React.ReactElement {
       <Stack.Screen
         name="LikeDislikeRating"
         component={LikeDislikeRatingScreen}
-        options={{ animation: 'slide_from_bottom', gestureEnabled: false }}
+        options={{ animation: 'slide_from_bottom' }}
       />
     </Stack.Navigator>
   );

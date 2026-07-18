@@ -22,7 +22,6 @@ import CoinIcon from '@core/components/CoinIcon';
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import DanggLogo from '@core/components/DanggLogo';
 import GradientAvatar from '@core/components/GradientAvatar';
-import LogoMark from '@core/components/LogoMark';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
 import { logger } from '@core/utils/logger';
 
@@ -234,7 +233,6 @@ function MaleProfileScreen(): React.ReactElement {
 
         <View style={styles.brandFooter}>
           <View style={styles.brandRow}>
-            <LogoMark size={20} />
             <DanggLogo width={86} showTagline={false} color={AppColors.onSurface} />
           </View>
           <Text style={styles.brandVersion}>v1.0.0</Text>

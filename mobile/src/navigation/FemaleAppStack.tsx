@@ -55,7 +55,7 @@ function FemaleAppStack(): React.ReactElement {
       <Stack.Screen
         name="PayoutInReview"
         component={PayoutInReviewScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
+        options={{ animation: 'fade' }}
       />
       <Stack.Screen name="PayoutHistory" component={PayoutHistoryScreen} />
       <Stack.Screen name="PayoutDetail" component={PayoutDetailScreen} />
@@ -64,7 +64,7 @@ function FemaleAppStack(): React.ReactElement {
       <Stack.Screen
         name="WithdrawResult"
         component={WithdrawResultScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
+        options={{ animation: 'fade' }}
       />
       <Stack.Screen name="PayoutMethods" component={PayoutMethodsScreen} />
       <Stack.Screen name="AddPayoutMethod" component={AddPayoutMethodScreen} />
@@ -73,7 +73,7 @@ function FemaleAppStack(): React.ReactElement {
       <Stack.Screen
         name="PayoutMethodAdded"
         component={PayoutMethodAddedScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
+        options={{ animation: 'fade' }}
       />
       <Stack.Screen name="DeleteAccount" component={DeleteAccountWarningScreen} />
       <Stack.Screen name="DeleteAccountConfirm" component={DeleteAccountConfirmScreen} />
@@ -81,13 +81,9 @@ function FemaleAppStack(): React.ReactElement {
       <Stack.Screen
         name="ChatRequestAccepted"
         component={FemaleChatRequestAcceptedScreen}
-        options={{ animation: 'fade', gestureEnabled: false }}
+        options={{ animation: 'fade' }}
       />
-      <Stack.Screen
-        name="ChatSession"
-        component={FemaleChatSessionScreen}
-        options={{ animation: 'slide_from_right', gestureEnabled: false }}
-      />
+      <Stack.Screen name="ChatSession" component={FemaleChatSessionScreen} />
     </Stack.Navigator>
   );
 }
