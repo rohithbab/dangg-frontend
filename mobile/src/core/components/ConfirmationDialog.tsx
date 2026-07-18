@@ -14,11 +14,13 @@ export type ConfirmationDialogProps = {
   cancelLabel?: string;
   /** Renders the confirm action in red. */
   destructive?: boolean;
+  /** Omits the cancel action for a single-button notice (e.g. "OK"). */
+  hideCancel?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
 
-/** Centred modal — title + body + Cancel + Confirm. */
+/** Centred modal — title + body + Cancel + Confirm (or just Confirm, for notices). */
 function ConfirmationDialog({
   visible,
   title,
@@ -26,6 +28,7 @@ function ConfirmationDialog({
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   destructive = false,
+  hideCancel = false,
   onConfirm,
   onCancel,
 }: ConfirmationDialogProps): React.ReactElement {
@@ -42,9 +45,11 @@ function ConfirmationDialog({
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.body}>{body}</Text>
           <View style={styles.row}>
-            <Pressable onPress={onCancel} style={styles.action}>
-              <Text style={styles.cancel}>{cancelLabel}</Text>
-            </Pressable>
+            {hideCancel ? null : (
+              <Pressable onPress={onCancel} style={styles.action}>
+                <Text style={styles.cancel}>{cancelLabel}</Text>
+              </Pressable>
+            )}
             <Pressable onPress={onConfirm} style={styles.action}>
               <Text style={[styles.confirm, destructive && styles.destructive]}>
                 {confirmLabel}

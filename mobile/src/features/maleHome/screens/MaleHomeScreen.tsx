@@ -5,6 +5,7 @@ import { MessageCircle } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  BackHandler,
   Platform,
   Pressable,
   RefreshControl,
@@ -21,6 +22,7 @@ import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
 import CoinIcon from '@core/components/CoinIcon';
+import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import GradientAvatar from '@core/components/GradientAvatar';
 import PaginationLoader from '@core/components/PaginationLoader';
 import PersonRow from '@core/components/PersonRow';
@@ -94,6 +96,19 @@ function MaleHomeScreen(): React.ReactElement {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [insufficientOpen, setInsufficientOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+
+  // Hardware/gesture back on this tab's root would otherwise exit the app
+  // with no warning — intercept and confirm first.
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        setExitConfirmOpen(true);
+        return true;
+      });
+      return () => sub.remove();
+    }, []),
+  );
 
   const filtersSnapshot = useMemo(
     () => ({
@@ -404,6 +419,20 @@ function MaleHomeScreen(): React.ReactElement {
           />
         </>
       ) : null}
+
+      <ConfirmationDialog
+        visible={exitConfirmOpen}
+        title="Exit Dangg?"
+        body="Are you sure you want to close the app?"
+        confirmLabel="Exit"
+        cancelLabel="Stay"
+        destructive
+        onConfirm={() => {
+          setExitConfirmOpen(false);
+          BackHandler.exitApp();
+        }}
+        onCancel={() => setExitConfirmOpen(false)}
+      />
     </SafeAreaView>
   );
 }

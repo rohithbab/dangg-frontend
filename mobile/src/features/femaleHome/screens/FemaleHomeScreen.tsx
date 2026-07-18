@@ -2,7 +2,15 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ChevronRight, MessageCircle } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  BackHandler,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -14,6 +22,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { InterFont } from '@theme/typography';
 
+import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import GradientAvatar from '@core/components/GradientAvatar';
 import { BOTTOM_NAV_HEIGHT } from '@core/config/constants';
 import { Env } from '@core/config/env';
@@ -83,6 +92,7 @@ function FemaleHomeScreen(): React.ReactElement {
   const [toggling, setToggling] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const clearNotice = useCallback(() => setNotice(null), []);
 
   // Profile picture for the greeting avatar (falls back to the initial).
@@ -91,6 +101,18 @@ function FemaleHomeScreen(): React.ReactElement {
       getProfile()
         .then(p => setAvatarUrl(p.avatarUrl))
         .catch(e => logger.warn('FemaleHome: getProfile failed', e));
+    }, []),
+  );
+
+  // Hardware/gesture back on this tab's root would otherwise exit the app
+  // with no warning — intercept and confirm first.
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        setExitConfirmOpen(true);
+        return true;
+      });
+      return () => sub.remove();
     }, []),
   );
 
@@ -325,6 +347,20 @@ function FemaleHomeScreen(): React.ReactElement {
         )}
       </ScrollView>
       <ShakeToast message={notice} onHide={clearNotice} />
+
+      <ConfirmationDialog
+        visible={exitConfirmOpen}
+        title="Exit Dangg?"
+        body="Are you sure you want to close the app?"
+        confirmLabel="Exit"
+        cancelLabel="Stay"
+        destructive
+        onConfirm={() => {
+          setExitConfirmOpen(false);
+          BackHandler.exitApp();
+        }}
+        onCancel={() => setExitConfirmOpen(false)}
+      />
     </SafeAreaView>
   );
 }

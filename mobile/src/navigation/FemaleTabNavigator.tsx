@@ -3,6 +3,7 @@ import { Home, User, Wallet } from 'lucide-react-native';
 import React from 'react';
 
 import FloatingBottomNav from '@core/components/FloatingBottomNav';
+import SwipeableTabScreen from '@core/components/SwipeableTabScreen';
 
 import EarningsDashboardScreen from '@features/earnings/screens/EarningsDashboardScreen';
 import FemaleHomeScreen from '@features/femaleHome/screens/FemaleHomeScreen';
@@ -11,6 +12,32 @@ import FemaleProfileScreen from '@features/profile/screens/FemaleProfileScreen';
 import { type FemaleTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<FemaleTabParamList>();
+
+const TAB_ORDER = ['Home', 'Earnings', 'Profile'] as const;
+
+function HomeTabScreen(): React.ReactElement {
+  return (
+    <SwipeableTabScreen order={TAB_ORDER} routeName="Home">
+      <FemaleHomeScreen />
+    </SwipeableTabScreen>
+  );
+}
+
+function EarningsTabScreen(): React.ReactElement {
+  return (
+    <SwipeableTabScreen order={TAB_ORDER} routeName="Earnings">
+      <EarningsDashboardScreen />
+    </SwipeableTabScreen>
+  );
+}
+
+function ProfileTabScreen(): React.ReactElement {
+  return (
+    <SwipeableTabScreen order={TAB_ORDER} routeName="Profile">
+      <FemaleProfileScreen />
+    </SwipeableTabScreen>
+  );
+}
 
 type IconProps = { color: string; size: number };
 
@@ -37,17 +64,17 @@ function FemaleTabNavigator(): React.ReactElement {
     >
       <Tab.Screen
         name="Home"
-        component={FemaleHomeScreen}
+        component={HomeTabScreen}
         options={{ tabBarLabel: 'Home', tabBarIcon: HomeIcon }}
       />
       <Tab.Screen
         name="Earnings"
-        component={EarningsDashboardScreen}
+        component={EarningsTabScreen}
         options={{ tabBarLabel: 'Earnings', tabBarIcon: EarningsIcon }}
       />
       <Tab.Screen
         name="Profile"
-        component={FemaleProfileScreen}
+        component={ProfileTabScreen}
         options={{ tabBarLabel: 'Profile', tabBarIcon: ProfileIcon }}
       />
     </Tab.Navigator>

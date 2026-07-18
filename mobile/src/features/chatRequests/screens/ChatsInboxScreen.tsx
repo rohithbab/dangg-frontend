@@ -2,7 +2,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList } from '@shopify/flash-list';
 import React, { useCallback, useState } from 'react';
-import { Alert, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -13,6 +13,7 @@ import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import Avatar from '@core/components/Avatar';
+import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import { BOTTOM_NAV_HEIGHT, FAB_PROTRUSION } from '@core/config/constants';
 import { logger } from '@core/utils/logger';
 
@@ -129,6 +130,7 @@ function ChatsInboxScreen(): React.ReactElement {
   const [items, setItems] = useState<ReadonlyArray<ChatHistoryItem>>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ChatHistoryItem | null>(null);
 
   const load = useCallback(async (): Promise<void> => {
     try {
@@ -161,29 +163,26 @@ function ChatsInboxScreen(): React.ReactElement {
   );
 
   // Long-press to delete a chat from this user's history (soft, per-user).
-  const handleDelete = useCallback(
-    (item: ChatHistoryItem) => {
-      Alert.alert(
-        'Delete chat?',
-        `Remove your chat with ${item.counterpartName} from history? This only affects your side.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: () => {
-              setItems(prev => prev.filter(i => i.sessionId !== item.sessionId));
-              void hideChatSession(item.sessionId).catch(e => {
-                logger.warn('ChatsInboxScreen.delete failed', e);
-                void load();
-              });
-            },
-          },
-        ],
-      );
-    },
-    [load],
-  );
+  const handleDelete = useCallback((item: ChatHistoryItem) => {
+    setPendingDelete(item);
+  }, []);
+
+  const cancelDelete = useCallback(() => {
+    setPendingDelete(null);
+  }, []);
+
+  const confirmDelete = useCallback(() => {
+    const item = pendingDelete;
+    if (!item) {
+      return;
+    }
+    setPendingDelete(null);
+    setItems(prev => prev.filter(i => i.sessionId !== item.sessionId));
+    void hideChatSession(item.sessionId).catch(e => {
+      logger.warn('ChatsInboxScreen.delete failed', e);
+      void load();
+    });
+  }, [pendingDelete, load]);
 
   const renderItem = useCallback(
     ({ item }: { item: ChatHistoryItem }) => (
@@ -233,6 +232,17 @@ function ChatsInboxScreen(): React.ReactElement {
             </View>
           )
         }
+      />
+
+      <ConfirmationDialog
+        visible={pendingDelete !== null}
+        title="Delete chat?"
+        body={`Remove your chat with ${pendingDelete?.counterpartName ?? ''} from history? This only affects your side.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
       />
     </SafeAreaView>
   );
