@@ -810,7 +810,18 @@ function ChatSessionScreen(): React.ReactElement {
       setSecondsElapsed(Math.max(0, Math.floor((serverNowMs() - startedAtMs) / 1000)));
     tick();
     const t = setInterval(tick, 1000);
-    return () => clearInterval(t);
+    // Opening the image/video picker backgrounds the app and freezes the
+    // interval — recompute the instant we return so the timer catches up with
+    // zero visible pause and keeps running through the media upload.
+    const appStateSub = AppState.addEventListener('change', next => {
+      if (next === 'active') {
+        tick();
+      }
+    });
+    return () => {
+      clearInterval(t);
+      appStateSub.remove();
+    };
   }, [isLive, startedAtMs, chatEndState]);
 
   // Presence heartbeat — while the chat is live and foregrounded, stamp
