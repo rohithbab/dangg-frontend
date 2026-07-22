@@ -194,12 +194,14 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
           <StatCol value={`~${female.averageResponseMinutes}m`} label="Replies in" />
         </View>
 
-        {female.bio ? (
-          <View style={styles.bioCard}>
-            <Text style={styles.bioTitle}>About Me</Text>
+        <View style={styles.bioCard}>
+          <Text style={styles.bioTitle}>About Me</Text>
+          {female.bio ? (
             <Text style={styles.bioText}>{female.bio}</Text>
-          </View>
-        ) : null}
+          ) : (
+            <Text style={styles.bioEmpty}>No about details available for this user.</Text>
+          )}
+        </View>
       </ScrollView>
 
       <View style={[styles.ctaWrap, { paddingBottom: Math.max(insets.bottom, AppSpacing.md) }]}>
@@ -312,6 +314,13 @@ const styles = StyleSheet.create({
     fontSize: 16.5,
     lineHeight: 24,
     color: AppColors.onSurface,
+  },
+  bioEmpty: {
+    fontFamily: InterFont.regular,
+    fontSize: 15,
+    lineHeight: 22,
+    color: AppColors.onSurfaceMuted,
+    fontStyle: 'italic',
   },
   statRow: {
     flexDirection: 'row',
