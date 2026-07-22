@@ -793,9 +793,17 @@ function ChatSessionScreen(): React.ReactElement {
   // Session timer — derived each tick from the shared server start time, so
   // male and female stay in lockstep and a backgrounded screen catches up
   // instantly on return (a frozen setInterval would silently lose ticks).
-  // Runs ONLY for a live session.
+  // Runs ONLY for a live session; freezes once the chat has ended and the
+  // rating/skip overlay is up (chatEndState 'rating'/'success') — the session
+  // is already closed server-side, so the timer must not keep counting while
+  // the male rates or skips.
   useEffect(() => {
-    if (!isLive || startedAtMs == null) {
+    if (
+      !isLive ||
+      startedAtMs == null ||
+      chatEndState === 'rating' ||
+      chatEndState === 'success'
+    ) {
       return;
     }
     const tick = (): void =>
@@ -803,7 +811,7 @@ function ChatSessionScreen(): React.ReactElement {
     tick();
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
-  }, [isLive, startedAtMs]);
+  }, [isLive, startedAtMs, chatEndState]);
 
   // Presence heartbeat — while the chat is live and foregrounded, stamp
   // presence every few seconds. A hard force-close (no JS) stops these, letting
