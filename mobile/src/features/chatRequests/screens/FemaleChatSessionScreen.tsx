@@ -63,6 +63,8 @@ import {
   getChatSessionLiveness,
   listChatMessages,
   sendChatMessage,
+  serverNowMs,
+  syncServerClock,
 } from '../api/chatRequestApi';
 import ChatMediaViewer from '../components/ChatMediaViewer';
 import ChatVideoViewer, { isVideoPlayerAvailable } from '../components/ChatVideoViewer';
@@ -429,7 +431,15 @@ function FemaleChatSessionScreen(): React.ReactElement {
   );
   const [isTyping, setIsTyping] = useState(USE_MOCK_DATA);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
-  // The male stepped away (backgrounded) — pause the timer + show a banner.
+  // Anchor the timer to the session's server start time so both participants
+  // show the same elapsed value — each side previously counted from 0 at its
+  // own mount moment, so they drifted apart. Mock has no server session.
+  const [startedAtMs, setStartedAtMs] = useState<number | null>(
+    USE_MOCK_DATA ? Date.now() : null,
+  );
+  // The male stepped away (backgrounded) — show a banner instead of ending the
+  // chat. The timer is anchored to the shared server start time (below) and no
+  // longer pauses, so both sides stay in sync.
   const [peerAway, setPeerAway] = useState(false);
   // Tapped chat media → open the matching in-app viewer (image or video).
   const [viewerUri, setViewerUri] = useState<string | null>(null);
@@ -474,13 +484,19 @@ function FemaleChatSessionScreen(): React.ReactElement {
     return () => sub.remove();
   }, []);
 
+  // Session timer — derived each tick from the shared server start time, so
+  // female and male stay in lockstep and a backgrounded screen catches up
+  // instantly on return (a frozen setInterval would silently lose ticks).
   useEffect(() => {
-    if (!isLive || peerAway) {
+    if (!isLive || startedAtMs == null) {
       return;
     }
-    const t = setInterval(() => setSecondsElapsed(s => s + 1), 1000);
+    const tick = (): void =>
+      setSecondsElapsed(Math.max(0, Math.floor((serverNowMs() - startedAtMs) / 1000)));
+    tick();
+    const t = setInterval(tick, 1000);
     return () => clearInterval(t);
-  }, [isLive, peerAway]);
+  }, [isLive, startedAtMs]);
 
   // Backgrounding marks "stepped away" (not ended) so the male pauses his timer
   // and waits (#19/#23). Resume on return; a real force-close is caught by the
@@ -522,6 +538,9 @@ function FemaleChatSessionScreen(): React.ReactElement {
           return;
         }
         currentUserId = userData.user.id;
+        // Align to the server clock before anchoring the timer, so a skewed
+        // device clock doesn't throw the elapsed time off.
+        await syncServerClock();
         session = await getChatSessionForRequest(route.params.requestId);
       } catch (e) {
         logger.error('FemaleChatSession bootstrap failed', e);
@@ -543,6 +562,8 @@ function FemaleChatSessionScreen(): React.ReactElement {
 
       setSelfId(currentUserId);
       setSessionId(session.id);
+      const startedMs = session.startedAt ? new Date(session.startedAt).getTime() : Date.now();
+      setStartedAtMs(Number.isNaN(startedMs) ? Date.now() : startedMs);
       if (session.partnerName) {
         setPartnerName(session.partnerName);
       }

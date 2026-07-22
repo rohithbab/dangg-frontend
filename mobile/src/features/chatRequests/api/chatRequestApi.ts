@@ -10,15 +10,51 @@
  * `cancelSentRequest`. The Sent screen polls `getSentRequestStatus` every
  * few seconds until the row's status flips to accepted/declined/expired.
  */
-import { USE_MOCK_DATA } from '@core/config/env';
+import { Env, USE_MOCK_DATA } from '@core/config/env';
 import {
   appExceptionFromStatus,
   extractEdgeFunctionError,
   mapSupabaseError,
 } from '@core/network/apiErrorMapper';
 import { getSupabaseClient } from '@core/network/supabaseClient';
+import { logger } from '@core/utils/logger';
 
 import { type IncomingChatRequest } from '../store/chatRequestStore';
+
+// Client↔server clock offset (ms). The chat timer is anchored to the session's
+// server `started_at`, so if a device's local clock is skewed the raw
+// (Date.now() − started_at) would be wrong (even negative) and the two
+// participants would disagree. We correct for that by measuring the offset once
+// from an HTTP `Date` response header (whole-second resolution — fine for a
+// mm:ss display) and basing the timer on serverNowMs() instead.
+let serverClockOffsetMs = 0;
+
+/** Refreshes the client↔server clock offset. Best-effort; keeps last value on failure. */
+export async function syncServerClock(): Promise<void> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000);
+  try {
+    const res = await fetch(`${Env.supabaseUrl}/auth/v1/health`, {
+      method: 'GET',
+      headers: { apikey: Env.supabaseAnonKey },
+      signal: controller.signal,
+    });
+    const header = res.headers.get('date');
+    const serverMs = header ? new Date(header).getTime() : NaN;
+    if (!Number.isNaN(serverMs)) {
+      serverClockOffsetMs = serverMs - Date.now();
+    }
+  } catch (e) {
+    logger.warn('syncServerClock failed; using local clock', e);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/** Best-estimate current server time in ms — see `syncServerClock`. */
+export function serverNowMs(): number {
+  return Date.now() + serverClockOffsetMs;
+}
 
 export type ChatSession = {
   id: string;

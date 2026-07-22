@@ -68,6 +68,8 @@ import {
   getChatSessionLiveness,
   listChatMessages,
   sendChatMessage,
+  serverNowMs,
+  syncServerClock,
 } from '../api/chatRequestApi';
 import ChatMediaViewer from '../components/ChatMediaViewer';
 import ChatVideoViewer, { isVideoPlayerAvailable } from '../components/ChatVideoViewer';
@@ -464,8 +466,15 @@ function ChatSessionScreen(): React.ReactElement {
   );
   const [isTyping, setIsTyping] = useState(USE_MOCK_DATA);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
-  // The other participant stepped away (backgrounded) — pause the timer and show
-  // a waiting banner instead of ending the chat.
+  // Anchor the timer to the session's server start time so both participants
+  // show the same elapsed value — each side previously counted from 0 at its
+  // own mount moment, so they drifted apart. Mock has no server session.
+  const [startedAtMs, setStartedAtMs] = useState<number | null>(
+    USE_MOCK_DATA ? Date.now() : null,
+  );
+  // The other participant stepped away (backgrounded) — show a waiting banner
+  // instead of ending the chat. The timer is anchored to the shared server
+  // start time (below) and no longer pauses, so both sides stay in sync.
   const [peerAway, setPeerAway] = useState(false);
   // Tapped chat media → open the matching in-app viewer (image or video).
   const [viewerUri, setViewerUri] = useState<string | null>(null);
@@ -781,15 +790,20 @@ function ChatSessionScreen(): React.ReactElement {
     }
   };
 
-  // Session timer — runs ONLY for a live session, and PAUSES while the other
-  // person has stepped away (#23), so it resumes from where it left off.
+  // Session timer — derived each tick from the shared server start time, so
+  // male and female stay in lockstep and a backgrounded screen catches up
+  // instantly on return (a frozen setInterval would silently lose ticks).
+  // Runs ONLY for a live session.
   useEffect(() => {
-    if (!isLive || peerAway) {
+    if (!isLive || startedAtMs == null) {
       return;
     }
-    const t = setInterval(() => setSecondsElapsed(s => s + 1), 1000);
+    const tick = (): void =>
+      setSecondsElapsed(Math.max(0, Math.floor((serverNowMs() - startedAtMs) / 1000)));
+    tick();
+    const t = setInterval(tick, 1000);
     return () => clearInterval(t);
-  }, [isLive, peerAway]);
+  }, [isLive, startedAtMs]);
 
   // Presence heartbeat — while the chat is live and foregrounded, stamp
   // presence every few seconds. A hard force-close (no JS) stops these, letting
@@ -848,6 +862,9 @@ function ChatSessionScreen(): React.ReactElement {
         }
         currentUserId = userData.user.id;
 
+        // Align to the server clock before anchoring the timer, so a skewed
+        // device clock doesn't throw the elapsed time off.
+        await syncServerClock();
         session = await getChatSessionForRequest(route.params.requestId);
       } catch (e) {
         // Network/DB failure (e.g. server unreachable) — surface it instead of
@@ -871,6 +888,8 @@ function ChatSessionScreen(): React.ReactElement {
 
       setSelfId(currentUserId);
       setSessionId(session.id);
+      const startedMs = session.startedAt ? new Date(session.startedAt).getTime() : Date.now();
+      setStartedAtMs(Number.isNaN(startedMs) ? Date.now() : startedMs);
       setFemaleId(session.femaleId);
       if (session.partnerName) {
         setPartnerName(session.partnerName);
