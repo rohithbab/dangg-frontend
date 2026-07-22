@@ -12,6 +12,7 @@ import { InterFont } from '@theme/typography';
 
 import GradientAvatar from '@core/components/GradientAvatar';
 import PrimaryButton from '@core/components/PrimaryButton';
+import Toast from '@core/components/Toast';
 import { AppException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
 
@@ -47,6 +48,7 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [insufficientOpen, setInsufficientOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     getFemaleById(femaleId)
@@ -58,12 +60,19 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
     if (!female) {
       return;
     }
-    setFemale(prev => (prev ? { ...prev, isFavorited: !prev.isFavorited } : prev));
+    const nowFavorited = !female.isFavorited;
+    setFemale(prev => (prev ? { ...prev, isFavorited: nowFavorited } : prev));
+    setNotice(
+      nowFavorited
+        ? 'You added this user to your favourites.'
+        : 'Removed from your favourites.',
+    );
     try {
       await toggleFavorite(female.id);
     } catch (e) {
       logger.warn('toggleFavorite failed', e);
-      setFemale(prev => (prev ? { ...prev, isFavorited: !prev.isFavorited } : prev));
+      setFemale(prev => (prev ? { ...prev, isFavorited: !nowFavorited } : prev));
+      setNotice("Couldn't update favourites. Please try again.");
     }
   }, [female]);
 
@@ -231,6 +240,8 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
           navigation.navigate('MaleTabs', { screen: 'Wallet' });
         }}
       />
+
+      <Toast message={notice} onHide={() => setNotice(null)} />
     </SafeAreaView>
   );
 }
