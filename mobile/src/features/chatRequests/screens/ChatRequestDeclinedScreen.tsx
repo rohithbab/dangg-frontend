@@ -10,7 +10,6 @@ import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
 import PrimaryButton from '@core/components/PrimaryButton';
-import TextButton from '@core/components/TextButton';
 
 import { type MaleAppStackParamList } from '@navigation/types';
 
@@ -42,7 +41,6 @@ function ChatRequestDeclinedScreen(): React.ReactElement {
       </View>
       <View style={styles.footer}>
         <PrimaryButton label="Try someone else" onPress={goHome} />
-        <TextButton label="Back to home" onPress={goHome} />
       </View>
     </SafeAreaView>
   );
