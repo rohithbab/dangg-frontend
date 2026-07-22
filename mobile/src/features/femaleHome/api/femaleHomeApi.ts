@@ -74,6 +74,8 @@ export type RecentActivity = {
   amountInr: number | null;
   ratingValue: number | null;
   occurredAt: Date;
+  /** For a completed chat: how long the room lasted, in seconds. Else null. */
+  durationSeconds: number | null;
 };
 
 let devOnline = true;
@@ -96,10 +98,11 @@ const MOCK_ACTIVITIES = (): RecentActivity[] => [
     actorName: 'Rahul',
     actorAvatarUrl:
       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    description: 'Chat completed (25 mins)',
+    description: 'Chat completed',
     amountInr: 300,
     ratingValue: null,
     occurredAt: new Date(Date.now() - 15 * 60 * 1000), // 15 mins ago
+    durationSeconds: 1500,
   },
   {
     id: 'activity-2',
@@ -111,6 +114,7 @@ const MOCK_ACTIVITIES = (): RecentActivity[] => [
     amountInr: null,
     ratingValue: 5,
     occurredAt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
+    durationSeconds: null,
   },
   {
     id: 'activity-3',
@@ -121,6 +125,7 @@ const MOCK_ACTIVITIES = (): RecentActivity[] => [
     amountInr: 4200,
     ratingValue: null,
     occurredAt: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
+    durationSeconds: null,
   },
   {
     id: 'activity-4',
@@ -128,10 +133,11 @@ const MOCK_ACTIVITIES = (): RecentActivity[] => [
     actorName: 'Vikram',
     actorAvatarUrl:
       'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80',
-    description: 'Chat completed (10 mins)',
+    description: 'Chat completed',
     amountInr: 120,
     ratingValue: null,
     occurredAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+    durationSeconds: 600,
   },
 ];
 
@@ -253,6 +259,7 @@ export async function getRecentActivity(limit = 5): Promise<ReadonlyArray<Recent
     amountInr: row.amountInr != null ? Number(row.amountInr) : null,
     ratingValue: row.ratingValue != null ? Number(row.ratingValue) : null,
     occurredAt: new Date((row.occurredAt as string | number) ?? Date.now()),
+    durationSeconds: row.durationSeconds != null ? Number(row.durationSeconds) : null,
   }));
 }
 

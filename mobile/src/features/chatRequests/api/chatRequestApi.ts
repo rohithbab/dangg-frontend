@@ -94,6 +94,8 @@ export type ChatHistoryItem = {
   lastMessage: string | null;
   lastMessageAt: Date | null;
   status: 'active' | 'ended';
+  /** How long the room lasted, in seconds. Null while active or unsettled. */
+  durationSeconds: number | null;
 };
 
 function unwrapFunctionData<T>(response: unknown): T {
@@ -352,8 +354,8 @@ export async function listChatHistory(): Promise<ReadonlyArray<ChatHistoryItem>>
   const { data: sessions, error } = await client
     .from('chat_sessions')
     .select(
-      'id, chat_request_id, male_id, female_id, status, started_at, last_message_at, ' +
-        'hidden_for_male, hidden_for_female',
+      'id, chat_request_id, male_id, female_id, status, started_at, ended_at, ' +
+        'duration_seconds, last_message_at, hidden_for_male, hidden_for_female',
     )
     .order('last_message_at', { ascending: false, nullsFirst: false })
     .order('started_at', { ascending: false });
@@ -367,6 +369,8 @@ export async function listChatHistory(): Promise<ReadonlyArray<ChatHistoryItem>>
     female_id: string;
     status: 'active' | 'ended';
     started_at: string;
+    ended_at: string | null;
+    duration_seconds: number | null;
     last_message_at: string | null;
     hidden_for_male: boolean;
     hidden_for_female: boolean;
@@ -422,6 +426,19 @@ export async function listChatHistory(): Promise<ReadonlyArray<ChatHistoryItem>>
     const profile = userById.get(counterpartId);
     const snippet = snippetBySession.get(r.id);
     const lastMessageAtIso = snippet?.sentAt ?? r.last_message_at;
+    // Prefer the server-stamped duration; fall back to ended_at − started_at for
+    // sessions ended before that column existed. Only ended sessions have one.
+    let durationSeconds: number | null = null;
+    if (r.status === 'ended') {
+      if (r.duration_seconds != null) {
+        durationSeconds = r.duration_seconds;
+      } else if (r.ended_at) {
+        durationSeconds = Math.max(
+          0,
+          Math.round((new Date(r.ended_at).getTime() - new Date(r.started_at).getTime()) / 1000),
+        );
+      }
+    }
     return {
       sessionId: r.id,
       requestId: r.chat_request_id,
@@ -431,6 +448,7 @@ export async function listChatHistory(): Promise<ReadonlyArray<ChatHistoryItem>>
       lastMessage: snippet?.body ?? null,
       lastMessageAt: lastMessageAtIso ? new Date(lastMessageAtIso) : null,
       status: r.status,
+      durationSeconds,
     };
   });
 }

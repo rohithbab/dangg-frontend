@@ -43,8 +43,28 @@ function initialsFromName(name: string): string {
   return `${first}${last}`.toUpperCase();
 }
 
+/** How long the room lasted, e.g. "45s", "5m 23s", "1h 4m". */
+function formatRoomDuration(seconds: number): string {
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m < 60) {
+    return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  }
+  const h = Math.floor(m / 60);
+  const rm = m % 60;
+  return rm > 0 ? `${h}h ${rm}m` : `${h}h`;
+}
+
 function RecentActivityItem({ item }: RecentActivityItemProps): React.ReactElement {
   const time = useMemo(() => relativeTime(item.occurredAt), [item.occurredAt]);
+  // Append the room duration to a completed chat, e.g. "Chat completed · 5m 23s".
+  const detail =
+    item.kind === 'chatCompleted' && item.durationSeconds != null
+      ? `${item.description} · ${formatRoomDuration(item.durationSeconds)}`
+      : item.description;
 
   return (
     <View style={styles.row}>
@@ -54,7 +74,7 @@ function RecentActivityItem({ item }: RecentActivityItemProps): React.ReactEleme
           {item.actorName}
         </Text>
         <Text style={styles.description} numberOfLines={1}>
-          {item.description}
+          {detail}
         </Text>
       </View>
       <View style={styles.right}>

@@ -61,6 +61,24 @@ function relativeTime(date: Date | null): string {
   return `${days}d`;
 }
 
+/** How long the room lasted, e.g. "45s", "5m 23s", "1h 4m". */
+function formatRoomDuration(seconds: number | null): string {
+  if (seconds == null) {
+    return '';
+  }
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m < 60) {
+    return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  }
+  const h = Math.floor(m / 60);
+  const rm = m % 60;
+  return rm > 0 ? `${h}h ${rm}m` : `${h}h`;
+}
+
 function ChatRow({
   item,
   selectionMode,
@@ -134,6 +152,14 @@ function ChatRow({
             </Text>
           </View>
         </View>
+        {item.status === 'ended' && item.durationSeconds != null ? (
+          <View style={styles.durationRow}>
+            <Clock size={12} color={AppColors.onSurfaceMuted} strokeWidth={2} />
+            <Text style={styles.durationText}>
+              In room for {formatRoomDuration(item.durationSeconds)}
+            </Text>
+          </View>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -493,6 +519,16 @@ const styles = StyleSheet.create({
     ...AppTypography.bodyMedium,
     color: AppColors.onSurfaceMuted,
     flex: 1,
+  },
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  durationText: {
+    ...AppTypography.labelSmall,
+    color: AppColors.onSurfaceMuted,
   },
   statusPill: {
     paddingHorizontal: 8,
