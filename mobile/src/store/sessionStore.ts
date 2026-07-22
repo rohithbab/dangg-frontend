@@ -61,8 +61,12 @@ export const useSessionStore = create<SessionState>()(
 
     setVerificationStatus: (status): void => set({ verificationStatus: status }),
 
-    clear: (): void =>
-      set({ session: null, role: null, verificationStatus: VerificationStatus.None }),
+    clear: (): void => {
+      // A logged-out user must receive nothing — drop any pending incoming
+      // chat-request card so the global modal can't linger after sign-out.
+      useChatRequestStore.getState().clear();
+      set({ session: null, role: null, verificationStatus: VerificationStatus.None });
+    },
   })),
 );
 
@@ -295,6 +299,10 @@ export function subscribeSupabaseAuth(client: SupabaseClient): { unsubscribe: ()
     teardownDeviceSession(client);
 
     if (!session) {
+      // Signed out — explicit logout OR token/refresh expiry. Drop any pending
+      // incoming chat-request card so nothing pops up while logged out (this
+      // path doesn't run `clear()`).
+      useChatRequestStore.getState().clear();
       return;
     }
 

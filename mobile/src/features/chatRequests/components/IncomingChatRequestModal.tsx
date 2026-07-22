@@ -11,6 +11,10 @@ import { logger } from '@core/utils/logger';
 
 import { navigationRef } from '@navigation/navigationRef';
 
+import { useSessionStore } from '@store/sessionStore';
+
+import { UserRole } from '@app-types/domain';
+
 import { acceptRequest, declineRequest } from '../api/chatRequestApi';
 import { type IncomingChatRequest, useChatRequestStore } from '../store/chatRequestStore';
 
@@ -32,6 +36,13 @@ function initialsFromName(name: string): string {
 function IncomingChatRequestModal(): React.ReactElement | null {
   const incoming = useChatRequestStore(s => s.incoming);
   const clear = useChatRequestStore(s => s.clear);
+  // Only an authenticated female may see incoming requests. Gating here (in
+  // addition to clearing the store on logout) makes it impossible for a card
+  // to appear after sign-out, even if an in-flight poll/realtime callback
+  // raced and set one.
+  const isAuthedFemale = useSessionStore(
+    s => s.session !== null && s.role === UserRole.Female,
+  );
   const [secondsLeft, setSecondsLeft] = useState(CHAT_REQUEST_AUTO_DECLINE_S);
   const [lastRequest, setLastRequest] = useState<IncomingChatRequest | null>(null);
 
@@ -106,7 +117,7 @@ function IncomingChatRequestModal(): React.ReactElement | null {
     }
   }, [clear, incoming]);
 
-  if (!displayRequest) {
+  if (!displayRequest || !isAuthedFemale) {
     return null;
   }
 
