@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import Avatar from '@core/components/Avatar';
-import CoinIcon from '@core/components/CoinIcon';
 
 import { type RecentActivity } from '../api/femaleHomeApi';
 import { FC, FS } from '../femaleTheme';
@@ -80,8 +79,9 @@ function RecentActivityItem({ item }: RecentActivityItemProps): React.ReactEleme
       <View style={styles.right}>
         {item.amountInr !== null ? (
           <View style={styles.amountWrap}>
-            <Text style={styles.amount}>{`+${item.amountInr.toLocaleString()}`}</Text>
-            <CoinIcon size={14} />
+            <Text style={styles.amount}>
+              {`+₹${item.amountInr.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+            </Text>
           </View>
         ) : null}
         <Text style={styles.time}>{time}</Text>
