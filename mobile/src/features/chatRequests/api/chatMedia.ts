@@ -8,7 +8,7 @@
 import { type Asset, launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
 import { uploadToR2 } from '@core/network/mediaService';
-import { type AppPermissionStatus, permissionService } from '@core/services/permissionService';
+import { AppPermissionStatus, permissionService } from '@core/services/permissionService';
 import { logger } from '@core/utils/logger';
 
 import { type ChatMessage, sendChatMediaMessage } from './chatRequestApi';
@@ -16,14 +16,20 @@ import { type ChatMessage, sendChatMediaMessage } from './chatRequestApi';
 export type ChatMediaSource = 'camera-photo' | 'camera-video' | 'gallery';
 
 /**
- * Requests the OS permission that `source` needs (camera for capture, photos
- * for the gallery), showing the first-time prompt. Returns the collapsed status
- * so the caller can offer a Settings redirect when it's permanently denied —
- * the picker alone can't recover a blocked permission on Android.
+ * Ensures the OS permission that `source` needs.
+ *
+ * Camera capture needs the CAMERA runtime permission (declared in the
+ * manifest) — request it and show the first-time prompt. The gallery uses
+ * Android's system photo picker (`launchImageLibrary`, react-native-image-picker
+ * v8), which needs NO runtime permission on any Android version: the user picks
+ * a single item and only that item is shared back. Previously we requested a
+ * READ_MEDIA_* permission for the gallery, but it isn't (and needn't be)
+ * declared, so the request came back UNAVAILABLE and the flow dead-ended at
+ * "grant media permission → open Settings". So gallery is now always allowed.
  */
 export function ensureChatMediaPermission(source: ChatMediaSource): Promise<AppPermissionStatus> {
   return source === 'gallery'
-    ? permissionService.requestGallery()
+    ? Promise.resolve(AppPermissionStatus.Granted)
     : permissionService.requestCamera();
 }
 

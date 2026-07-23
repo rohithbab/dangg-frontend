@@ -32,6 +32,8 @@ import { AppTypography } from '@theme/typography';
 import { initSupabase } from '@core/network/supabaseClient';
 import { connectivityService } from '@core/services/connectivityService';
 import { fcmService, type RemoteMessage } from '@core/services/fcmService';
+import { permissionService } from '@core/services/permissionService';
+import { PrefsKey, prefsStorage } from '@core/storage/prefsStorage';
 import { logger } from '@core/utils/logger';
 
 import { linking } from '@navigation/linking';
@@ -167,6 +169,18 @@ function App(): React.JSX.Element {
           navigateFromPush(message);
         },
       });
+
+      // Prime the camera permission up front on first launch — the same "ask
+      // on install" experience as the notification prompt in fcmService.init
+      // above — so media capture in chat / verification is ready without an
+      // in-context interruption. Guarded by a one-time flag so a user who
+      // declined isn't re-prompted every launch; the just-in-time request in
+      // the chat and verification flows still covers a later grant. (The
+      // gallery needs no permission — it uses the system photo picker.)
+      if (!prefsStorage.getBool(PrefsKey.CameraPrimed)) {
+        prefsStorage.setBool(PrefsKey.CameraPrimed, true);
+        void permissionService.requestCamera().catch(err => logger.warn('camera prime failed', err));
+      }
 
       return () => {
         sub.unsubscribe();

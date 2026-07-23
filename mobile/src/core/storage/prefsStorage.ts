@@ -6,6 +6,8 @@ export enum PrefsKey {
   LastRole = 'LAST_ROLE',
   LanguagePref = 'LANGUAGE_PREF',
   ThemePref = 'THEME_PREF',
+  /** Set once we've shown the first-launch camera permission prompt. */
+  CameraPrimed = 'CAMERA_PRIMED',
 }
 
 let mmkvInstance: MMKV | null = null;
