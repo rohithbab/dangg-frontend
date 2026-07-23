@@ -1,6 +1,7 @@
 package com.welbuilt.dangg
 
 import android.app.Application
+import com.brentvatne.react.ReactVideoPackage
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
@@ -18,7 +19,8 @@ class MainApplication : Application(), ReactApplication {
       object : DefaultReactNativeHost(this) {
         override fun getPackages(): List<ReactPackage> =
             PackageList(this).packages.apply {
-              // Manually-added packages would go here. All standard plugins autolink.
+              // react-native-video — not autolinked in RN 0.76.5
+              add(ReactVideoPackage())
             }
 
         override fun getJSMainModuleName(): String = "index"

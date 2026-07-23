@@ -128,6 +128,9 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    // react-native-video — manually linked (not picked up by RN 0.76 autolinking)
+    implementation project(':react-native-video')
 }
 
 // Apply Google Services plugin if the config file exists
