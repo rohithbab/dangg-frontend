@@ -5,6 +5,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 
 import { USE_MOCK_DATA } from '@core/config/env';
 import { fcmService } from '@core/services/fcmService';
+import { PrefsKey, prefsStorage } from '@core/storage/prefsStorage';
 import { SecureKey, secureStorage } from '@core/storage/secureStorage';
 import { logger } from '@core/utils/logger';
 
@@ -23,10 +24,70 @@ export type SessionState = {
   session: Session | null;
   role: UserRole | null;
   verificationStatus: VerificationStatus;
+  /**
+   * False until the first Supabase auth event has been processed AND (when a
+   * session was restored) role + verification status have been hydrated.
+   *
+   * Navigation must not route while this is false: the Keychain restore is
+   * async, so the first frames always look logged-out. Routing on that stale
+   * state is what bounced restored users back to Login.
+   */
+  bootstrapped: boolean;
   setSession: (session: Session | null) => void;
   setVerificationStatus: (status: VerificationStatus) => void;
+  setBootstrapped: (value: boolean) => void;
   clear: () => void;
 };
+
+/**
+ * Last-known verification status, mirrored to MMKV on every write.
+ *
+ * Reads are sub-millisecond, so this is safe to call during store creation —
+ * which is the point: the very first render already knows whether she is
+ * pending, and doesn't bounce her out of the verification flow.
+ */
+function readPersistedVerificationStatus(): VerificationStatus {
+  try {
+    return parseVerificationStatus(prefsStorage.getString(PrefsKey.LastVerificationStatus));
+  } catch (e) {
+    logger.warn('readPersistedVerificationStatus failed', e);
+    return VerificationStatus.None;
+  }
+}
+
+function persistVerificationStatus(status: VerificationStatus): void {
+  try {
+    prefsStorage.setString(PrefsKey.LastVerificationStatus, status);
+  } catch (e) {
+    logger.warn('persistVerificationStatus failed', e);
+  }
+}
+
+function clearPersistedVerification(): void {
+  try {
+    prefsStorage.remove(PrefsKey.LastVerificationStatus);
+    prefsStorage.remove(PrefsKey.LastUserId);
+  } catch (e) {
+    logger.warn('clearPersistedVerification failed', e);
+  }
+}
+
+/**
+ * Drops a persisted status that belongs to a different account. Without this,
+ * signing in as a second female on the same device would inherit the previous
+ * user's verification state for the first frame.
+ */
+function reconcilePersistedUser(userId: string): void {
+  try {
+    const previous = prefsStorage.getString(PrefsKey.LastUserId);
+    if (previous !== userId) {
+      prefsStorage.remove(PrefsKey.LastVerificationStatus);
+      prefsStorage.setString(PrefsKey.LastUserId, userId);
+    }
+  } catch (e) {
+    logger.warn('reconcilePersistedUser failed', e);
+  }
+}
 
 function deriveRole(session: Session | null): UserRole | null {
   if (!session) {
@@ -55,16 +116,27 @@ export const useSessionStore = create<SessionState>()(
   subscribeWithSelector(set => ({
     session: null,
     role: null,
-    verificationStatus: VerificationStatus.None,
+    // Seeded from the last hydration so a cold start routes correctly on the
+    // first frame — including offline, where the network refresh never lands.
+    verificationStatus: readPersistedVerificationStatus(),
+    bootstrapped: false,
 
     setSession: (session): void => set({ session, role: deriveRole(session) }),
 
-    setVerificationStatus: (status): void => set({ verificationStatus: status }),
+    setVerificationStatus: (status): void => {
+      persistVerificationStatus(status);
+      set({ verificationStatus: status });
+    },
+
+    setBootstrapped: (value): void => set({ bootstrapped: value }),
 
     clear: (): void => {
       // A logged-out user must receive nothing — drop any pending incoming
       // chat-request card so the global modal can't linger after sign-out.
       useChatRequestStore.getState().clear();
+      clearPersistedVerification();
+      // `bootstrapped` deliberately survives a logout: boot already happened,
+      // and resetting it would drop the app back to the splash gate.
       set({ session: null, role: null, verificationStatus: VerificationStatus.None });
     },
   })),
@@ -76,6 +148,14 @@ export const useIsAuthenticated = (): boolean => useSessionStore(s => s.session 
 export const useSessionRole = (): UserRole | null => useSessionStore(s => s.role);
 export const useVerificationStatus = (): VerificationStatus =>
   useSessionStore(s => s.verificationStatus);
+export const useIsBootstrapped = (): boolean => useSessionStore(s => s.bootstrapped);
+/**
+ * Authenticated, but signup never got past the Profile step — `public.users`
+ * has no role for them. Routing sends these users back to SignupProfile
+ * instead of Login so a force-close mid-signup resumes where it left off.
+ */
+export const useNeedsProfile = (): boolean =>
+  useSessionStore(s => s.session !== null && s.role === null);
 
 let activeChannel: RealtimeChannel | null = null;
 let chatRequestsChannel: RealtimeChannel | null = null;
@@ -145,10 +225,7 @@ async function handleDeviceKicked(client: SupabaseClient): Promise<void> {
  * row, and returns it. Callers use the returned id to key the Realtime/poll
  * comparisons below.
  */
-async function claimDeviceSession(
-  client: SupabaseClient,
-  userId: string,
-): Promise<string | null> {
+async function claimDeviceSession(client: SupabaseClient, userId: string): Promise<string | null> {
   const myId = generateDeviceSessionId();
   try {
     await secureStorage.setItem(SecureKey.DeviceSessionId, myId);
@@ -303,8 +380,13 @@ export function subscribeSupabaseAuth(client: SupabaseClient): { unsubscribe: ()
       // incoming chat-request card so nothing pops up while logged out (this
       // path doesn't run `clear()`).
       useChatRequestStore.getState().clear();
+      // Nothing to hydrate: routing can proceed immediately.
+      store.setBootstrapped(true);
       return;
     }
+
+    // Guard against inheriting the previous account's persisted routing state.
+    reconcilePersistedUser(session.user.id);
 
     // DEV_MODE: derive verification status synchronously from the phone — no
     // network, so it's safe to run inside the callback.
@@ -322,6 +404,7 @@ export function subscribeSupabaseAuth(client: SupabaseClient): { unsubscribe: ()
         }
         store.setVerificationStatus(status);
       }
+      store.setBootstrapped(true);
       return;
     }
 
@@ -445,6 +528,21 @@ export function subscribeSupabaseAuth(client: SupabaseClient): { unsubscribe: ()
  * GoTrue auth lock is already released — see the comment at the call site.
  */
 async function hydrateSessionRoleAndStatus(
+  client: SupabaseClient,
+  session: Session,
+): Promise<void> {
+  try {
+    await hydrateSessionRoleAndStatusInner(client, session);
+  } finally {
+    // Routing unblocks even when hydration failed (offline, expired token).
+    // The persisted verification status seeded at store creation carries the
+    // routing decision in that case, so a pending female still lands on the
+    // "waiting for approval" screen rather than being bounced to Login.
+    useSessionStore.getState().setBootstrapped(true);
+  }
+}
+
+async function hydrateSessionRoleAndStatusInner(
   client: SupabaseClient,
   session: Session,
 ): Promise<void> {

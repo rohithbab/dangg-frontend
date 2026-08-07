@@ -41,7 +41,7 @@ import { navigationRef } from '@navigation/navigationRef';
 import RootNavigator from '@navigation/RootNavigator';
 
 import { useConnectivityStore } from '@store/connectivityStore';
-import { subscribeSupabaseAuth } from '@store/sessionStore';
+import { subscribeSupabaseAuth, useSessionStore } from '@store/sessionStore';
 
 import IncomingChatRequestListener from '@features/chatRequests/components/IncomingChatRequestListener';
 import IncomingChatRequestModal from '@features/chatRequests/components/IncomingChatRequestModal';
@@ -103,6 +103,9 @@ function showPushToast(message: RemoteMessage): void {
   }
 }
 
+/** Ceiling on how long the boot gate may hold the splash. */
+const BOOT_WATCHDOG_MS = 8000;
+
 const MyLightTheme = {
   ...DefaultTheme,
   colors: {
@@ -137,6 +140,18 @@ function App(): React.JSX.Element {
     try {
       const client = initSupabase();
       const sub = subscribeSupabaseAuth(client);
+
+      // Watchdog for the boot gate. RootNavigator holds the splash until the
+      // auth listener reports in; if it never does (Keychain stall, GoTrue
+      // init failure) the app would sit on the splash forever. Past a
+      // generous ceiling, route on whatever state we have — an unauthenticated
+      // Login screen is recoverable, a frozen splash is not.
+      const bootWatchdog = setTimeout(() => {
+        if (!useSessionStore.getState().bootstrapped) {
+          logger.warn('Auth bootstrap watchdog fired — routing on current state');
+          useSessionStore.getState().setBootstrapped(true);
+        }
+      }, BOOT_WATCHDOG_MS);
 
       // supabase-js only refreshes the access token while its auto-refresh
       // ticker runs, and on React Native that ticker must be gated on app
@@ -179,10 +194,13 @@ function App(): React.JSX.Element {
       // gallery needs no permission — it uses the system photo picker.)
       if (!prefsStorage.getBool(PrefsKey.CameraPrimed)) {
         prefsStorage.setBool(PrefsKey.CameraPrimed, true);
-        void permissionService.requestCamera().catch(err => logger.warn('camera prime failed', err));
+        void permissionService
+          .requestCamera()
+          .catch(err => logger.warn('camera prime failed', err));
       }
 
       return () => {
+        clearTimeout(bootWatchdog);
         sub.unsubscribe();
         authRefreshSub.remove();
         client.auth.stopAutoRefresh().catch(err => logger.warn('stopAutoRefresh failed', err));

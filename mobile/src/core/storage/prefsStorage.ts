@@ -8,6 +8,17 @@ export enum PrefsKey {
   ThemePref = 'THEME_PREF',
   /** Set once we've shown the first-launch camera permission prompt. */
   CameraPrimed = 'CAMERA_PRIMED',
+  /**
+   * Last known auth-routing state, mirrored on every session hydration.
+   *
+   * Cold start restores the Supabase session from the Keychain long before the
+   * network can confirm role / verification status. Seeding the session store
+   * from these lets the first frame route to the right screen — and keeps
+   * routing correct when the app opens offline, where the network hydration
+   * that would otherwise supply them never resolves.
+   */
+  LastUserId = 'LAST_USER_ID',
+  LastVerificationStatus = 'LAST_VERIFICATION_STATUS',
 }
 
 let mmkvInstance: MMKV | null = null;

@@ -1,7 +1,12 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
-import { useIsAuthenticated, useSessionRole, useVerificationStatus } from '@store/sessionStore';
+import {
+  useIsAuthenticated,
+  useNeedsProfile,
+  useSessionRole,
+  useVerificationStatus,
+} from '@store/sessionStore';
 
 import BankUpiDetailsScreen from '@features/auth/screens/female/BankUpiDetailsScreen';
 import FaceCaptureScreen from '@features/auth/screens/female/FaceCaptureScreen';
@@ -13,10 +18,11 @@ import SignupPhoneScreen from '@features/auth/screens/signup/SignupPhoneScreen';
 import SignupProfileScreen from '@features/auth/screens/signup/SignupProfileScreen';
 import AccountTypeScreen from '@features/onboarding/screens/AccountTypeScreen';
 import MaleOnboardingCarousel from '@features/onboarding/screens/MaleOnboardingCarousel';
-import SplashScreen from '@features/splash/screens/SplashScreen';
 
 import { UserRole, VerificationStatus } from '@app-types/domain';
 
+import { resolveInitialRoute } from './authRouting';
+import { navigationRef } from './navigationRef';
 import { type AuthStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -31,27 +37,50 @@ const Stack = createNativeStackNavigator<AuthStackParamList>();
  */
 function AuthNavigator(): React.ReactElement {
   const authed = useIsAuthenticated();
+  const needsProfile = useNeedsProfile();
   const role = useSessionRole();
   const verificationStatus = useVerificationStatus();
 
-  let initialRoute: keyof AuthStackParamList = 'Splash';
-  if (authed && role === UserRole.Female) {
-    if (verificationStatus === VerificationStatus.Pending) {
-      initialRoute = 'FemaleSignupVerificationSubmitted';
-    } else if (
-      verificationStatus === VerificationStatus.None ||
-      verificationStatus === VerificationStatus.Rejected
-    ) {
-      initialRoute = 'FemaleSignupVerificationInfo';
-    }
+  // Captured once: `initialRouteName` is only read on first mount, and
+  // re-deriving it per render would fight the user's own navigation.
+  const initialRouteRef = useRef<keyof AuthStackParamList | null>(null);
+  if (initialRouteRef.current === null) {
+    initialRouteRef.current = resolveInitialRoute(authed, needsProfile, role, verificationStatus);
   }
+  const initialRoute = initialRouteRef.current;
+
+  // Verification status can change *after* mount — the admin approves or
+  // rejects while she sits on the waiting screen, arriving over Realtime.
+  // Approval is handled by RootNavigator (it swaps to FemaleAppStack), but a
+  // rejection has to move her off the waiting screen from here.
+  const previousStatus = useRef(verificationStatus);
+  useEffect(() => {
+    const before = previousStatus.current;
+    previousStatus.current = verificationStatus;
+    if (before === verificationStatus || !authed || role !== UserRole.Female) {
+      return;
+    }
+    if (!navigationRef.isReady()) {
+      return;
+    }
+    if (verificationStatus === VerificationStatus.Rejected) {
+      navigationRef.reset({
+        index: 0,
+        routes: [{ name: 'Auth', params: { screen: 'FemaleSignupVerificationInfo' } }],
+      });
+    } else if (verificationStatus === VerificationStatus.Pending) {
+      navigationRef.reset({
+        index: 0,
+        routes: [{ name: 'Auth', params: { screen: 'FemaleSignupVerificationSubmitted' } }],
+      });
+    }
+  }, [authed, role, verificationStatus]);
 
   return (
     <Stack.Navigator
       initialRouteName={initialRoute}
       screenOptions={{ headerShown: false, animation: 'slide_from_right', gestureEnabled: true }}
     >
-      <Stack.Screen name="Splash" component={SplashScreen} options={{ animation: 'fade' }} />
       <Stack.Screen
         name="AccountType"
         component={AccountTypeScreen}
