@@ -65,7 +65,11 @@ function GradientAvatar({
     <View style={[{ width: size, height: size }, style]}>
       {uri && uri.length > 0 ? (
         <FastImage
-          source={{ uri, priority: FastImage.priority.normal }}
+          source={{
+            uri,
+            priority: FastImage.priority.normal,
+            cache: FastImage.cacheControl.immutable,
+          }}
           style={{ width: size, height: size, borderRadius: radius }}
           resizeMode={FastImage.resizeMode.cover}
         />

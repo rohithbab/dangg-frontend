@@ -24,6 +24,7 @@ import AppBar from '@core/components/AppBar';
 import Card from '@core/components/Card';
 import PrimaryButton from '@core/components/PrimaryButton';
 import Toast from '@core/components/Toast';
+import { imageConstraints, SCREENSHOT_MAX_DIMENSION } from '@core/config/media';
 import { AppException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
 
@@ -86,7 +87,7 @@ function ReportIssueScreen(): React.ReactElement {
       const result = await launchImageLibrary({
         mediaType: 'photo',
         selectionLimit: 1,
-        quality: 0.6,
+        ...imageConstraints(SCREENSHOT_MAX_DIMENSION),
       });
       if (result.didCancel) {
         return;

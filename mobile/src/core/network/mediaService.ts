@@ -10,6 +10,7 @@
  * `R2_PUBLIC_BASE_URL` configured (r2.dev / custom domain). Private categories
  * (verification, reports) always return null — they're read via presigned GET.
  */
+import { PrefsKey, prefsStorage } from '@core/storage/prefsStorage';
 import { logger } from '@core/utils/logger';
 
 import { mapSupabaseError } from './apiErrorMapper';
@@ -95,7 +96,59 @@ type ReadSignResponse = { data?: { urls: Record<string, string>; expiresInSecond
 
 // Presigned GET URLs are ~1h; cache them and refresh a few minutes early so a
 // long-lived screen never renders an expired URL.
-const readUrlCache = new Map<string, { url: string; expiresAt: number }>();
+type SignedEntry = { url: string; expiresAt: number };
+const readUrlCache = new Map<string, SignedEntry>();
+
+/**
+ * Mirrored to MMKV because a presigned URL *is* the image cache key.
+ *
+ * This map used to live only in memory, so every cold start re-signed every
+ * key. A fresh signature is a different URL, and FastImage keys its disk
+ * cache on the URL — so a perfectly good cached image was re-downloaded on
+ * every launch. Persisting the URLs means a restart within the TTL reuses the
+ * exact same URL and hits the cache.
+ */
+let readUrlCacheHydrated = false;
+
+function hydrateReadUrlCache(): void {
+  if (readUrlCacheHydrated) {
+    return;
+  }
+  readUrlCacheHydrated = true;
+  try {
+    const raw = prefsStorage.getString(PrefsKey.SignedMediaUrls);
+    if (!raw) {
+      return;
+    }
+    const now = Date.now();
+    const parsed = JSON.parse(raw) as Record<string, SignedEntry>;
+    for (const [key, entry] of Object.entries(parsed)) {
+      // Drop anything already expired rather than carrying dead URLs forward.
+      if (entry?.url && typeof entry.expiresAt === 'number' && entry.expiresAt > now) {
+        readUrlCache.set(key, entry);
+      }
+    }
+  } catch (e) {
+    logger.warn('hydrateReadUrlCache failed', e);
+  }
+}
+
+/** Bounds the persisted map so it can't grow without limit across sessions. */
+const MAX_PERSISTED_URLS = 200;
+
+function persistReadUrlCache(): void {
+  try {
+    const now = Date.now();
+    const live = [...readUrlCache.entries()]
+      .filter(([, entry]) => entry.expiresAt > now)
+      // Keep the longest-lived entries when trimming.
+      .sort((a, b) => b[1].expiresAt - a[1].expiresAt)
+      .slice(0, MAX_PERSISTED_URLS);
+    prefsStorage.setString(PrefsKey.SignedMediaUrls, JSON.stringify(Object.fromEntries(live)));
+  } catch (e) {
+    logger.warn('persistReadUrlCache failed', e);
+  }
+}
 
 /**
  * Batch-resolves bare R2 object keys into short-lived presigned GET URLs via the
@@ -105,6 +158,7 @@ const readUrlCache = new Map<string, { url: string; expiresAt: number }>();
  * omitted). Never throws — on error it returns whatever is already cached.
  */
 export async function signMediaReadUrls(keys: string[]): Promise<Record<string, string>> {
+  hydrateReadUrlCache();
   const now = Date.now();
   const result: Record<string, string> = {};
   const missing = new Set<string>();
@@ -138,6 +192,9 @@ export async function signMediaReadUrls(keys: string[]): Promise<Record<string, 
     for (const [key, url] of Object.entries(urls)) {
       readUrlCache.set(key, { url, expiresAt });
       result[key] = url;
+    }
+    if (Object.keys(urls).length > 0) {
+      persistReadUrlCache();
     }
   } catch (e) {
     logger.warn('signMediaReadUrls failed', e);

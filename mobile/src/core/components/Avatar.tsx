@@ -45,7 +45,15 @@ function Avatar({
     return (
       <View style={[{ width: size, height: size, borderRadius: radius }, border]}>
         <FastImage
-          source={{ uri, priority: FastImage.priority.normal }}
+          // `immutable` is FastImage's default, but state it explicitly: these
+          // are content-addressed R2 URLs that never change for a given
+          // object, so revalidating on every mount is pure waste. A new avatar
+          // gets a new URL, which invalidates naturally.
+          source={{
+            uri,
+            priority: FastImage.priority.normal,
+            cache: FastImage.cacheControl.immutable,
+          }}
           style={[styles.image, { width: size, height: size, borderRadius: radius }]}
           resizeMode={FastImage.resizeMode.cover}
         />
