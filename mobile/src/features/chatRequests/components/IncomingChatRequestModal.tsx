@@ -40,9 +40,7 @@ function IncomingChatRequestModal(): React.ReactElement | null {
   // addition to clearing the store on logout) makes it impossible for a card
   // to appear after sign-out, even if an in-flight poll/realtime callback
   // raced and set one.
-  const isAuthedFemale = useSessionStore(
-    s => s.session !== null && s.role === UserRole.Female,
-  );
+  const isAuthedFemale = useSessionStore(s => s.session !== null && s.role === UserRole.Female);
   const [secondsLeft, setSecondsLeft] = useState(CHAT_REQUEST_AUTO_DECLINE_S);
   const [lastRequest, setLastRequest] = useState<IncomingChatRequest | null>(null);
 

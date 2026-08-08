@@ -433,9 +433,7 @@ function FemaleChatSessionScreen(): React.ReactElement {
   // Anchor the timer to the session's server start time so both participants
   // show the same elapsed value — each side previously counted from 0 at its
   // own mount moment, so they drifted apart. Mock has no server session.
-  const [startedAtMs, setStartedAtMs] = useState<number | null>(
-    USE_MOCK_DATA ? Date.now() : null,
-  );
+  const [startedAtMs, setStartedAtMs] = useState<number | null>(USE_MOCK_DATA ? Date.now() : null);
   // The male stepped away (backgrounded) — show a banner instead of ending the
   // chat. The timer is anchored to the shared server start time (below) and no
   // longer pauses, so both sides stay in sync.
@@ -930,7 +928,9 @@ function FemaleChatSessionScreen(): React.ReactElement {
       >
         {peerAway ? (
           <View style={styles.awayBanner}>
-            <Text style={styles.awayBannerText}>{`${partnerName} stepped away — waiting for them to return…`}</Text>
+            <Text
+              style={styles.awayBannerText}
+            >{`${partnerName} stepped away — waiting for them to return…`}</Text>
           </View>
         ) : null}
 

@@ -10,6 +10,7 @@ import { AppTypography } from '@theme/typography';
 import BottomSheet from '@core/components/BottomSheet';
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import LoadingOverlay from '@core/components/LoadingOverlay';
+import { AVATAR_MAX_DIMENSION, imageConstraints } from '@core/config/media';
 import { AppException } from '@core/network/apiException';
 import { AppPermissionStatus, permissionService } from '@core/services/permissionService';
 import { logger } from '@core/utils/logger';
@@ -100,7 +101,7 @@ function EditProfilePicSheet({
     const result = await launchCamera({
       mediaType: 'photo',
       cameraType: 'front',
-      quality: 0.8,
+      ...imageConstraints(AVATAR_MAX_DIMENSION),
       saveToPhotos: false,
     });
     const uri = result.assets?.[0]?.uri;
@@ -112,7 +113,7 @@ function EditProfilePicSheet({
   const handlePickGallery = useCallback(async (): Promise<void> => {
     const result = await launchImageLibrary({
       mediaType: 'photo',
-      quality: 0.8,
+      ...imageConstraints(AVATAR_MAX_DIMENSION),
       selectionLimit: 1,
     });
     const uri = result.assets?.[0]?.uri;

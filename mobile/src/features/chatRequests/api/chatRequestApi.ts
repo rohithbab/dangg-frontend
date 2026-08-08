@@ -516,13 +516,23 @@ export async function chatSessionHeartbeat(sessionId: string): Promise<void> {
  */
 export async function getChatSessionLiveness(sessionId: string): Promise<ChatSessionLiveness> {
   if (USE_MOCK_DATA) {
-    return { status: 'active', peerSecondsAgo: 0, peerBackgrounded: false, peerBackgroundedSecondsAgo: 0 };
+    return {
+      status: 'active',
+      peerSecondsAgo: 0,
+      peerBackgrounded: false,
+      peerBackgroundedSecondsAgo: 0,
+    };
   }
   const { data, error } = await getSupabaseClient().rpc('get_chat_session_liveness', {
     p_session_id: sessionId,
   });
   if (error || !data) {
-    return { status: null, peerSecondsAgo: 0, peerBackgrounded: false, peerBackgroundedSecondsAgo: 0 };
+    return {
+      status: null,
+      peerSecondsAgo: 0,
+      peerBackgrounded: false,
+      peerBackgroundedSecondsAgo: 0,
+    };
   }
   const row = data as {
     status?: 'active' | 'ended';

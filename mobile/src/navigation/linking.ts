@@ -17,7 +17,6 @@ export const linking: LinkingOptions<RootStackParamList> = {
     screens: {
       Auth: {
         screens: {
-          Splash: 'splash',
           AccountType: 'onboarding/account-type',
           MaleOnboardingCarousel: 'onboarding/male',
 

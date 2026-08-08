@@ -2,8 +2,6 @@ import { type NavigatorScreenParams } from '@react-navigation/native';
 
 /** Auth-stack route params — every screen typed for `navigation.navigate(...)`. */
 export type AuthStackParamList = {
-  Splash: undefined;
-
   AccountType: undefined;
   MaleOnboardingCarousel: undefined;
 
@@ -113,6 +111,11 @@ export type ChatStackParamList = {
 
 /** Top-level navigator selecting between Auth and the role-specific app shell. */
 export type RootStackParamList = {
+  /**
+   * Splash held while the restored session resolves. Never navigated to by
+   * hand — RootNavigator swaps it out once `bootstrapped` flips.
+   */
+  Boot: undefined;
   Auth: NavigatorScreenParams<AuthStackParamList>;
   FemaleApp: NavigatorScreenParams<FemaleAppStackParamList>;
   MaleApp: NavigatorScreenParams<MaleAppStackParamList>;

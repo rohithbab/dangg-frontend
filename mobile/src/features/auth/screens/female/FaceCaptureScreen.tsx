@@ -1,5 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Check, RotateCcw, SwitchCamera, X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Image,
@@ -22,8 +23,6 @@ import { AppTypography } from '@theme/typography';
 
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import LoadingOverlay from '@core/components/LoadingOverlay';
-import PrimaryButton from '@core/components/PrimaryButton';
-import SecondaryButton from '@core/components/SecondaryButton';
 import { Env } from '@core/config/env';
 import { AppException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
@@ -54,10 +53,20 @@ function FaceCaptureScreen(): React.ReactElement {
   const [side, setSide] = useState<CameraSide>('front');
   const [previewPath, setPreviewPath] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  /**
+   * Latches once the photo has been accepted by the backend. Capture and
+   * submit stay disabled from that point until Retake clears it, so a slow
+   * navigation transition or a stray double-tap cannot upload twice.
+   */
+  const [submitted, setSubmitted] = useState(false);
   const [cancelDialog, setCancelDialog] = useState(false);
   const [appActive, setAppActive] = useState<boolean>(true);
   const [captureError, setCaptureError] = useState<string | null>(null);
   const cameraRef = useRef<Camera>(null);
+
+  // Capture is locked while previewing, uploading, or after a successful
+  // submit — the three states where another shot must not be taken.
+  const captureLocked = previewPath !== null || uploading || submitted;
 
   const frontDevice = useCameraDevice('front');
   const backDevice = useCameraDevice('back');
@@ -72,6 +81,9 @@ function FaceCaptureScreen(): React.ReactElement {
   }, []);
 
   const handleCapture = useCallback(async (): Promise<void> => {
+    if (captureLocked) {
+      return;
+    }
     // The simulated photo exists only for environments with no real camera
     // (e.g. the iOS Simulator). It is gated strictly on the explicit DEV_MODE
     // flag — NOT __DEV__ — so a normal debug build always uses the real camera
@@ -95,20 +107,25 @@ function FaceCaptureScreen(): React.ReactElement {
       logger.error('FaceCaptureScreen.capture failed', e);
       setCaptureError('Could not take the photo, try again');
     }
-  }, []);
+  }, [captureLocked]);
 
+  /** The "Retry" path — the only way back to a live camera after a submit. */
   const handleRetake = useCallback((): void => {
     setPreviewPath(null);
     setCaptureError(null);
+    setSubmitted(false);
   }, []);
 
   const handleSubmit = useCallback(async (): Promise<void> => {
-    if (!previewPath) {
+    // Re-entrancy guard: without it a double-tap fires two uploads, and the
+    // second lands after the screen has already been reset.
+    if (!previewPath || uploading || submitted) {
       return;
     }
     setUploading(true);
     try {
       const remotePath = await submitVerificationPhoto(previewPath);
+      setSubmitted(true);
       setVerificationPhoto(remotePath);
       // Reflect the submission locally so routing is deterministic even if the
       // `females` realtime UPDATE (which also flips this to pending) is delayed
@@ -127,7 +144,7 @@ function FaceCaptureScreen(): React.ReactElement {
         setCaptureError('Upload failed, try again');
       }
     }
-  }, [navigation, previewPath, setVerificationPhoto, setVerificationStatus]);
+  }, [navigation, previewPath, setVerificationPhoto, setVerificationStatus, submitted, uploading]);
 
   const handleFlip = useCallback((): void => {
     setSide(prev => (prev === 'front' ? 'back' : 'front'));
@@ -147,7 +164,11 @@ function FaceCaptureScreen(): React.ReactElement {
           ref={cameraRef}
           style={StyleSheet.absoluteFill}
           device={device}
-          isActive={appActive}
+          // Shut the sensor down while previewing or after submitting — it is
+          // the single most expensive thing on this screen, and leaving it
+          // streaming behind a still image burns battery and memory for
+          // nothing.
+          isActive={appActive && !captureLocked}
           photo
         />
       ) : (
@@ -163,19 +184,19 @@ function FaceCaptureScreen(): React.ReactElement {
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Close"
-            style={styles.iconButton}
+            style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
           >
-            <Text style={styles.iconGlyph}>{'×'}</Text>
+            <X size={24} color={AppColors.surface} strokeWidth={2.4} />
           </Pressable>
-          {canFlip ? (
+          {canFlip && !captureLocked ? (
             <Pressable
               onPress={handleFlip}
               hitSlop={12}
               accessibilityRole="button"
               accessibilityLabel="Flip camera"
-              style={styles.iconButton}
+              style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
             >
-              <Text style={styles.iconGlyph}>{'⤺'}</Text>
+              <SwitchCamera size={24} color={AppColors.surface} strokeWidth={2.2} />
             </Pressable>
           ) : (
             <View style={styles.iconButton} />
@@ -195,22 +216,60 @@ function FaceCaptureScreen(): React.ReactElement {
           {!previewPath ? (
             <>
               <Text style={styles.hint}>Position your face in the oval</Text>
+              {/* Standard platform shutter: white ring with an inset solid
+                  disc, matching the stock Android/iOS camera control. */}
               <Pressable
                 onPress={handleCapture}
+                disabled={captureLocked}
                 accessibilityRole="button"
                 accessibilityLabel="Take photo"
-                style={({ pressed }) => [styles.shutterOuter, pressed && styles.shutterPressed]}
+                accessibilityState={{ disabled: captureLocked }}
+                style={({ pressed }) => [
+                  styles.shutterRing,
+                  pressed && styles.shutterPressed,
+                  captureLocked && styles.controlDisabled,
+                ]}
               >
-                <View style={styles.shutterInner} />
+                <View style={styles.shutterCore} />
               </Pressable>
             </>
           ) : (
             <View style={styles.previewActions}>
-              <View style={styles.actionHalf}>
-                <SecondaryButton label="Retake" onPress={handleRetake} />
+              <View style={styles.actionSlot}>
+                <Pressable
+                  onPress={handleRetake}
+                  disabled={uploading}
+                  accessibilityRole="button"
+                  accessibilityLabel="Retake photo"
+                  accessibilityState={{ disabled: uploading }}
+                  style={({ pressed }) => [
+                    styles.roundAction,
+                    styles.roundActionCancel,
+                    pressed && styles.roundActionPressed,
+                    uploading && styles.controlDisabled,
+                  ]}
+                >
+                  <RotateCcw size={30} color={AppColors.surface} strokeWidth={2.2} />
+                </Pressable>
+                <Text style={styles.actionLabel}>Retake</Text>
               </View>
-              <View style={styles.actionHalf}>
-                <PrimaryButton label="Submit" onPress={handleSubmit} />
+              <View style={styles.actionSlot}>
+                <Pressable
+                  onPress={handleSubmit}
+                  disabled={uploading || submitted}
+                  accessibilityRole="button"
+                  accessibilityLabel="Submit photo"
+                  accessibilityState={{ disabled: uploading || submitted }}
+                  style={({ pressed }) => [
+                    styles.roundAction,
+                    styles.roundActionConfirm,
+                    pressed && styles.roundActionPressed,
+                    (uploading || submitted) && styles.controlDisabled,
+                  ]}
+                >
+                  <Check size={34} color={AppColors.surface} strokeWidth={2.6} />
+                </Pressable>
+                <Text style={styles.actionLabel}>Submit</Text>
               </View>
             </View>
           )}
@@ -258,20 +317,19 @@ const styles = StyleSheet.create({
     paddingTop:
       Platform.OS === 'android' ? AppSpacing.sm + (StatusBar.currentHeight ?? 0) : AppSpacing.sm,
   },
+  // 44pt is the platform minimum touch target; the old 36pt glyph buttons
+  // were below it and had no contrast against a bright camera feed.
   iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: AppColors.surface,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconGlyph: {
-    fontSize: 22,
-    lineHeight: 24,
-    color: AppColors.primaryDark,
-    fontWeight: '600',
-  },
+  iconButtonPressed: { opacity: 0.7 },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -304,29 +362,54 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: AppSpacing.md,
   },
-  shutterOuter: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: AppColors.surface,
+  shutterRing: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
-    borderColor: AppColors.primary,
+    borderColor: AppColors.surface,
   },
-  shutterPressed: { opacity: 0.85 },
-  shutterInner: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  shutterPressed: { opacity: 0.7, transform: [{ scale: 0.96 }] },
+  shutterCore: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
     backgroundColor: AppColors.surface,
   },
   previewActions: {
     flexDirection: 'row',
     width: '100%',
-    gap: AppSpacing.md,
+    justifyContent: 'center',
+    gap: AppSpacing.xl * 1.5,
   },
-  actionHalf: { flex: 1 },
+  actionSlot: { alignItems: 'center', gap: AppSpacing.xs },
+  // Large circular confirm/cancel pair — the reviewed screen used small
+  // full-width text buttons that were easy to mis-tap over a live preview.
+  roundAction: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+  },
+  roundActionCancel: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  roundActionConfirm: {
+    backgroundColor: AppColors.primary,
+    borderColor: AppColors.surface,
+  },
+  roundActionPressed: { opacity: 0.75, transform: [{ scale: 0.96 }] },
+  controlDisabled: { opacity: 0.45 },
+  actionLabel: {
+    ...AppTypography.bodyMedium,
+    color: AppColors.surface,
+  },
 });
 
 export default FaceCaptureScreen;

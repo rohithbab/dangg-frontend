@@ -1,5 +1,3 @@
-import { useNavigation } from '@react-navigation/native';
-import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useEffect, useRef } from 'react';
 import { StatusBar, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
@@ -14,11 +12,19 @@ import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 
-import { type AuthStackParamList } from '@navigation/types';
-
 const TOTAL_MS = 3500;
 
-type SplashNav = NativeStackNavigationProp<AuthStackParamList, 'Splash'>;
+export type SplashScreenProps = {
+  /**
+   * Fired once the brand animation has played out. RootNavigator uses it as
+   * one half of the boot gate — the other half being session hydration.
+   *
+   * This screen deliberately performs no navigation of its own: it used to
+   * `reset()` to AccountType on a fixed timer, which threw away the restored
+   * session and sent logged-in users back to Login.
+   */
+  onDone?: () => void;
+};
 
 // Brand logo SVG paths, normalized to local dimensions. Originally traced from the
 // WhatsApp video frames as polygons, then re-smoothed into corner-preserving cubic
@@ -76,9 +82,12 @@ function TaglineLetter({ char, index, progress, scale }: TaglineLetterProps): Re
   );
 }
 
-function SplashScreen(): React.ReactElement {
-  const navigation = useNavigation<SplashNav>();
+function SplashScreen({ onDone }: SplashScreenProps): React.ReactElement {
   const naveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Keeps the timer effect off `onDone`'s identity so an inline arrow from the
+  // parent can't restart the animation timer on every render.
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   // Layout math setup for responsive scaling
   const { width: screenWidth } = useWindowDimensions();
@@ -150,10 +159,7 @@ function SplashScreen(): React.ReactElement {
     );
 
     naveTimerRef.current = setTimeout(() => {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'AccountType' }],
-      });
+      onDoneRef.current?.();
     }, TOTAL_MS);
 
     return () => {
@@ -161,7 +167,7 @@ function SplashScreen(): React.ReactElement {
         clearTimeout(naveTimerRef.current);
       }
     };
-  }, [navigation, dProgress, planeProgress, nProgress, g1Progress, g2Progress, taglineProgress]);
+  }, [dProgress, planeProgress, nProgress, g1Progress, g2Progress, taglineProgress]);
 
   // Interpolated animated styles for logo elements
   const dStyle = useAnimatedStyle(() => ({

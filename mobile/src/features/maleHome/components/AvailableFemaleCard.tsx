@@ -90,7 +90,17 @@ function AvailableFemaleCard({
       ]}
     >
       <View style={styles.cardInner}>
-        <FastImage source={{ uri: female.imageUrl }} style={styles.image} resizeMode="cover" />
+        <FastImage
+          // Browse cards are what the user scrolls first — give them the high
+          // priority lane so they aren't queued behind incidental images.
+          source={{
+            uri: female.imageUrl,
+            priority: FastImage.priority.high,
+            cache: FastImage.cacheControl.immutable,
+          }}
+          style={styles.image}
+          resizeMode="cover"
+        />
         <BottomScrim />
 
         <View style={styles.topRow}>

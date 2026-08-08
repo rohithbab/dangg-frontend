@@ -147,6 +147,16 @@ function CoinStoreScreen(): React.ReactElement {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const handleBack = useCallback((): void => {
+    // Must pop, not navigate. React Navigation v7's `navigate` only reuses an
+    // existing route when it is the *focused* one, so `navigate('MaleTabs')`
+    // from here pushed a second tabs instance and left CoinStore stranded
+    // underneath it — a later Back then surfaced the store again (and the
+    // stack grew on every visit).
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    // Nothing to pop (deep link straight into the store).
     navigation.navigate('MaleTabs', { screen: 'Wallet' });
   }, [navigation]);
 

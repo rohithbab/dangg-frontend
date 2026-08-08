@@ -7,6 +7,7 @@
  */
 import { type Asset, launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
+import { CHAT_IMAGE_MAX_DIMENSION, imageConstraints } from '@core/config/media';
 import { uploadToR2 } from '@core/network/mediaService';
 import { AppPermissionStatus, permissionService } from '@core/services/permissionService';
 import { logger } from '@core/utils/logger';
@@ -64,12 +65,16 @@ export async function pickChatMedia(source: ChatMediaSource): Promise<PickedChat
         ? await launchImageLibrary({
             mediaType: 'mixed',
             selectionLimit: 1,
-            quality: 0.8,
+            ...imageConstraints(CHAT_IMAGE_MAX_DIMENSION),
             videoQuality: 'low',
           })
         : source === 'camera-video'
           ? await launchCamera({ mediaType: 'video', videoQuality: 'low', saveToPhotos: false })
-          : await launchCamera({ mediaType: 'photo', quality: 0.8, saveToPhotos: false });
+          : await launchCamera({
+              mediaType: 'photo',
+              ...imageConstraints(CHAT_IMAGE_MAX_DIMENSION),
+              saveToPhotos: false,
+            });
 
     if (result.didCancel) {
       return null;

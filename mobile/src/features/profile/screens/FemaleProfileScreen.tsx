@@ -5,6 +5,7 @@ import {
   Bell,
   Camera,
   ChevronRight,
+  Flag,
   HelpCircle,
   Info,
   Landmark,
@@ -266,6 +267,13 @@ function FemaleProfileScreen(): React.ReactElement {
             icon={mutedIcon(HelpCircle)}
             label="Help center"
             onPress={() => navigation.navigate('HelpSupport')}
+          />
+          {/* The route was registered on the female stack but nothing linked
+              to it — females had no way to reach the support form at all. */}
+          <Row
+            icon={mutedIcon(Flag)}
+            label="Report an issue"
+            onPress={() => navigation.navigate('ReportIssue')}
           />
           <Row
             icon={mutedIcon(Info)}

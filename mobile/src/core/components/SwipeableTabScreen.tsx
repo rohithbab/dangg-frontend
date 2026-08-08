@@ -6,7 +6,12 @@ import {
 } from '@react-navigation/native';
 import React, { useCallback, useRef } from 'react';
 import { PanResponder, StyleSheet } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 export type SwipeableTabScreenProps = {
   /** Ordered tab route names, left to right. */

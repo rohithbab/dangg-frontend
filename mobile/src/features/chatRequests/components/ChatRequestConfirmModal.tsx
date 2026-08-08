@@ -56,7 +56,9 @@ function ChatRequestConfirmModal({
           <Text style={styles.title}>{`Chat with ${femaleName}`}</Text>
 
           <Text style={styles.balance}>{`Balance: ${currentBalance.toLocaleString()}`}</Text>
-          <Text style={styles.rateHint}>Billed by time · 1 coin / 3s · nothing charged to send</Text>
+          <Text style={styles.rateHint}>
+            Billed by time · 1 coin / 3s · nothing charged to send
+          </Text>
 
           <View style={styles.cta}>
             <PrimaryButton label="Send request" onPress={onConfirm} loading={submitting} />
