@@ -23,14 +23,18 @@ import { AppTypography } from '@theme/typography';
 import AppBar from '@core/components/AppBar';
 import Card from '@core/components/Card';
 import PrimaryButton from '@core/components/PrimaryButton';
+import Toast from '@core/components/Toast';
 import { AppException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
 
 import { type FemaleAppStackParamList } from '@navigation/types';
 
-import { type IssueType, submitReport } from '../api/supportApi';
+import { DESCRIPTION_MAX, DESCRIPTION_MIN, type IssueType, submitReport } from '../api/supportApi';
 
 type Nav = NativeStackNavigationProp<FemaleAppStackParamList, 'ReportIssue'>;
+
+/** How long the success toast stays up before the screen pops. */
+const TOAST_DWELL_MS = 1200;
 
 const TYPES: ReadonlyArray<{ value: IssueType; label: string }> = [
   { value: 'bug', label: 'Bug' },
@@ -70,21 +74,42 @@ function ReportIssueScreen(): React.ReactElement {
   const [screenshotUri, setScreenshotUri] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const trimmed = description.trim();
+  const tooShort = trimmed.length < DESCRIPTION_MIN;
+  // Only nag once they have actually started typing.
+  const showLengthHint = trimmed.length > 0 && tooShort;
 
   const attach = useCallback(async (): Promise<void> => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      selectionLimit: 1,
-      quality: 0.6,
-    });
-    const uri = result.assets?.[0]?.uri;
-    if (uri) {
-      setScreenshotUri(uri);
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        selectionLimit: 1,
+        quality: 0.6,
+      });
+      if (result.didCancel) {
+        return;
+      }
+      if (result.errorCode) {
+        setSubmitError("Couldn't open your gallery. Please try again.");
+        return;
+      }
+      const uri = result.assets?.[0]?.uri;
+      if (uri) {
+        setSubmitError(null);
+        setScreenshotUri(uri);
+      }
+    } catch (e) {
+      // Previously unhandled: the picker rejecting produced an unhandled
+      // promise rejection and no user-visible feedback at all.
+      logger.warn('ReportIssueScreen.attach failed', e);
+      setSubmitError("Couldn't attach that image. Please try again.");
     }
   }, []);
 
   const submit = useCallback(async (): Promise<void> => {
-    if (submitting || description.trim().length < 10) {
+    if (submitting || tooShort) {
       return;
     }
     setSubmitting(true);
@@ -92,10 +117,12 @@ function ReportIssueScreen(): React.ReactElement {
     try {
       await submitReport({
         type,
-        description: description.trim(),
+        description: trimmed,
         screenshotLocalPath: screenshotUri,
       });
-      navigation.goBack();
+      setToast("Report submitted · We'll respond within 24h");
+      // Let the confirmation land before the screen disappears.
+      setTimeout(() => navigation.goBack(), TOAST_DWELL_MS);
     } catch (e) {
       if (e instanceof AppException) {
         setSubmitError(e.message);
@@ -106,7 +133,7 @@ function ReportIssueScreen(): React.ReactElement {
     } finally {
       setSubmitting(false);
     }
-  }, [description, navigation, screenshotUri, submitting, type]);
+  }, [navigation, screenshotUri, submitting, tooShort, trimmed, type]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -142,9 +169,22 @@ function ReportIssueScreen(): React.ReactElement {
               placeholderTextColor={AppColors.onSurfaceMuted}
               multiline
               numberOfLines={5}
+              // Bounded to the column's CHECK so an over-long description is
+              // impossible to type rather than rejected after a round trip.
+              maxLength={DESCRIPTION_MAX}
               textAlignVertical="top"
               style={styles.textArea}
             />
+            {/* The submit button is disabled below the minimum; without this
+                the form looked broken with no explanation why. */}
+            <View style={styles.metaRow}>
+              <Text style={[styles.helper, showLengthHint && styles.helperWarn]}>
+                {showLengthHint
+                  ? `At least ${DESCRIPTION_MIN} characters (${trimmed.length}/${DESCRIPTION_MIN})`
+                  : 'Include as much detail as you can.'}
+              </Text>
+              <Text style={styles.counter}>{`${description.length}/${DESCRIPTION_MAX}`}</Text>
+            </View>
 
             <Pressable
               accessibilityRole="button"
@@ -183,10 +223,11 @@ function ReportIssueScreen(): React.ReactElement {
               void submit();
             }}
             loading={submitting}
-            disabled={description.trim().length < 10}
+            disabled={tooShort || submitting}
           />
         </View>
       </KeyboardAvoidingView>
+      <Toast message={toast} onHide={() => setToast(null)} />
     </SafeAreaView>
   );
 }
@@ -231,6 +272,22 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.surface,
     padding: AppSpacing.md,
     color: AppColors.onSurface,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: AppSpacing.sm,
+  },
+  helper: {
+    ...AppTypography.labelSmall,
+    color: AppColors.onSurfaceMuted,
+    flexShrink: 1,
+  },
+  helperWarn: { color: AppColors.error },
+  counter: {
+    ...AppTypography.labelSmall,
+    color: AppColors.onSurfaceMuted,
   },
   attachRow: {
     flexDirection: 'row',

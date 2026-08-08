@@ -1,6 +1,6 @@
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BadgeCheck, ChevronLeft, Heart, Star } from 'lucide-react-native';
+import { BadgeCheck, ChevronLeft, Heart, MoreVertical, Star } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import { AppRadii } from '@theme/radii';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
+import BlockReportSheet from '@core/components/BlockReportSheet';
 import GradientAvatar from '@core/components/GradientAvatar';
 import PrimaryButton from '@core/components/PrimaryButton';
 import Toast from '@core/components/Toast';
@@ -18,6 +19,7 @@ import { logger } from '@core/utils/logger';
 
 import { type MaleAppStackParamList } from '@navigation/types';
 
+import { blockUser, reportUser, toReportReason } from '@features/blockReport/api/blockReportApi';
 import { sendChatRequest } from '@features/chatRequests/api/chatRequestApi';
 import ChatRequestConfirmModal from '@features/chatRequests/components/ChatRequestConfirmModal';
 import InsufficientCoinsModal from '@features/chatRequests/components/InsufficientCoinsModal';
@@ -49,6 +51,42 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
   const [insufficientOpen, setInsufficientOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [blockReportOpen, setBlockReportOpen] = useState(false);
+
+  const handleBlock = useCallback(async (): Promise<void> => {
+    if (!female) {
+      return;
+    }
+    try {
+      await blockUser(female.id);
+      setNotice(`${female.name} has been blocked.`);
+      // She must disappear from his world immediately, not on next refresh.
+      navigation.goBack();
+    } catch (e) {
+      logger.warn('blockUser failed', e);
+      setNotice(e instanceof AppException ? e.message : "Couldn't block. Please try again.");
+    }
+  }, [female, navigation]);
+
+  const handleReport = useCallback(
+    async (reason: string, comment: string): Promise<void> => {
+      if (!female) {
+        return;
+      }
+      try {
+        await reportUser({
+          reportedUserId: female.id,
+          reason: toReportReason(reason),
+          description: comment,
+        });
+        setNotice("Report submitted — we'll review it.");
+      } catch (e) {
+        logger.warn('reportUser failed', e);
+        setNotice(e instanceof AppException ? e.message : "Couldn't report. Please try again.");
+      }
+    },
+    [female],
+  );
 
   useEffect(() => {
     getFemaleById(femaleId)
@@ -135,22 +173,35 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
         >
           <ChevronLeft size={24} color={AppColors.onSurface} strokeWidth={2} />
         </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={female.isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-          hitSlop={12}
-          onPress={() => {
-            void handleToggleFavorite();
-          }}
-          style={styles.iconBtn}
-        >
-          <Heart
-            size={22}
-            color={female.isFavorited ? AppColors.primary : AppColors.onSurface}
-            fill={female.isFavorited ? AppColors.primary : 'transparent'}
-            strokeWidth={2}
-          />
-        </Pressable>
+        <View style={styles.topActions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={female.isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+            hitSlop={12}
+            onPress={() => {
+              void handleToggleFavorite();
+            }}
+            style={styles.iconBtn}
+          >
+            <Heart
+              size={22}
+              color={female.isFavorited ? AppColors.primary : AppColors.onSurface}
+              fill={female.isFavorited ? AppColors.primary : 'transparent'}
+              strokeWidth={2}
+            />
+          </Pressable>
+          {/* Screen spec 2.7 calls for a block/report affordance here. The
+              sheet existed but was never mounted anywhere in the app. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Block or report this user"
+            hitSlop={12}
+            onPress={() => setBlockReportOpen(true)}
+            style={styles.iconBtn}
+          >
+            <MoreVertical size={22} color={AppColors.onSurface} strokeWidth={2} />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -244,6 +295,15 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
         }}
       />
 
+      <BlockReportSheet
+        visible={blockReportOpen}
+        onClose={() => setBlockReportOpen(false)}
+        targetName={female.name}
+        target="female"
+        onBlock={handleBlock}
+        onReport={handleReport}
+      />
+
       <Toast message={notice} onHide={() => setNotice(null)} />
     </SafeAreaView>
   );
@@ -269,6 +329,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: AppSpacing.md,
     height: 48,
   },
+  topActions: { flexDirection: 'row', alignItems: 'center' },
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   scroll: {
     paddingHorizontal: AppSpacing.lg,
