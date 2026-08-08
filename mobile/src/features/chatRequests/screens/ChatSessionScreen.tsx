@@ -468,9 +468,7 @@ function ChatSessionScreen(): React.ReactElement {
   // Anchor the timer to the session's server start time so both participants
   // show the same elapsed value — each side previously counted from 0 at its
   // own mount moment, so they drifted apart. Mock has no server session.
-  const [startedAtMs, setStartedAtMs] = useState<number | null>(
-    USE_MOCK_DATA ? Date.now() : null,
-  );
+  const [startedAtMs, setStartedAtMs] = useState<number | null>(USE_MOCK_DATA ? Date.now() : null);
   // The other participant stepped away (backgrounded) — show a waiting banner
   // instead of ending the chat. The timer is anchored to the shared server
   // start time (below) and no longer pauses, so both sides stay in sync.
@@ -791,12 +789,7 @@ function ChatSessionScreen(): React.ReactElement {
   // is already closed server-side, so the timer must not keep counting while
   // the male rates or skips.
   useEffect(() => {
-    if (
-      !isLive ||
-      startedAtMs == null ||
-      chatEndState === 'rating' ||
-      chatEndState === 'success'
-    ) {
+    if (!isLive || startedAtMs == null || chatEndState === 'rating' || chatEndState === 'success') {
       return;
     }
     const tick = (): void =>
@@ -1230,7 +1223,9 @@ function ChatSessionScreen(): React.ReactElement {
       >
         {peerAway ? (
           <View style={styles.awayBanner}>
-            <Text style={styles.awayBannerText}>{`${partnerName} stepped away — waiting for them to return…`}</Text>
+            <Text
+              style={styles.awayBannerText}
+            >{`${partnerName} stepped away — waiting for them to return…`}</Text>
           </View>
         ) : null}
 
