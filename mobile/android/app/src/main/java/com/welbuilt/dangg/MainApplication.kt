@@ -1,7 +1,6 @@
 package com.welbuilt.dangg
 
 import android.app.Application
-import com.brentvatne.react.ReactVideoPackage
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
@@ -17,11 +16,12 @@ class MainApplication : Application(), ReactApplication {
 
   override val reactNativeHost: ReactNativeHost =
       object : DefaultReactNativeHost(this) {
-        override fun getPackages(): List<ReactPackage> =
-            PackageList(this).packages.apply {
-              // react-native-video — not autolinked in RN 0.76.5
-              add(ReactVideoPackage())
-            }
+        // react-native-video IS autolinked — it appears in the generated
+        // PackageList. Adding it manually as well registered the module twice
+        // and threw at startup: "Native module VideoDecoderInfoModule tried to
+        // override VideoDecoderInfoModule". Autolinking is the single source
+        // of truth here; nothing needs adding by hand.
+        override fun getPackages(): List<ReactPackage> = PackageList(this).packages
 
         override fun getJSMainModuleName(): String = "index"
 
