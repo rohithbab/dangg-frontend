@@ -71,7 +71,10 @@ function PaymentSuccessScreen(): React.ReactElement {
       <View style={styles.footer}>
         <Pressable
           accessibilityRole="button"
-          onPress={() => navigation.replace('MaleTabs', { screen: 'Wallet' })}
+          // popTo unwinds the whole purchase flow (CoinStore → Processing →
+          // Success) back to the tabs. `replace` only swapped this screen,
+          // leaving CoinStore stranded below a duplicate tabs instance.
+          onPress={() => navigation.popTo('MaleTabs', { screen: 'Wallet' })}
           style={({ pressed }) => [styles.doneBtn, pressed && styles.pressed]}
         >
           <Text style={styles.doneText}>Done</Text>

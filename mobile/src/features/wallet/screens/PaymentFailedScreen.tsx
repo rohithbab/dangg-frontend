@@ -39,7 +39,9 @@ function PaymentFailedScreen(): React.ReactElement {
     const routes = navigation.getState()?.routes;
     const hasCoinStore = routes?.some(r => r.name === 'CoinStore');
     if (hasCoinStore) {
-      navigation.navigate('CoinStore');
+      // popTo, not navigate — v7's `navigate` would push a second CoinStore
+      // on top of the failed-payment screen rather than returning to it.
+      navigation.popTo('CoinStore');
     } else {
       navigation.replace('CoinStore');
     }

@@ -63,9 +63,7 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
     const nowFavorited = !female.isFavorited;
     setFemale(prev => (prev ? { ...prev, isFavorited: nowFavorited } : prev));
     setNotice(
-      nowFavorited
-        ? 'You added this user to your favourites.'
-        : 'Removed from your favourites.',
+      nowFavorited ? 'You added this user to your favourites.' : 'Removed from your favourites.',
     );
     try {
       await toggleFavorite(female.id);
@@ -239,7 +237,10 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
         }}
         onGoToWallet={() => {
           setInsufficientOpen(false);
-          navigation.navigate('MaleTabs', { screen: 'Wallet' });
+          // popTo, not navigate: this screen sits on top of the tabs, so
+          // `navigate` would push a duplicate MaleTabs instead of returning
+          // to the existing one (React Navigation v7 semantics).
+          navigation.popTo('MaleTabs', { screen: 'Wallet' });
         }}
       />
 
