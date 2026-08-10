@@ -257,10 +257,15 @@ export async function signOut(): Promise<void> {
 }
 
 /**
- * Permanently deletes the user's account, then clears the session so the app
- * routes back to the auth flow. The user already passed the typed-phrase gate
- * and is authenticated — the app is OTP-only, so there is no password re-auth.
- * In dev mode this is a stub that only clears the session.
+ * Deletes the user's account, then clears the session so the app routes back to
+ * the auth flow. The user already passed the typed-phrase gate and is
+ * authenticated — the app is OTP-only, so there is no password re-auth.
+ *
+ * Server-side (`delete_self_account`) this is a soft-delete: the row and all
+ * FK'd chat/earnings/payment data are retained for the admin team, while the
+ * phone is freed and the GoTrue identity severed. So from the user's side the
+ * account is gone — signing in again with the same phone starts a brand-new
+ * registration. In dev mode this is a stub that only clears the session.
  */
 export async function deleteAccount(): Promise<void> {
   if (USE_MOCK_DATA) {
