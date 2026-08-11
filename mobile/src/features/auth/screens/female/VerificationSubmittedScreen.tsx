@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Clock } from 'lucide-react-native';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
@@ -11,13 +11,17 @@ import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
 import PrimaryButton from '@core/components/PrimaryButton';
+import Toast from '@core/components/Toast';
 import { logger } from '@core/utils/logger';
+
 
 import { type AuthStackParamList } from '@navigation/types';
 
 import { useSessionStore } from '@store/sessionStore';
 
 import { signOut } from '@features/profile/api/profileApi';
+
+import { VerificationStatus } from '@app-types/domain';
 
 import { getFemaleVerificationStatus, markOnboardingSeen } from '../../api/authApi';
 import { useSignupDraftStore } from '../../store/signupDraftStore';
@@ -33,6 +37,8 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'FemaleSignupVerificati
 function VerificationSubmittedScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const clearDraft = useSignupDraftStore(s => s.clear);
+  const [checking, setChecking] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
@@ -45,19 +51,32 @@ function VerificationSubmittedScreen(): React.ReactElement {
   }, [clearDraft]);
 
   const handleGotIt = useCallback(async (): Promise<void> => {
-    const phone = useSessionStore.getState().session?.user?.phone;
-    if (!phone) {
+    if (checking) {
       return;
     }
+    const phone = useSessionStore.getState().session?.user?.phone;
+    if (!phone) {
+      setNotice('Something went wrong. Please log out and sign in again.');
+      return;
+    }
+    setChecking(true);
     try {
-      // Pull the latest status — if she was just approved, RootNavigator swaps
-      // to the female app automatically once we set it.
+      // Pull the latest status. If she was just approved, setting it here makes
+      // RootNavigator swap to the female app; if rejected, AuthNavigator routes
+      // her back to the verification steps. If still pending, nothing to route
+      // to — so give explicit feedback instead of a dead-feeling button press.
       const { status } = await getFemaleVerificationStatus(phone);
       useSessionStore.getState().setVerificationStatus(status);
+      if (status === VerificationStatus.Pending || status === VerificationStatus.None) {
+        setNotice("Still under review — we'll notify you as soon as you're approved.");
+      }
     } catch (e) {
       logger.warn('VerificationSubmittedScreen.refresh failed', e);
+      setNotice('Could not refresh. Check your connection and try again.');
+    } finally {
+      setChecking(false);
     }
-  }, []);
+  }, [checking]);
 
   const handleLogout = useCallback((): void => {
     void signOut().catch(() => undefined);
@@ -93,6 +112,7 @@ function VerificationSubmittedScreen(): React.ReactElement {
         <PrimaryButton
           label="Got it"
           variant="white"
+          loading={checking}
           onPress={() => {
             void handleGotIt();
           }}
@@ -101,6 +121,8 @@ function VerificationSubmittedScreen(): React.ReactElement {
           <Text style={styles.logoutText}>Log out</Text>
         </Pressable>
       </View>
+
+      <Toast message={notice} onHide={() => setNotice(null)} />
     </SafeAreaView>
   );
 }
