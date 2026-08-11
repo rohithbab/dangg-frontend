@@ -140,6 +140,7 @@ function EditProfileScreen(): React.ReactElement {
               seed={name || profile?.name || 'You'}
               uri={avatarUrl}
               size={96}
+              shape="squircle"
             />
             <View style={styles.cameraBadge}>
               <Camera size={14} color="#FFFFFF" strokeWidth={2} />

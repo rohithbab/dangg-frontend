@@ -165,6 +165,7 @@ function FemaleProfileScreen(): React.ReactElement {
               seed={profile?.name ?? 'You'}
               uri={profile?.avatarUrl ?? null}
               size={60}
+              shape="squircle"
             />
             <View style={styles.cameraBadge}>
               <Camera size={12} color="#FFFFFF" strokeWidth={2.2} />
