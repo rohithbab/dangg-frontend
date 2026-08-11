@@ -66,6 +66,10 @@ function VerificationSubmittedScreen(): React.ReactElement {
       // her back to the verification steps. If still pending, nothing to route
       // to — so give explicit feedback instead of a dead-feeling button press.
       const { status } = await getFemaleVerificationStatus(phone);
+      if (status === VerificationStatus.Verified) {
+        // Flag the approval so the female home greets her with a one-time toast.
+        useSessionStore.getState().setJustVerified(true);
+      }
       useSessionStore.getState().setVerificationStatus(status);
       if (status === VerificationStatus.Pending || status === VerificationStatus.None) {
         setNotice("Still under review — we'll notify you as soon as you're approved.");

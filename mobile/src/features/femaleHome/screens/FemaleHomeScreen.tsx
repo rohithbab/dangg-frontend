@@ -24,6 +24,7 @@ import { InterFont } from '@theme/typography';
 
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import GradientAvatar from '@core/components/GradientAvatar';
+import Toast from '@core/components/Toast';
 import { BOTTOM_NAV_HEIGHT } from '@core/config/constants';
 import { Env } from '@core/config/env';
 import { AppException, ConflictException } from '@core/network/apiException';
@@ -35,6 +36,7 @@ import { type FemaleAppStackParamList } from '@navigation/types';
 import {
   useSessionStore,
   useVerificationStatus,
+  useJustVerified,
   parseVerificationStatus,
 } from '@store/sessionStore';
 
@@ -84,6 +86,8 @@ function FemaleHomeScreen(): React.ReactElement {
   const firstName = firstNameFromSession(session?.user.user_metadata?.name);
   const verificationStatus = useVerificationStatus();
   const isVerified = verificationStatus === VerificationStatus.Verified;
+  const justVerified = useJustVerified();
+  const [verifiedToast, setVerifiedToast] = useState<string | null>(null);
 
   const [stats, setStats] = useState<HomeStats | null>(null);
   const [availability, setAvailabilityState] = useState<Availability | null>(null);
@@ -94,6 +98,16 @@ function FemaleHomeScreen(): React.ReactElement {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const clearNotice = useCallback(() => setNotice(null), []);
+
+  // One-time celebration the first time she lands here after being approved
+  // (pending → verified). The flag is set on the approval transition and
+  // consumed here, so an already-verified user logging in never sees it.
+  useEffect(() => {
+    if (justVerified) {
+      setVerifiedToast("You're verified! 🎉 You can start earning now.");
+      useSessionStore.getState().setJustVerified(false);
+    }
+  }, [justVerified]);
 
   // Profile picture for the greeting avatar (falls back to the initial).
   useFocusEffect(
@@ -354,6 +368,11 @@ function FemaleHomeScreen(): React.ReactElement {
         )}
       </ScrollView>
       <ShakeToast message={notice} onHide={clearNotice} />
+      <Toast
+        message={verifiedToast}
+        onHide={() => setVerifiedToast(null)}
+        durationMs={3400}
+      />
 
       <ConfirmationDialog
         visible={exitConfirmOpen}

@@ -25,6 +25,14 @@ export type SessionState = {
   role: UserRole | null;
   verificationStatus: VerificationStatus;
   /**
+   * One-shot flag: she went pending → verified during this session and hasn't
+   * seen the celebratory toast yet. Set only on a genuine approval (realtime
+   * promotion or the "Got it" re-check), consumed on the female home screen.
+   * Transient — never persisted, reset on logout, so an already-verified user
+   * logging in does not see it.
+   */
+  justVerified: boolean;
+  /**
    * False until the first Supabase auth event has been processed AND (when a
    * session was restored) role + verification status have been hydrated.
    *
@@ -35,6 +43,7 @@ export type SessionState = {
   bootstrapped: boolean;
   setSession: (session: Session | null) => void;
   setVerificationStatus: (status: VerificationStatus) => void;
+  setJustVerified: (value: boolean) => void;
   setBootstrapped: (value: boolean) => void;
   clear: () => void;
 };
@@ -119,6 +128,7 @@ export const useSessionStore = create<SessionState>()(
     // Seeded from the last hydration so a cold start routes correctly on the
     // first frame — including offline, where the network refresh never lands.
     verificationStatus: readPersistedVerificationStatus(),
+    justVerified: false,
     bootstrapped: false,
 
     setSession: (session): void => set({ session, role: deriveRole(session) }),
@@ -127,6 +137,8 @@ export const useSessionStore = create<SessionState>()(
       persistVerificationStatus(status);
       set({ verificationStatus: status });
     },
+
+    setJustVerified: (value): void => set({ justVerified: value }),
 
     setBootstrapped: (value): void => set({ bootstrapped: value }),
 
@@ -137,7 +149,12 @@ export const useSessionStore = create<SessionState>()(
       clearPersistedVerification();
       // `bootstrapped` deliberately survives a logout: boot already happened,
       // and resetting it would drop the app back to the splash gate.
-      set({ session: null, role: null, verificationStatus: VerificationStatus.None });
+      set({
+        session: null,
+        role: null,
+        verificationStatus: VerificationStatus.None,
+        justVerified: false,
+      });
     },
   })),
 );
@@ -148,6 +165,7 @@ export const useIsAuthenticated = (): boolean => useSessionStore(s => s.session 
 export const useSessionRole = (): UserRole | null => useSessionStore(s => s.role);
 export const useVerificationStatus = (): VerificationStatus =>
   useSessionStore(s => s.verificationStatus);
+export const useJustVerified = (): boolean => useSessionStore(s => s.justVerified);
 export const useIsBootstrapped = (): boolean => useSessionStore(s => s.bootstrapped);
 /**
  * Authenticated, but signup never got past the Profile step — `public.users`
@@ -447,7 +465,14 @@ export function subscribeSupabaseAuth(client: SupabaseClient): { unsubscribe: ()
           payload => {
             const newStatus = payload.new?.verification_status;
             if (newStatus) {
-              store.setVerificationStatus(parseVerificationStatus(newStatus));
+              const parsed = parseVerificationStatus(newStatus);
+              // Pending → verified promotion: flag it so the female home shows a
+              // one-time "you're verified" toast when RootNavigator lands her.
+              const prev = useSessionStore.getState().verificationStatus;
+              if (parsed === VerificationStatus.Verified && prev !== VerificationStatus.Verified) {
+                store.setJustVerified(true);
+              }
+              store.setVerificationStatus(parsed);
             }
           },
         )
