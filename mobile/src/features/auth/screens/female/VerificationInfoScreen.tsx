@@ -30,6 +30,12 @@ const STEPS: ReadonlyArray<{ n: string; label: string; tint: string }> = [
   { n: '3', label: 'Start earning once approved', tint: AppColors.featureBlue },
 ];
 
+// Fixed hero height. The gradient Svg/Rect use this explicit pixel value rather
+// than height="100%": react-native-svg fails to resolve a percentage HEIGHT in
+// this layout (width resolves fine), which left the gradient painting only the
+// top of the card. An opaque gradient made that underfill visible as a hard edge.
+const HERO_HEIGHT = 112;
+
 /**
  * C16 · Get verified (Neue). Gradient "verify to start earning" hero, the
  * three-step explainer, an encrypted-data note, and a "Start verification"
@@ -93,14 +99,14 @@ function VerificationInfoScreen(): React.ReactElement {
         <Text style={styles.title}>Get verified</Text>
 
         <View style={styles.hero}>
-          <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
+          <Svg width="100%" height={HERO_HEIGHT} style={StyleSheet.absoluteFill}>
             <Defs>
               <LinearGradient id="verifyHero" x1="0" y1="0" x2="1" y2="1">
                 <Stop offset="0" stopColor={AppColors.featureGreen} stopOpacity={0.55} />
                 <Stop offset="1" stopColor={AppColors.featureMauve} stopOpacity={0.55} />
               </LinearGradient>
             </Defs>
-            <Rect width="100%" height="100%" fill="url(#verifyHero)" />
+            <Rect width="100%" height={HERO_HEIGHT} fill="url(#verifyHero)" />
           </Svg>
           <View style={styles.heroIcon}>
             <ShieldCheck size={20} color="#FFFFFF" strokeWidth={2} />
@@ -164,7 +170,7 @@ const styles = StyleSheet.create({
     color: AppColors.onSurface,
   },
   hero: {
-    height: 112,
+    height: HERO_HEIGHT,
     borderRadius: AppRadii.card,
     overflow: 'hidden',
     justifyContent: 'flex-end',
