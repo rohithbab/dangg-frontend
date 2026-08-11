@@ -270,26 +270,23 @@ export async function signOut(): Promise<void> {
  */
 export async function deleteAccount(): Promise<void> {
   if (USE_MOCK_DATA) {
-    resetToFreshStart();
+    prefsStorage.setBool(PrefsKey.OnboardingSeen, false);
+    useSessionStore.getState().clear();
     return;
   }
   const { error } = await getSupabaseClient().rpc('delete_self_account');
   if (error) {
     throw mapSupabaseError(error);
   }
-  resetToFreshStart();
-}
-
-/**
- * After a delete, the account is gone and the phone is freed server-side, so
- * the user must be able to sign up again from scratch. Clearing OnboardingSeen
- * makes resolveInitialRoute land the (now logged-out) user on AccountType
- * ("Get started") instead of LoginPhone — a plain logout still goes to Login.
- * Must run before clear(), which triggers the navigator swap that reads the pref.
- */
-function resetToFreshStart(): void {
+  // Prime fresh-start routing BEFORE the session clears — clear() (inside
+  // signOut) triggers the navigator swap that reads OnboardingSeen, so a
+  // deleted user lands on AccountType ("Get started"), not LoginPhone.
   prefsStorage.setBool(PrefsKey.OnboardingSeen, false);
-  useSessionStore.getState().clear();
+  // Reuse signOut(): it purges the PERSISTED Supabase session and revokes the
+  // server session/refresh token, then clears the store. Without this, a Metro
+  // reload / app restart restores the deleted user from the still-valid saved
+  // refresh token (the row lingers server-side) and they "come back".
+  await signOut();
 }
 
 /** Updates the user's name on public.users. */
