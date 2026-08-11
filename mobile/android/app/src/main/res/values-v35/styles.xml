@@ -1,0 +1,17 @@
+<resources>
+
+    <!--
+      Android 15 (API 35) forces edge-to-edge for apps targeting SDK 35, which
+      stops `android:windowSoftInputMode="adjustResize"` from resizing the
+      window when the keyboard opens. The result: bottom-anchored buttons
+      (OTP "Verify", chat/phone "Continue") stay hidden behind the keyboard —
+      most visibly on OEM keyboards (Samsung, Moto). Opting out restores the
+      classic adjustResize behaviour so those buttons rise with the keyboard.
+      This override only applies on API 35+; older devices use values/styles.xml.
+    -->
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+    </style>
+
+</resources>
