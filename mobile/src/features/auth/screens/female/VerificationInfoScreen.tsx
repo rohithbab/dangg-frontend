@@ -45,6 +45,9 @@ function VerificationInfoScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const [permissionError, setPermissionError] = useState(false);
   const [settingsDialog, setSettingsDialog] = useState(false);
+  // Measured hero width — react-native-svg won't resolve a percentage width or
+  // height reliably here, so we paint the gradient with explicit pixel dims.
+  const [heroWidth, setHeroWidth] = useState(0);
   const clearDraft = useSignupDraftStore(s => s.clear);
 
   const handleStart = useCallback(async (): Promise<void> => {
@@ -98,16 +101,25 @@ function VerificationInfoScreen(): React.ReactElement {
       <View style={styles.body}>
         <Text style={styles.title}>Get verified</Text>
 
-        <View style={styles.hero}>
-          <Svg width="100%" height={HERO_HEIGHT} style={StyleSheet.absoluteFill}>
-            <Defs>
-              <LinearGradient id="verifyHero" x1="0" y1="0" x2="1" y2="1">
-                <Stop offset="0" stopColor={AppColors.featureGreen} stopOpacity={0.55} />
-                <Stop offset="1" stopColor={AppColors.featureMauve} stopOpacity={0.55} />
-              </LinearGradient>
-            </Defs>
-            <Rect width="100%" height={HERO_HEIGHT} fill="url(#verifyHero)" />
-          </Svg>
+        <View
+          style={styles.hero}
+          onLayout={e => setHeroWidth(e.nativeEvent.layout.width)}
+        >
+          {heroWidth > 0 ? (
+            <Svg
+              width={heroWidth}
+              height={HERO_HEIGHT}
+              style={StyleSheet.absoluteFill}
+            >
+              <Defs>
+                <LinearGradient id="verifyHero" x1="0" y1="0" x2="1" y2="1">
+                  <Stop offset="0" stopColor={AppColors.featureGreen} stopOpacity={0.55} />
+                  <Stop offset="1" stopColor={AppColors.featureMauve} stopOpacity={0.55} />
+                </LinearGradient>
+              </Defs>
+              <Rect width={heroWidth} height={HERO_HEIGHT} fill="url(#verifyHero)" />
+            </Svg>
+          ) : null}
           <View style={styles.heroIcon}>
             <ShieldCheck size={20} color="#FFFFFF" strokeWidth={2} />
           </View>
