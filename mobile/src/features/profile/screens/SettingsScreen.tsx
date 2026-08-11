@@ -9,13 +9,9 @@ import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import AppBar from '@core/components/AppBar';
-import BottomSheet from '@core/components/BottomSheet';
-import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import { prefsStorage, PrefsKey } from '@core/storage/prefsStorage';
-import { logger } from '@core/utils/logger';
 
 import AvailabilityToggle from '../../femaleHome/components/AvailabilityToggle';
-import MenuRow from '../components/MenuRow';
 
 type NotifPrefs = {
   chatRequests: boolean;
@@ -24,16 +20,10 @@ type NotifPrefs = {
 };
 
 const NOTIF_KEYS: Record<keyof NotifPrefs, PrefsKey> = {
-  chatRequests: PrefsKey.LastRole, // reuse PrefsKey slot — keys table is sparse; see TODO
-  payments: PrefsKey.LanguagePref,
-  marketing: PrefsKey.ThemePref,
+  chatRequests: PrefsKey.NotifChatRequests,
+  payments: PrefsKey.NotifPayments,
+  marketing: PrefsKey.NotifMarketing,
 };
-
-// NOTE: PrefsKey currently exposes a small fixed set. Until it's extended for
-// per-toggle notification flags we reuse three existing keys with string
-// values "true" / "false". When PrefsKey gains dedicated NotifChatRequests /
-// NotifPayments / NotifMarketing entries, switch to those without changing
-// the rest of this file.
 
 function readBoolPref(key: PrefsKey, defaultValue: boolean): boolean {
   return prefsStorage.getBool(key, defaultValue);
@@ -43,25 +33,13 @@ function writeBoolPref(key: PrefsKey, value: boolean): void {
   prefsStorage.setBool(key, value);
 }
 
-const LANGUAGES = ['English', 'Hindi'] as const;
-const THEMES = ['Light', 'System Default', 'Dark (coming soon)'] as const;
-
-/** Settings — grouped cards of toggle prefs + selection bottom sheets. */
+/** Settings — notification preference toggles (persisted per category). */
 function SettingsScreen(): React.ReactElement {
   const [notif, setNotif] = useState<NotifPrefs>(() => ({
     chatRequests: readBoolPref(NOTIF_KEYS.chatRequests, true),
     payments: readBoolPref(NOTIF_KEYS.payments, true),
     marketing: readBoolPref(NOTIF_KEYS.marketing, false),
   }));
-  const [language, setLanguage] = useState<string>(
-    () => prefsStorage.getString(PrefsKey.LanguagePref) ?? 'English',
-  );
-  const [theme, setTheme] = useState<string>(
-    () => prefsStorage.getString(PrefsKey.ThemePref) ?? 'System Default',
-  );
-  const [langSheet, setLangSheet] = useState(false);
-  const [themeSheet, setThemeSheet] = useState(false);
-  const [downloadDialog, setDownloadDialog] = useState(false);
 
   const toggleNotif = useCallback((key: keyof NotifPrefs): void => {
     setNotif(prev => {
@@ -98,63 +76,7 @@ function SettingsScreen(): React.ReactElement {
             onChange={() => toggleNotif('marketing')}
           />
         </View>
-
-        <Text style={styles.groupLabel}>Preferences</Text>
-        <View style={[styles.card, AppShadows.e1]}>
-          <MenuRow title="Language" subtitle={language} onPress={() => setLangSheet(true)} />
-          <MenuRow title="Theme" subtitle={theme} onPress={() => setThemeSheet(true)} last />
-        </View>
-
-        <Text style={styles.groupLabel}>Privacy</Text>
-        <View style={[styles.card, AppShadows.e1]}>
-          <MenuRow title="Download My Data" onPress={() => setDownloadDialog(true)} />
-          <MenuRow title="Privacy Settings" onPress={() => undefined} last />
-        </View>
       </ScrollView>
-
-      <BottomSheet visible={langSheet} onClose={() => setLangSheet(false)} title="Language">
-        {LANGUAGES.map(l => (
-          <SheetOption
-            key={l}
-            label={l}
-            active={language === l}
-            onPress={() => {
-              setLanguage(l);
-              prefsStorage.setString(PrefsKey.LanguagePref, l);
-              setLangSheet(false);
-            }}
-          />
-        ))}
-      </BottomSheet>
-
-      <BottomSheet visible={themeSheet} onClose={() => setThemeSheet(false)} title="Theme">
-        {THEMES.map(t => (
-          <SheetOption
-            key={t}
-            label={t}
-            active={theme === t}
-            disabled={t.includes('coming soon')}
-            onPress={() => {
-              setTheme(t);
-              prefsStorage.setString(PrefsKey.ThemePref, t);
-              setThemeSheet(false);
-            }}
-          />
-        ))}
-      </BottomSheet>
-
-      <ConfirmationDialog
-        visible={downloadDialog}
-        title="Download your data?"
-        body="We'll email you a downloadable archive of your account data within 48 hours."
-        confirmLabel="Request"
-        cancelLabel="Cancel"
-        onCancel={() => setDownloadDialog(false)}
-        onConfirm={() => {
-          setDownloadDialog(false);
-          logger.info('Data download requested (stub)');
-        }}
-      />
     </SafeAreaView>
   );
 }
@@ -181,32 +103,6 @@ function ToggleRow({
         <Text style={styles.toggleDesc}>{description}</Text>
       </View>
       <AvailabilityToggle value={value} onValueChange={onChange} />
-    </View>
-  );
-}
-
-type SheetOptionProps = {
-  label: string;
-  active: boolean;
-  disabled?: boolean;
-  onPress: () => void;
-};
-
-function SheetOption({
-  label,
-  active,
-  disabled = false,
-  onPress,
-}: SheetOptionProps): React.ReactElement {
-  return (
-    <View
-      style={[
-        styles.sheetOption,
-        active && styles.sheetOptionActive,
-        disabled && styles.sheetOptionDisabled,
-      ]}
-    >
-      <MenuRow title={label} hideChevron onPress={disabled ? () => undefined : onPress} last />
     </View>
   );
 }
@@ -249,9 +145,6 @@ const styles = StyleSheet.create({
     color: AppColors.onSurfaceMuted,
     marginTop: 2,
   },
-  sheetOption: { borderRadius: AppRadii.md, overflow: 'hidden', marginBottom: 4 },
-  sheetOptionActive: { backgroundColor: AppColors.primarySubtle },
-  sheetOptionDisabled: { opacity: 0.5 },
 });
 
 export default SettingsScreen;

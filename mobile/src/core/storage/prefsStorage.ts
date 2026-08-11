@@ -8,6 +8,10 @@ export enum PrefsKey {
   ThemePref = 'THEME_PREF',
   /** Set once we've shown the first-launch camera permission prompt. */
   CameraPrimed = 'CAMERA_PRIMED',
+  /** Per-category notification toggles (Settings screen). */
+  NotifChatRequests = 'NOTIF_CHAT_REQUESTS',
+  NotifPayments = 'NOTIF_PAYMENTS',
+  NotifMarketing = 'NOTIF_MARKETING',
   /**
    * Last known auth-routing state, mirrored on every session hydration.
    *
