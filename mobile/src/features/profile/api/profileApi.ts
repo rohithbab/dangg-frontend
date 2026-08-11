@@ -10,6 +10,7 @@ import { mapSupabaseError } from '@core/network/apiErrorMapper';
 import { AuthException } from '@core/network/apiException';
 import { uploadToR2 } from '@core/network/mediaService';
 import { getSupabaseClient } from '@core/network/supabaseClient';
+import { PrefsKey, prefsStorage } from '@core/storage/prefsStorage';
 
 import { useSessionStore } from '@store/sessionStore';
 
@@ -269,13 +270,25 @@ export async function signOut(): Promise<void> {
  */
 export async function deleteAccount(): Promise<void> {
   if (USE_MOCK_DATA) {
-    useSessionStore.getState().clear();
+    resetToFreshStart();
     return;
   }
   const { error } = await getSupabaseClient().rpc('delete_self_account');
   if (error) {
     throw mapSupabaseError(error);
   }
+  resetToFreshStart();
+}
+
+/**
+ * After a delete, the account is gone and the phone is freed server-side, so
+ * the user must be able to sign up again from scratch. Clearing OnboardingSeen
+ * makes resolveInitialRoute land the (now logged-out) user on AccountType
+ * ("Get started") instead of LoginPhone — a plain logout still goes to Login.
+ * Must run before clear(), which triggers the navigator swap that reads the pref.
+ */
+function resetToFreshStart(): void {
+  prefsStorage.setBool(PrefsKey.OnboardingSeen, false);
   useSessionStore.getState().clear();
 }
 
