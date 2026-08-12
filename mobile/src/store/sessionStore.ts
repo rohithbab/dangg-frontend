@@ -184,6 +184,36 @@ let deviceSessionAppStateSub: { remove: () => void } | null = null;
 const DEVICE_SESSION_POLL_MS = 30000;
 
 /**
+ * Bumped on every `registerDeviceSession` call so overlapping invocations can
+ * tell whether they are still the current one.
+ *
+ * Without it the function was self-defeating: it tears down synchronously but
+ * then awaits before installing its watchers, so two auth events (a cold-start
+ * INITIAL_SESSION followed closely by TOKEN_REFRESHED, say) interleave —
+ *
+ *   A: teardown → await claim (writes id A)
+ *   B: teardown (nothing installed yet) → await claim (writes id B)
+ *   A: resumes, installs a poll holding myId = A
+ *   B: resumes, overwrites the module handles — A's interval is never cleared
+ *
+ * A's orphaned poll then reads the server's id B, sees B !== A, concludes
+ * another device took over, and signs the user out. One device, no second
+ * login, spontaneous logout.
+ */
+let deviceSessionGeneration = 0;
+
+/**
+ * Serialises registrations so two never interleave.
+ *
+ * The generation guard alone is not enough: a superseded invocation could
+ * still have written its id to `users.active_session_id` before noticing, and
+ * if that write landed last the *current* watcher would read an id it did not
+ * recognise and sign the user out. Queuing means a stale invocation is
+ * recognised as stale before it writes anything at all.
+ */
+let deviceSessionChain: Promise<void> = Promise.resolve();
+
+/**
  * Math.random-based UUID v4. Not cryptographically strong, but doesn't need
  * to be — this is a device-liveness marker for equality comparison, not a
  * security token (see the migration header for the real security boundary).
@@ -275,13 +305,35 @@ async function claimDeviceSession(client: SupabaseClient, userId: string): Promi
  * this stack is known to drop `postgres_changes` events (see
  * presence-liveness-model memory).
  */
-async function registerDeviceSession(
+function registerDeviceSession(
   client: SupabaseClient,
   session: Session,
   isFreshSignIn: boolean,
 ): Promise<void> {
-  // Defensive: idempotent, closes a race where two onAuthStateChange events
-  // fire back-to-back and would otherwise leak a duplicate channel/poll.
+  const generation = ++deviceSessionGeneration;
+  deviceSessionChain = deviceSessionChain
+    .then(() => runRegisterDeviceSession(client, session, isFreshSignIn, generation))
+    .catch(e => {
+      logger.warn('registerDeviceSession failed', e);
+    });
+  return deviceSessionChain;
+}
+
+async function runRegisterDeviceSession(
+  client: SupabaseClient,
+  session: Session,
+  isFreshSignIn: boolean,
+  generation: number,
+): Promise<void> {
+  /** True once a newer registration has been requested; this one must not act. */
+  const superseded = (): boolean => generation !== deviceSessionGeneration;
+
+  // Checked before anything is written. A registration that was queued behind
+  // a newer one drops out here, so it can never leave a stale id on the row.
+  if (superseded()) {
+    return;
+  }
+
   teardownDeviceSession(client);
 
   const userId = session.user.id;
@@ -291,33 +343,57 @@ async function registerDeviceSession(
     myId = await claimDeviceSession(client, userId);
   } else {
     const priorLocalId = await secureStorage.getItem(SecureKey.DeviceSessionId);
+    if (superseded()) {
+      return;
+    }
     if (priorLocalId) {
       const { data, error } = await client
         .from('users')
         .select('active_session_id')
         .eq('id', userId)
         .maybeSingle();
+      if (superseded()) {
+        return;
+      }
       const serverId = (data as { active_session_id?: string | null } | null)?.active_session_id;
       if (!error && serverId && serverId !== priorLocalId) {
         await handleDeviceKicked(client);
         return;
       }
+      // Already the current device — keep the existing id instead of minting a
+      // new one. Re-claiming on every auth event (each token refresh included)
+      // rewrote the row constantly for no benefit, and every write was another
+      // chance for an in-flight watcher to see an id it did not recognise.
+      if (serverId && serverId === priorLocalId) {
+        myId = priorLocalId;
+      }
     }
-    myId = await claimDeviceSession(client, userId);
+    if (!myId) {
+      myId = await claimDeviceSession(client, userId);
+    }
   }
 
-  if (!myId) {
+  if (!myId || superseded()) {
     return;
   }
 
+  // A newer invocation may have installed watchers while we awaited; drop them
+  // before installing ours so only one set is ever live.
+  teardownDeviceSession(client);
+
   const checkForKick = async (): Promise<void> => {
+    // Signing the user out is the most destructive thing this module does, so
+    // a closure that has been superseded must never reach that call.
+    if (superseded()) {
+      return;
+    }
     try {
       const { data, error } = await client
         .from('users')
         .select('active_session_id')
         .eq('id', userId)
         .maybeSingle();
-      if (error || !data) {
+      if (error || !data || superseded()) {
         return;
       }
       const currentId = (data as { active_session_id?: string | null }).active_session_id;
@@ -335,6 +411,9 @@ async function registerDeviceSession(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${userId}` },
       payload => {
+        if (superseded()) {
+          return;
+        }
         const newId = (payload.new as { active_session_id?: string | null } | undefined)
           ?.active_session_id;
         if (newId && newId !== myId) {
@@ -349,7 +428,7 @@ async function registerDeviceSession(
   }, DEVICE_SESSION_POLL_MS);
 
   deviceSessionAppStateSub = AppState.addEventListener('change', (state: AppStateStatus) => {
-    if (state === 'active') {
+    if (state === 'active' && !superseded()) {
       void checkForKick();
     }
   });
