@@ -2,7 +2,7 @@ import { type RouteProp, useNavigation, useRoute } from '@react-navigation/nativ
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BadgeCheck, ChevronLeft, Heart, MoreVertical, Star } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
@@ -14,6 +14,7 @@ import BlockReportSheet from '@core/components/BlockReportSheet';
 import GradientAvatar from '@core/components/GradientAvatar';
 import PrimaryButton from '@core/components/PrimaryButton';
 import Toast from '@core/components/Toast';
+import { showAlert } from '@core/feedback';
 import { AppException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
 
@@ -140,7 +141,7 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
       setConfirmOpen(false);
       const message =
         e instanceof AppException ? e.message : 'Could not send the request. Please try again.';
-      Alert.alert('Couldn’t send request', message);
+      showAlert({ title: 'Couldn’t send request', message });
     } finally {
       setSubmitting(false);
     }

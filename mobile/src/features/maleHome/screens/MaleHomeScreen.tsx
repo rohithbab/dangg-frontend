@@ -4,7 +4,6 @@ import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { MessageCircle } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   BackHandler,
   Platform,
   Pressable,
@@ -28,6 +27,7 @@ import PaginationLoader from '@core/components/PaginationLoader';
 import PersonRow from '@core/components/PersonRow';
 import Toast from '@core/components/Toast';
 import { BOTTOM_NAV_HEIGHT } from '@core/config/constants';
+import { showAlert } from '@core/feedback';
 import { useRealtimeChannel } from '@core/hooks/useRealtimeChannel';
 import { AppException } from '@core/network/apiException';
 import { logger } from '@core/utils/logger';
@@ -261,7 +261,7 @@ function MaleHomeScreen(): React.ReactElement {
       // silently swallowing it, so the male knows to try again later.
       const message =
         e instanceof AppException ? e.message : 'Could not send the request. Please try again.';
-      Alert.alert('Couldn’t send request', message);
+      showAlert({ title: 'Couldn’t send request', message });
     } finally {
       setSubmitting(false);
     }

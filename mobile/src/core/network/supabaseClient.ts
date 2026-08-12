@@ -61,7 +61,9 @@ function makeAuthedFetch(baseFetch: typeof fetch): typeof fetch {
       const body = (await res.clone().json()) as { code?: string; message?: string; msg?: string };
       const blob = `${body.code ?? ''} ${body.message ?? ''} ${body.msg ?? ''}`.toLowerCase();
       jwtExpired =
-        blob.includes('jwt expired') || blob.includes('pgrst301') || blob.includes('token is expired');
+        blob.includes('jwt expired') ||
+        blob.includes('pgrst301') ||
+        blob.includes('token is expired');
     } catch {
       // Non-JSON 401 — not our structured auth error; leave it to the caller.
     }

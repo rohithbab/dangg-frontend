@@ -41,6 +41,37 @@ module.exports = {
     // Style-only formatting warnings — Prettier owns formatting.
     curly: 'off',
 
+    // Every alert and toast must be the app's own. React Native's `Alert` and
+    // `ToastAndroid` draw platform chrome that ignores the theme — a white
+    // Material dialog on a dark app — and ToastAndroid silently no-ops on iOS.
+    // Use `showAlert` / `showToast` from `@core/feedback` instead.
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector: "MemberExpression[object.name='Alert'][property.name='alert']",
+        message:
+          "Use showAlert() from '@core/feedback' — Alert.alert renders unthemed platform chrome.",
+      },
+      {
+        selector: "MemberExpression[object.name='ToastAndroid']",
+        message:
+          "Use showToast() from '@core/feedback' — ToastAndroid is unthemed and Android-only.",
+      },
+    ],
+    'no-restricted-imports': [
+      'error',
+      {
+        paths: [
+          {
+            name: 'react-native',
+            importNames: ['Alert', 'ToastAndroid'],
+            message:
+              "Use showAlert() / showToast() from '@core/feedback' instead of the platform dialogs.",
+          },
+        ],
+      },
+    ],
+
     'no-console': 'error',
     '@typescript-eslint/no-explicit-any': 'error',
     '@typescript-eslint/no-unused-vars': [

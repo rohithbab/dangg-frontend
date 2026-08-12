@@ -101,16 +101,9 @@ function VerificationInfoScreen(): React.ReactElement {
       <View style={styles.body}>
         <Text style={styles.title}>Get verified</Text>
 
-        <View
-          style={styles.hero}
-          onLayout={e => setHeroWidth(e.nativeEvent.layout.width)}
-        >
+        <View style={styles.hero} onLayout={e => setHeroWidth(e.nativeEvent.layout.width)}>
           {heroWidth > 0 ? (
-            <Svg
-              width={heroWidth}
-              height={HERO_HEIGHT}
-              style={StyleSheet.absoluteFill}
-            >
+            <Svg width={heroWidth} height={HERO_HEIGHT} style={StyleSheet.absoluteFill}>
               <Defs>
                 <LinearGradient id="verifyHero" x1="0" y1="0" x2="1" y2="1">
                   <Stop offset="0" stopColor={AppColors.featureGreen} stopOpacity={0.55} />

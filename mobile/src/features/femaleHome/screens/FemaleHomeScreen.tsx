@@ -384,11 +384,7 @@ function FemaleHomeScreen(): React.ReactElement {
         )}
       </ScrollView>
       <ShakeToast message={notice} onHide={clearNotice} />
-      <Toast
-        message={verifiedToast}
-        onHide={() => setVerifiedToast(null)}
-        durationMs={3400}
-      />
+      <Toast message={verifiedToast} onHide={() => setVerifiedToast(null)} durationMs={3400} />
       <Toast message={resumeToast} onHide={() => setResumeToast(null)} durationMs={1500} />
 
       <ConfirmationDialog

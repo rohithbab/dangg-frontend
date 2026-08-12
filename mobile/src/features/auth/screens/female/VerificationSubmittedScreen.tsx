@@ -14,7 +14,6 @@ import PrimaryButton from '@core/components/PrimaryButton';
 import Toast from '@core/components/Toast';
 import { logger } from '@core/utils/logger';
 
-
 import { type AuthStackParamList } from '@navigation/types';
 
 import { useSessionStore } from '@store/sessionStore';

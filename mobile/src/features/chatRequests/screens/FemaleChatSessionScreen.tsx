@@ -4,7 +4,6 @@ import { Clock, Play, Plus } from 'lucide-react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   AppState,
   BackHandler,
   KeyboardAvoidingView,
@@ -39,6 +38,7 @@ import { AppTypography } from '@theme/typography';
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import GradientAvatar from '@core/components/GradientAvatar';
 import { USE_MOCK_DATA } from '@core/config/env';
+import { showActionAlert, showAlert } from '@core/feedback';
 import { isBareMediaKey } from '@core/network/mediaService';
 import { getSupabaseClient } from '@core/network/supabaseClient';
 import { AppPermissionStatus, permissionService } from '@core/services/permissionService';
@@ -678,7 +678,7 @@ function FemaleChatSessionScreen(): React.ReactElement {
                 setPeerAway(false);
                 await endChatSession(session.id).catch(() => undefined);
                 if (mounted) {
-                  Alert.alert('Chat ended', 'The other person left the chat.');
+                  showAlert({ title: 'Chat ended', message: 'The other person left the chat.' });
                   remoteEndRef.current();
                 }
               } else {
@@ -827,7 +827,10 @@ function FemaleChatSessionScreen(): React.ReactElement {
     } catch (e) {
       logger.warn('Failed to send chat media:', e);
       setMessages(prev => prev.filter(m => m.id !== tempId));
-      Alert.alert('Upload failed', 'Could not send that file. Please try again.');
+      showAlert({
+        title: 'Upload failed',
+        message: 'Could not send that file. Please try again.',
+      });
     }
   };
 
@@ -835,7 +838,7 @@ function FemaleChatSessionScreen(): React.ReactElement {
     if (!USE_MOCK_DATA && (!sessionId || !selfId)) {
       return;
     }
-    Alert.alert('Send media', undefined, [
+    showActionAlert('Send media', [
       {
         text: 'Take photo',
         onPress: () => {
@@ -854,7 +857,6 @@ function FemaleChatSessionScreen(): React.ReactElement {
           void sendMediaFrom('gallery');
         },
       },
-      { text: 'Cancel', style: 'cancel' },
     ]);
   };
 

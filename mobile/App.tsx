@@ -12,16 +12,7 @@
  */
 import { DefaultTheme, DarkTheme, NavigationContainer } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import {
-  AppState,
-  type AppStateStatus,
-  Platform,
-  StatusBar,
-  StyleSheet,
-  Text,
-  ToastAndroid,
-  View,
-} from 'react-native';
+import { AppState, type AppStateStatus, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -29,6 +20,8 @@ import { AppColors, setThemeScheme } from '@theme/colors';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
+import { showToast } from '@core/feedback';
+import FeedbackHost from '@core/feedback/FeedbackHost';
 import { initSupabase } from '@core/network/supabaseClient';
 import { connectivityService } from '@core/services/connectivityService';
 import { fcmService, type RemoteMessage } from '@core/services/fcmService';
@@ -90,16 +83,18 @@ function navigateFromPush(message: RemoteMessage): void {
   }
 }
 
-/** Show a foreground toast for a push that arrives while the app is open. */
+/**
+ * Show a foreground toast for a push that arrives while the app is open.
+ *
+ * Uses the app's own toast rather than `ToastAndroid`, which rendered the grey
+ * system chrome and — being Android-only — showed nothing at all on iOS.
+ */
 function showPushToast(message: RemoteMessage): void {
-  if (Platform.OS !== 'android') {
-    return;
-  }
   const title = message.notification?.title ?? (message.data?.title as string | undefined) ?? '';
   const body = message.notification?.body ?? (message.data?.body as string | undefined) ?? '';
   const text = body ? `${title}\n${body}` : title;
   if (text) {
-    ToastAndroid.show(text, ToastAndroid.LONG);
+    showToast(text);
   }
 }
 
@@ -247,6 +242,7 @@ function App(): React.JSX.Element {
             <IncomingChatRequestListener />
             <IncomingChatRequestModal />
             <DeviceKickedNotice />
+            <FeedbackHost />
           </NavigationContainer>
         </OfflineOverlay>
       </SafeAreaProvider>
