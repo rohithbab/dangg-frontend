@@ -238,6 +238,25 @@ export async function fetchPendingIncomingRequest(): Promise<IncomingChatRequest
   };
 }
 
+/**
+ * Returns the caller's active chat session requestId (their ChatSession route
+ * key) so the app can reconnect them into a live chat on launch — e.g. after a
+ * force-close, where they'd otherwise land on home while the partner still
+ * shows busy. Null when they have no active session.
+ */
+export async function getMyActiveChatSession(): Promise<{ requestId: string } | null> {
+  if (USE_MOCK_DATA) {
+    return null;
+  }
+  const { data, error } = await getSupabaseClient().rpc('get_my_active_chat_session');
+  if (error) {
+    logger.warn('getMyActiveChatSession failed', error);
+    return null;
+  }
+  const requestId = (data as { requestId?: string } | null)?.requestId ?? null;
+  return requestId ? { requestId } : null;
+}
+
 /** Resolves the active chat session created for an accepted request. */
 export async function getChatSessionForRequest(requestId: string): Promise<ChatSession | null> {
   if (USE_MOCK_DATA) {

@@ -126,12 +126,12 @@ const MOCK_FEMALE_NAME = 'Priya';
 // Presence heartbeat cadence, and how long a peer may be unseen before the
 // surviving side treats them as gone (force-closed / crashed) and ends the chat.
 const HEARTBEAT_MS = 7000;
-// Force-close / crash: peer heartbeat stale past this ends the chat (~1 min).
-const PEER_STALE_SECONDS = 60;
+// Force-close / crash: peer heartbeat stale past this ends the chat (30s).
+const PEER_STALE_SECONDS = 30;
 // A backgrounded peer is "stepped away" (timer pauses, session held open) until
 // this grace elapses; beyond it — or a force-close with no background marker —
 // the session is ended.
-const PEER_BACKGROUND_GRACE_SECONDS = 60;
+const PEER_BACKGROUND_GRACE_SECONDS = 30;
 
 function formatMessageTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

@@ -40,6 +40,7 @@ import {
   parseVerificationStatus,
 } from '@store/sessionStore';
 
+import { useResumeActiveChat } from '@features/chatRequests/hooks/useResumeActiveChat';
 import { getProfile } from '@features/profile/api/profileApi';
 
 import { VerificationStatus } from '@app-types/domain';
@@ -88,6 +89,7 @@ function FemaleHomeScreen(): React.ReactElement {
   const isVerified = verificationStatus === VerificationStatus.Verified;
   const justVerified = useJustVerified();
   const [verifiedToast, setVerifiedToast] = useState<string | null>(null);
+  const [resumeToast, setResumeToast] = useState<string | null>(null);
 
   const [stats, setStats] = useState<HomeStats | null>(null);
   const [availability, setAvailabilityState] = useState<Availability | null>(null);
@@ -108,6 +110,20 @@ function FemaleHomeScreen(): React.ReactElement {
       useSessionStore.getState().setJustVerified(false);
     }
   }, [justVerified]);
+
+  // Force-close recovery: if she relaunched while a chat is still live, drop her
+  // back into it (with a toast) instead of leaving her on home.
+  useResumeActiveChat(
+    useCallback(
+      (requestId: string): void => {
+        setResumeToast('Reconnecting to your chat…');
+        setTimeout(() => {
+          navigation.navigate('ChatSession', { requestId });
+        }, 900);
+      },
+      [navigation],
+    ),
+  );
 
   // Profile picture for the greeting avatar (falls back to the initial).
   useFocusEffect(
@@ -373,6 +389,7 @@ function FemaleHomeScreen(): React.ReactElement {
         onHide={() => setVerifiedToast(null)}
         durationMs={3400}
       />
+      <Toast message={resumeToast} onHide={() => setResumeToast(null)} durationMs={1500} />
 
       <ConfirmationDialog
         visible={exitConfirmOpen}

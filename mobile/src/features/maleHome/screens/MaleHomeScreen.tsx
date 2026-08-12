@@ -26,6 +26,7 @@ import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import GradientAvatar from '@core/components/GradientAvatar';
 import PaginationLoader from '@core/components/PaginationLoader';
 import PersonRow from '@core/components/PersonRow';
+import Toast from '@core/components/Toast';
 import { BOTTOM_NAV_HEIGHT } from '@core/config/constants';
 import { useRealtimeChannel } from '@core/hooks/useRealtimeChannel';
 import { AppException } from '@core/network/apiException';
@@ -38,6 +39,7 @@ import { useSessionStore } from '@store/sessionStore';
 import { sendChatRequest } from '@features/chatRequests/api/chatRequestApi';
 import ChatRequestConfirmModal from '@features/chatRequests/components/ChatRequestConfirmModal';
 import InsufficientCoinsModal from '@features/chatRequests/components/InsufficientCoinsModal';
+import { useResumeActiveChat } from '@features/chatRequests/hooks/useResumeActiveChat';
 import { getProfile } from '@features/profile/api/profileApi';
 import { fetchWalletSnapshot } from '@features/wallet/api/walletApi';
 import { COIN_PACKAGES } from '@features/wallet/constants';
@@ -97,6 +99,22 @@ function MaleHomeScreen(): React.ReactElement {
   const [insufficientOpen, setInsufficientOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+  const [resumeToast, setResumeToast] = useState<string | null>(null);
+
+  // Force-close recovery: if he relaunched while a chat is still live, drop him
+  // back into it (with a toast) instead of leaving him on browse — where his
+  // partner would otherwise show "busy".
+  useResumeActiveChat(
+    useCallback(
+      (requestId: string): void => {
+        setResumeToast('Reconnecting to your chat…');
+        setTimeout(() => {
+          navigation.navigate('ChatSession', { requestId });
+        }, 900);
+      },
+      [navigation],
+    ),
+  );
 
   // Hardware/gesture back on this tab's root would otherwise exit the app
   // with no warning — intercept and confirm first.
@@ -438,6 +456,8 @@ function MaleHomeScreen(): React.ReactElement {
         }}
         onCancel={() => setExitConfirmOpen(false)}
       />
+
+      <Toast message={resumeToast} onHide={() => setResumeToast(null)} durationMs={1500} />
     </SafeAreaView>
   );
 }
