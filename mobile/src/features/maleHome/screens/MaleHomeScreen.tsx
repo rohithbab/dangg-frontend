@@ -46,6 +46,7 @@ import { COIN_PACKAGES } from '@features/wallet/constants';
 import { useCoinBalance, useWalletStore } from '@features/wallet/store/walletStore';
 
 import { type AvailableFemale, browseFemales, listFavorites } from '../api/maleHomeApi';
+import { useOnlineFemalePresence } from '../hooks/useOnlineFemalePresence';
 import { useFemaleFiltersStore } from '../store/femaleFiltersStore';
 
 type Nav = NativeStackNavigationProp<MaleAppStackParamList>;
@@ -267,6 +268,24 @@ function MaleHomeScreen(): React.ReactElement {
     }
   }, [selected, submitting, coinBalance, navigation]);
 
+  // Live presence: a female holds a socket while online, so a force-close drops
+  // her within ~2-5s. Merge it over the DB flag (fall back to DB if presence is
+  // unavailable). onlineOnly also drops her from the list the moment she leaves.
+  const { presentIds, ready } = useOnlineFemalePresence();
+  const applyPresence = useCallback(
+    (f: AvailableFemale): AvailableFemale =>
+      ready ? { ...f, isOnline: f.isOnline && presentIds.has(f.id) } : f,
+    [presentIds, ready],
+  );
+  const displayItems = useMemo(() => {
+    const merged = items.map(applyPresence);
+    return filters.onlineOnly ? merged.filter(f => f.isOnline) : merged;
+  }, [items, applyPresence, filters.onlineOnly]);
+  const displayFavorites = useMemo(
+    () => favorites.map(applyPresence),
+    [favorites, applyPresence],
+  );
+
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<AvailableFemale>): React.ReactElement => (
       <View style={styles.rowWrap}>
@@ -333,7 +352,7 @@ function MaleHomeScreen(): React.ReactElement {
       </View>
 
       <FlashList<AvailableFemale>
-        data={items}
+        data={displayItems}
         keyExtractor={f => f.id}
         renderItem={renderItem}
         estimatedItemSize={92}
@@ -356,13 +375,13 @@ function MaleHomeScreen(): React.ReactElement {
         ListHeaderComponent={
           <View>
             <Text style={styles.favLabel}>Favorites</Text>
-            {favorites.length > 0 ? (
+            {displayFavorites.length > 0 ? (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.rail}
               >
-                {favorites.map(f => (
+                {displayFavorites.map(f => (
                   <Pressable
                     key={f.id}
                     accessibilityRole="button"
