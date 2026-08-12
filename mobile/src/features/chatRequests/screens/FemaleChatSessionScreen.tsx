@@ -711,18 +711,45 @@ function FemaleChatSessionScreen(): React.ReactElement {
     };
   }, [route.params.requestId]);
 
-  // Presence heartbeat — while the chat is live and this screen is mounted
-  // (foregrounded), stamp presence every few seconds. A force-close simply
-  // stops these, which is how the male side detects we vanished.
+  // Presence heartbeat — stamp presence every few seconds while the chat is live
+  // AND foregrounded. Pausing on background is essential: the app can stay alive
+  // in the background (realtime/availability pings), so without this the
+  // heartbeat keeps firing and a stepped-away peer never goes "quiet", hiding
+  // the "waiting" banner. Background/force-close both stop it → peer detects it.
   useEffect(() => {
     if (!isLive || !sessionId) {
-      return;
+      return undefined;
     }
-    void chatSessionHeartbeat(sessionId);
-    const hb = setInterval(() => {
+    let hb: ReturnType<typeof setInterval> | null = null;
+    const start = (): void => {
+      if (hb) {
+        return;
+      }
       void chatSessionHeartbeat(sessionId);
-    }, HEARTBEAT_MS);
-    return () => clearInterval(hb);
+      hb = setInterval(() => {
+        void chatSessionHeartbeat(sessionId);
+      }, HEARTBEAT_MS);
+    };
+    const stop = (): void => {
+      if (hb) {
+        clearInterval(hb);
+        hb = null;
+      }
+    };
+    if (AppState.currentState === 'active') {
+      start();
+    }
+    const sub = AppState.addEventListener('change', next => {
+      if (next === 'active') {
+        start();
+      } else {
+        stop();
+      }
+    });
+    return () => {
+      sub.remove();
+      stop();
+    };
   }, [isLive, sessionId]);
 
   const earnings = (secondsElapsed * REVENUE_PER_SECOND).toFixed(2);
