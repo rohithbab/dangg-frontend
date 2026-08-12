@@ -28,6 +28,59 @@ const supabaseAuthStorage = {
 
 let client: SupabaseClient | null = null;
 
+function urlOf(input: Parameters<typeof fetch>[0]): string {
+  if (typeof input === 'string') {
+    return input;
+  }
+  if (input instanceof URL) {
+    return input.toString();
+  }
+  return input.url;
+}
+
+/**
+ * Self-healing fetch. supabase-js keeps the access token fresh via a background
+ * timer, but if the app sits idle long enough for the token to expire, the next
+ * data request can fire with a stale token before the on-foreground refresh
+ * lands — PostgREST/Storage/Functions then answer 401 "JWT expired". Here we
+ * catch that once, refresh the session, and replay the request with the new
+ * token so screens self-recover instead of surfacing a JWT-expired error.
+ *
+ * Auth (`/auth/v1/`) requests pass straight through — refreshSession() itself
+ * hits `/auth/v1/token`, and retrying those would recurse.
+ */
+function makeAuthedFetch(baseFetch: typeof fetch): typeof fetch {
+  return async (input, init) => {
+    const res = await baseFetch(input, init);
+    if (res.status !== 401 || urlOf(input).includes('/auth/v1/') || !client) {
+      return res;
+    }
+
+    let jwtExpired = false;
+    try {
+      const body = (await res.clone().json()) as { code?: string; message?: string; msg?: string };
+      const blob = `${body.code ?? ''} ${body.message ?? ''} ${body.msg ?? ''}`.toLowerCase();
+      jwtExpired =
+        blob.includes('jwt expired') || blob.includes('pgrst301') || blob.includes('token is expired');
+    } catch {
+      // Non-JSON 401 — not our structured auth error; leave it to the caller.
+    }
+    if (!jwtExpired) {
+      return res;
+    }
+
+    const { data, error } = await client.auth.refreshSession();
+    const token = data.session?.access_token;
+    if (error || !token) {
+      // Refresh token itself is gone/expired — real re-auth needed; surface it.
+      return res;
+    }
+    const headers = new Headers(init?.headers);
+    headers.set('Authorization', `Bearer ${token}`);
+    return baseFetch(input, { ...init, headers });
+  };
+}
+
 /**
  * Returns the singleton Supabase client. Lazily initialised on first call.
  * One client per app instance — the underlying GoTrue + PostgREST +
@@ -53,6 +106,7 @@ export function getSupabaseClient(): SupabaseClient {
     },
     global: {
       headers: { 'X-Client-Info': 'dangg-mobile/1.0' },
+      fetch: makeAuthedFetch(fetch),
     },
   });
 
