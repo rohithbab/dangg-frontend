@@ -186,7 +186,7 @@ function MaleHomeScreen(): React.ReactElement {
         .catch(e => logger.warn('MaleHome: getProfile failed', e));
       const id = setInterval(() => {
         void loadFirstPage();
-      }, 5000);
+      }, 4000);
       return () => clearInterval(id);
     }, [loadFirstPage]),
   );

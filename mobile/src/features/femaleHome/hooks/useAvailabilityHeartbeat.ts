@@ -7,9 +7,10 @@ import { sendAvailabilityHeartbeat } from '../api/femaleHomeApi';
 
 /** How often an online female proves liveness. Must stay well under the backend
  *  freshness window (`females_available_view` + `sweep_stale_online_females` =
- *  45s) — at 15s that tolerates ~2 missed beats, so a force-close drops her
- *  browse card within ~45s (males poll browse ~every 5s). */
-const HEARTBEAT_INTERVAL_MS = 15_000;
+ *  12s) — at 4s that tolerates ~2 missed beats. This is the DB fallback behind
+ *  Realtime presence: if presence is unavailable, a force-close still drops her
+ *  card within ~12s (males poll browse ~every 4s). */
+const HEARTBEAT_INTERVAL_MS = 4_000;
 
 /**
  * Keeps an online female from being swept offline by the backend liveness

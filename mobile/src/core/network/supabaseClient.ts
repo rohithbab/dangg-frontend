@@ -110,6 +110,12 @@ export function getSupabaseClient(): SupabaseClient {
       headers: { 'X-Client-Info': 'dangg-mobile/1.0' },
       fetch: makeAuthedFetch(fetch),
     },
+    realtime: {
+      // Ping every 5s (default 25s). The server detects a force-closed client
+      // from missed heartbeats, so a shorter interval fires presence "leave"
+      // faster — a female's online card flips off sooner on the male side.
+      heartbeatIntervalMs: 5000,
+    },
   });
 
   logger.info(`Supabase initialised (env=${Env.appEnv})`);
