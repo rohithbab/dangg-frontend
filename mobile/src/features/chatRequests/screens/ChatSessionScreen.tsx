@@ -126,12 +126,14 @@ const MOCK_FEMALE_NAME = 'Priya';
 // Presence heartbeat cadence, and how long a peer may be unseen before the
 // surviving side treats them as gone (force-closed / crashed) and ends the chat.
 const HEARTBEAT_MS = 7000;
-// Force-close / crash: peer heartbeat stale past this ends the chat (30s).
-const PEER_STALE_SECONDS = 30;
-// A backgrounded peer is "stepped away" (timer pauses, session held open) until
-// this grace elapses; beyond it — or a force-close with no background marker —
-// the session is ended.
-const PEER_BACKGROUND_GRACE_SECONDS = 30;
+// A peer whose heartbeat has been quiet this long (missed ~2 beats) counts as
+// "away" even if their background marker never landed — so a step-away always
+// reads as "waiting", never an instant "gone" (the set-background RPC often
+// doesn't reach the server as the app suspends).
+const PEER_QUIET_SECONDS = 15;
+// Show "waiting for them to return" (timer paused) while a peer is away; end the
+// chat once they've been away this long — covers both step-away and force-close.
+const PEER_AWAY_GRACE_SECONDS = 30;
 
 function formatMessageTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -811,9 +813,10 @@ function ChatSessionScreen(): React.ReactElement {
   }, [isLive, startedAtMs, chatEndState]);
 
   // Presence heartbeat — while the chat is live and foregrounded, stamp
-  // presence every few seconds. A hard force-close (no JS) stops these, letting
-  // the female side detect we vanished within PEER_STALE_SECONDS and end the
-  // chat (the 5-min message-idle sweep remains a last-resort backstop).
+  // presence every few seconds. A hard force-close (no JS) stops these; the
+  // female side then reads us as "away" (quiet heartbeat), shows "waiting", and
+  // ends after PEER_AWAY_GRACE_SECONDS (the 5-min message-idle sweep is the
+  // last-resort backstop).
   useEffect(() => {
     if (!isLive || !sessionId) {
       return;
@@ -1000,13 +1003,15 @@ function ChatSessionScreen(): React.ReactElement {
             if (liveness.status === 'ended') {
               remoteEndRef.current();
             } else if (liveness.status === 'active') {
-              const peerStepped =
-                liveness.peerBackgrounded &&
-                liveness.peerBackgroundedSecondsAgo < PEER_BACKGROUND_GRACE_SECONDS;
-              const peerGone =
-                (liveness.peerBackgrounded &&
-                  liveness.peerBackgroundedSecondsAgo >= PEER_BACKGROUND_GRACE_SECONDS) ||
-                (!liveness.peerBackgrounded && liveness.peerSecondsAgo > PEER_STALE_SECONDS);
+              // Away = marked backgrounded OR heartbeat gone quiet. Time-away is
+              // measured from the background mark when we have it, else from the
+              // last heartbeat. Show "waiting" during the grace; end after it.
+              const awaySeconds = liveness.peerBackgrounded
+                ? liveness.peerBackgroundedSecondsAgo
+                : liveness.peerSecondsAgo;
+              const peerAwayNow =
+                liveness.peerBackgrounded || liveness.peerSecondsAgo > PEER_QUIET_SECONDS;
+              const peerGone = peerAwayNow && awaySeconds >= PEER_AWAY_GRACE_SECONDS;
               if (peerGone) {
                 setPeerAway(false);
                 await endChatSession(session.id).catch(() => undefined);
@@ -1015,7 +1020,7 @@ function ChatSessionScreen(): React.ReactElement {
                   remoteEndRef.current();
                 }
               } else {
-                setPeerAway(peerStepped);
+                setPeerAway(peerAwayNow);
               }
             }
           } catch (e) {
