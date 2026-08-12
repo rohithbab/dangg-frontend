@@ -6,13 +6,15 @@ import { logger } from '@core/utils/logger';
 import { sendAvailabilityHeartbeat } from '../api/femaleHomeApi';
 
 /** How often an online female proves liveness. Must stay well under the backend
- *  grace window (`sweep_stale_online_females` = 90s) — at 30s that tolerates two
- *  missed beats, so a force-close drops her card within ~90s. */
-const HEARTBEAT_INTERVAL_MS = 30_000;
+ *  freshness window (`females_available_view` + `sweep_stale_online_females` =
+ *  45s) — at 15s that tolerates ~2 missed beats, so a force-close drops her
+ *  browse card within ~45s (males poll browse ~every 5s). */
+const HEARTBEAT_INTERVAL_MS = 15_000;
 
 /**
  * Keeps an online female from being swept offline by the backend liveness
- * cron. Fires one heartbeat immediately, then every 60s, but ONLY while:
+ * cron. Fires one heartbeat immediately, then on HEARTBEAT_INTERVAL_MS, but
+ * ONLY while:
  *   * she is online (`enabled`), and
  *   * the app is foregrounded.
  *
