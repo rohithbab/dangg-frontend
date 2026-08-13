@@ -46,7 +46,6 @@ import { COIN_PACKAGES } from '@features/wallet/constants';
 import { useCoinBalance, useWalletStore } from '@features/wallet/store/walletStore';
 
 import { type AvailableFemale, browseFemales, listFavorites } from '../api/maleHomeApi';
-import { useOnlineFemalePresence } from '../hooks/useOnlineFemalePresence';
 import { useFemaleFiltersStore } from '../store/femaleFiltersStore';
 
 type Nav = NativeStackNavigationProp<MaleAppStackParamList>;
@@ -268,25 +267,6 @@ function MaleHomeScreen(): React.ReactElement {
     }
   }, [selected, submitting, coinBalance, navigation]);
 
-  // Live presence: hide ONLY females we saw actually leave (force-close), so
-  // one drops off near-instantly — but a genuinely-online female who's just
-  // absent from the presence set is never wrongly hidden (her DB online flag
-  // stays authoritative). onlineOnly then also drops a just-left female.
-  const leftIds = useOnlineFemalePresence();
-  const applyPresence = useCallback(
-    (f: AvailableFemale): AvailableFemale =>
-      leftIds.has(f.id) ? { ...f, isOnline: false } : f,
-    [leftIds],
-  );
-  const displayItems = useMemo(() => {
-    const merged = items.map(applyPresence);
-    return filters.onlineOnly ? merged.filter(f => f.isOnline) : merged;
-  }, [items, applyPresence, filters.onlineOnly]);
-  const displayFavorites = useMemo(
-    () => favorites.map(applyPresence),
-    [favorites, applyPresence],
-  );
-
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<AvailableFemale>): React.ReactElement => (
       <View style={styles.rowWrap}>
@@ -353,7 +333,7 @@ function MaleHomeScreen(): React.ReactElement {
       </View>
 
       <FlashList<AvailableFemale>
-        data={displayItems}
+        data={items}
         keyExtractor={f => f.id}
         renderItem={renderItem}
         estimatedItemSize={92}
@@ -376,13 +356,13 @@ function MaleHomeScreen(): React.ReactElement {
         ListHeaderComponent={
           <View>
             <Text style={styles.favLabel}>Favorites</Text>
-            {displayFavorites.length > 0 ? (
+            {favorites.length > 0 ? (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.rail}
               >
-                {displayFavorites.map(f => (
+                {favorites.map(f => (
                   <Pressable
                     key={f.id}
                     accessibilityRole="button"

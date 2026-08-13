@@ -58,7 +58,6 @@ import AvailabilityToggle from '../components/AvailabilityToggle';
 import RecentActivityItem from '../components/RecentActivityItem';
 import { FC, FS } from '../femaleTheme';
 import { useAvailabilityHeartbeat } from '../hooks/useAvailabilityHeartbeat';
-import { useFemaleOnlinePresence } from '../hooks/useFemaleOnlinePresence';
 
 type Nav = NativeStackNavigationProp<FemaleAppStackParamList>;
 
@@ -148,8 +147,6 @@ function FemaleHomeScreen(): React.ReactElement {
   );
 
   useAvailabilityHeartbeat(availability?.online === true);
-  // Live presence so males see her drop offline instantly on force-close.
-  useFemaleOnlinePresence(availability?.online === true, session?.user.id ?? null);
 
   const loadAll = useCallback(async (): Promise<void> => {
     const [s, a, r] = await Promise.allSettled([
@@ -233,12 +230,16 @@ function FemaleHomeScreen(): React.ReactElement {
             setNotice('Add payment details to go online');
           } else if (e instanceof AppException) {
             logger.warn('Availability toggle failed', e.message);
+            setNotice("Couldn't update availability — try again");
           } else {
             logger.error('Availability toggle failed', e);
+            setNotice("Couldn't update availability — try again");
           }
-          if (prev) {
-            setAvailabilityState(prev);
-          }
+          // Always undo the optimistic update. `prev` can be null (availability
+          // hadn't loaded yet), in which case we still must revert to the
+          // opposite of the attempted change — otherwise a rejected "go online"
+          // leaves her falsely showing "online" while she's offline to males.
+          setAvailabilityState(prev ?? { online: !next, lastToggledAt: new Date() });
         })
         .finally(() => setToggling(false));
     },
