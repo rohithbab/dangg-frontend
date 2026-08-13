@@ -186,7 +186,7 @@ function MaleHomeScreen(): React.ReactElement {
         .catch(e => logger.warn('MaleHome: getProfile failed', e));
       const id = setInterval(() => {
         void loadFirstPage();
-      }, 4000);
+      }, 5000);
       return () => clearInterval(id);
     }, [loadFirstPage]),
   );
@@ -268,14 +268,15 @@ function MaleHomeScreen(): React.ReactElement {
     }
   }, [selected, submitting, coinBalance, navigation]);
 
-  // Live presence: a female holds a socket while online, so a force-close drops
-  // her within ~2-5s. Merge it over the DB flag (fall back to DB if presence is
-  // unavailable). onlineOnly also drops her from the list the moment she leaves.
-  const { presentIds, ready } = useOnlineFemalePresence();
+  // Live presence: hide ONLY females we saw actually leave (force-close), so
+  // one drops off near-instantly — but a genuinely-online female who's just
+  // absent from the presence set is never wrongly hidden (her DB online flag
+  // stays authoritative). onlineOnly then also drops a just-left female.
+  const leftIds = useOnlineFemalePresence();
   const applyPresence = useCallback(
     (f: AvailableFemale): AvailableFemale =>
-      ready ? { ...f, isOnline: f.isOnline && presentIds.has(f.id) } : f,
-    [presentIds, ready],
+      leftIds.has(f.id) ? { ...f, isOnline: false } : f,
+    [leftIds],
   );
   const displayItems = useMemo(() => {
     const merged = items.map(applyPresence);

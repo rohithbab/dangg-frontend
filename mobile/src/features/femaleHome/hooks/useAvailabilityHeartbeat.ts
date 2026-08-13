@@ -5,12 +5,12 @@ import { logger } from '@core/utils/logger';
 
 import { sendAvailabilityHeartbeat } from '../api/femaleHomeApi';
 
-/** How often an online female proves liveness. Must stay well under the backend
+/** How often an online female proves liveness. Kept well under the backend
  *  freshness window (`females_available_view` + `sweep_stale_online_females` =
- *  12s) — at 4s that tolerates ~2 missed beats. This is the DB fallback behind
- *  Realtime presence: if presence is unavailable, a force-close still drops her
- *  card within ~12s (males poll browse ~every 4s). */
-const HEARTBEAT_INTERVAL_MS = 4_000;
+ *  30s) — at 10s that tolerates ~2 missed beats without a genuinely-online
+ *  female flickering off browse. This is the loose DB fallback; Realtime
+ *  presence (leave events) handles the fast force-close case. */
+const HEARTBEAT_INTERVAL_MS = 10_000;
 
 /**
  * Keeps an online female from being swept offline by the backend liveness

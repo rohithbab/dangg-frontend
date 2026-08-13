@@ -4,50 +4,70 @@ import { getSupabaseClient } from '@core/network/supabaseClient';
 
 import { ONLINE_FEMALES_CHANNEL } from '@features/femaleHome/hooks/useFemaleOnlinePresence';
 
-export type OnlinePresence = {
-  /** Female ids currently holding a live presence socket (online right now). */
-  presentIds: ReadonlySet<string>;
-  /** True once at least one presence sync landed; false if presence is
-   *  unavailable (channel error/timeout), so callers fall back to the DB flag. */
-  ready: boolean;
-};
-
 /**
- * Reads the shared `online-females` presence channel. Females hold a presence
- * entry (keyed by their id) while online; the moment one force-closes, the OS
- * drops her socket and the server fires a "leave" within a couple of seconds.
- * The male home merges `presentIds` over the DB online flag so her card flips
- * offline near-instantly, instead of lingering until the heartbeat sweep.
+ * Reads the shared `online-females` presence channel and returns the set of
+ * female ids we've observed *actually leave* (socket dropped / force-close) and
+ * not rejoin. The male home hides ONLY these — so a force-closed female drops
+ * off near-instantly, while a genuinely-online female who simply isn't in the
+ * presence set (tracking hiccup / self-hosted realtime flakiness) is never
+ * wrongly hidden. Her DB online flag (with its freshness window) remains the
+ * source of truth for everyone else.
  */
-export function useOnlineFemalePresence(): OnlinePresence {
-  const [presentIds, setPresentIds] = useState<ReadonlySet<string>>(() => new Set());
-  const [ready, setReady] = useState(false);
+export function useOnlineFemalePresence(): ReadonlySet<string> {
+  const [leftIds, setLeftIds] = useState<ReadonlySet<string>>(() => new Set());
 
   useEffect(() => {
     const client = getSupabaseClient();
     const channel = client.channel(ONLINE_FEMALES_CHANNEL, {
       config: { presence: { key: 'observer' } },
     });
-    const sync = (): void => {
-      // Presence keys are the tracking females' ids (see useFemaleOnlinePresence).
-      setPresentIds(new Set(Object.keys(channel.presenceState())));
-    };
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        setReady(true);
-        sync();
-      })
-      .on('presence', { event: 'join' }, sync)
-      .on('presence', { event: 'leave' }, sync)
-      .subscribe(status => {
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          setReady(false);
+
+    const markLeft = (key: string): void => {
+      setLeftIds(prev => {
+        if (prev.has(key)) {
+          return prev;
         }
+        const next = new Set(prev);
+        next.add(key);
+        return next;
       });
+    };
+    const markPresent = (key: string): void => {
+      setLeftIds(prev => {
+        if (!prev.has(key)) {
+          return prev;
+        }
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    };
+
+    channel
+      .on('presence', { event: 'leave' }, ({ key }: { key: string }) => markLeft(key))
+      .on('presence', { event: 'join' }, ({ key }: { key: string }) => markPresent(key))
+      .on('presence', { event: 'sync' }, () => {
+        // Anyone currently present is definitely not "left" — clear them (covers
+        // a missed join). Never ADD from sync: absence != a confirmed leave.
+        const present = new Set(Object.keys(channel.presenceState()));
+        setLeftIds(prev => {
+          let changed = false;
+          const next = new Set(prev);
+          for (const id of prev) {
+            if (present.has(id)) {
+              next.delete(id);
+              changed = true;
+            }
+          }
+          return changed ? next : prev;
+        });
+      })
+      .subscribe();
+
     return () => {
       void client.removeChannel(channel);
     };
   }, []);
 
-  return { presentIds, ready };
+  return leftIds;
 }
