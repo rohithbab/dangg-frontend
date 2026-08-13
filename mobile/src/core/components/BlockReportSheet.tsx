@@ -4,6 +4,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -270,7 +271,7 @@ const styles = StyleSheet.create({
   rowSubtitle: {
     ...AppTypography.bodySmall,
     color: AppColors.onSurfaceMuted,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   divider: {
     height: StyleSheet.hairlineWidth,

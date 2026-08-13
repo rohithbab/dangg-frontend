@@ -3,6 +3,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { InterFont } from '@theme/typography';
 
 import GradientAvatar from './GradientAvatar';
@@ -93,39 +94,39 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.07)',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: 11,
-    paddingRight: 13,
+    paddingLeft: moderateScale(11),
+    paddingRight: moderateScale(13),
   },
   pressed: { opacity: 0.85 },
-  middle: { flex: 1, marginLeft: 12 },
+  middle: { flex: 1, marginLeft: moderateScale(12) },
   name: {
     fontFamily: InterFont.medium,
-    fontSize: 16,
+    fontSize: scaleFont(16),
     color: AppColors.onSurface,
   },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 5 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: moderateScale(5) },
   rating: {
     fontFamily: InterFont.light,
-    fontSize: 12.5,
+    fontSize: scaleFont(12.5),
     color: AppColors.onSurfaceMuted,
-    marginLeft: 5,
+    marginLeft: moderateScale(5),
   },
 
   busyPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 10,
+    marginLeft: moderateScale(10),
   },
   busyDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: AppColors.warning,
-    marginRight: 4,
+    marginRight: moderateScale(4),
   },
   busyText: {
     fontFamily: InterFont.medium,
-    fontSize: 12,
+    fontSize: scaleFont(12),
     color: AppColors.warning,
   },
 
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
   chatPressed: { opacity: 0.88 },
   chatLabel: {
     fontFamily: InterFont.medium,
-    fontSize: 14.5,
+    fontSize: scaleFont(14.5),
     color: '#FFFFFF',
   },
   chatLabelBusy: { color: AppColors.onSurfaceMuted },

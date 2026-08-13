@@ -14,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { InterFont } from '@theme/typography';
 
 import { OTP_LENGTH } from '../config/constants';
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
   },
   box: {
     fontFamily: InterFont.light,
-    fontSize: 24,
+    fontSize: scaleFont(24),
     width: 48,
     height: 58,
     borderRadius: 14,
@@ -150,7 +151,7 @@ const styles = StyleSheet.create({
     borderColor: AppColors.border,
     backgroundColor: '#0E0E10',
     color: AppColors.onSurface,
-    paddingVertical: 0,
+    paddingVertical: moderateScale(0),
     textAlign: 'center',
   },
   boxFilled: { borderColor: AppColors.primary, borderWidth: 1.5 },

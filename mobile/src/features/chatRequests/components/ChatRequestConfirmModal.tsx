@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -115,27 +116,27 @@ const styles = StyleSheet.create({
   ringInner: { width: 96, height: 96, borderColor: AppColors.primaryOutline },
   title: {
     fontFamily: InterFont.semibold,
-    fontSize: 19,
+    fontSize: scaleFont(19),
     color: AppColors.onSurface,
     marginTop: AppSpacing.md,
   },
 
   balance: {
     fontFamily: InterFont.regular,
-    fontSize: 13,
+    fontSize: scaleFont(13),
     color: AppColors.onSurfaceMuted,
-    marginTop: 3,
+    marginTop: moderateScale(3),
   },
   rateHint: {
     fontFamily: InterFont.regular,
-    fontSize: 11.5,
+    fontSize: scaleFont(11.5),
     color: AppColors.onSurfaceMuted,
-    marginTop: 6,
+    marginTop: moderateScale(6),
     textAlign: 'center',
   },
   cta: { alignSelf: 'stretch', marginTop: AppSpacing.lg },
-  cancelBtn: { alignItems: 'center', paddingVertical: 14, marginTop: 2 },
-  cancelText: { fontFamily: InterFont.medium, fontSize: 15, color: AppColors.onSurfaceMuted },
+  cancelBtn: { alignItems: 'center', paddingVertical: moderateScale(14), marginTop: moderateScale(2) },
+  cancelText: { fontFamily: InterFont.medium, fontSize: scaleFont(15), color: AppColors.onSurfaceMuted },
 });
 
 export default ChatRequestConfirmModal;

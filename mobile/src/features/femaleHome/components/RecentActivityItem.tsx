@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { moderateScale, scaleFont } from '@theme/responsive';
+
 import Avatar from '@core/components/Avatar';
 
 import { type RecentActivity } from '../api/femaleHomeApi';
@@ -100,37 +102,37 @@ const styles = StyleSheet.create({
   },
   middle: { flex: 1, marginHorizontal: FS.sm },
   name: {
-    fontSize: 15,
+    fontSize: scaleFont(15),
     fontWeight: '700',
     fontFamily: 'Inter-Regular',
     color: FC.text,
   },
   description: {
-    fontSize: 12.5,
+    fontSize: scaleFont(12.5),
     fontWeight: '500',
     fontFamily: 'Inter-Regular',
     color: FC.textDim,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   right: { alignItems: 'flex-end' },
   amountWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: moderateScale(4),
   },
   amount: {
-    fontSize: 15,
+    fontSize: scaleFont(15),
     fontWeight: '800',
     fontFamily: 'Inter-SemiBold',
     color: FC.successText,
     letterSpacing: -0.2,
   },
   time: {
-    fontSize: 11,
+    fontSize: scaleFont(11),
     fontWeight: '600',
     fontFamily: 'Inter-Regular',
     color: FC.textFaint,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
 });
 

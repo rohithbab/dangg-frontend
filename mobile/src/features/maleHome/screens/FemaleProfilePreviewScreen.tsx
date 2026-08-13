@@ -7,6 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -322,7 +323,7 @@ function StatCol({ value, label }: { value: string; label: string }): React.Reac
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: AppColors.background },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { fontFamily: InterFont.regular, fontSize: 15, color: AppColors.onSurfaceMuted },
+  loadingText: { fontFamily: InterFont.regular, fontSize: scaleFont(15), color: AppColors.onSurfaceMuted },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -335,13 +336,13 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: AppSpacing.lg,
     paddingTop: AppSpacing.sm,
-    paddingBottom: 140,
+    paddingBottom: moderateScale(140),
     alignItems: 'center',
   },
   avatarWrap: { marginTop: AppSpacing.md },
   name: {
     fontFamily: InterFont.semibold,
-    fontSize: 26,
+    fontSize: scaleFont(26),
     letterSpacing: -0.5,
     color: AppColors.onSurface,
     marginTop: AppSpacing.md,
@@ -350,13 +351,13 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: moderateScale(5),
     marginTop: AppSpacing.sm,
   },
-  rating: { fontFamily: InterFont.medium, fontSize: 14.5, color: AppColors.onSurface },
+  rating: { fontFamily: InterFont.medium, fontSize: scaleFont(14.5), color: AppColors.onSurface },
   metaDotGap: { width: 4 },
   onlineDot: { width: 7, height: 7, borderRadius: 3.5 },
-  onlineText: { fontFamily: InterFont.regular, fontSize: 14, color: AppColors.onSurfaceMuted },
+  onlineText: { fontFamily: InterFont.regular, fontSize: scaleFont(14), color: AppColors.onSurfaceMuted },
   bioCard: {
     alignSelf: 'stretch',
     borderRadius: AppRadii.card,
@@ -368,20 +369,20 @@ const styles = StyleSheet.create({
   },
   bioTitle: {
     fontFamily: InterFont.semibold,
-    fontSize: 16,
+    fontSize: scaleFont(16),
     color: AppColors.primary,
     marginBottom: AppSpacing.sm,
   },
   bioText: {
     fontFamily: InterFont.regular,
-    fontSize: 16.5,
-    lineHeight: 24,
+    fontSize: scaleFont(16.5),
+    lineHeight: scaleFont(24),
     color: AppColors.onSurface,
   },
   bioEmpty: {
     fontFamily: InterFont.regular,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: scaleFont(15),
+    lineHeight: scaleFont(22),
     color: AppColors.onSurfaceMuted,
     fontStyle: 'italic',
   },
@@ -395,15 +396,15 @@ const styles = StyleSheet.create({
   statCol: { flex: 1, alignItems: 'center' },
   statValue: {
     fontFamily: InterFont.light,
-    fontSize: 24,
+    fontSize: scaleFont(24),
     letterSpacing: -0.5,
     color: AppColors.onSurface,
   },
   statLabel: {
     fontFamily: InterFont.regular,
-    fontSize: 12.5,
+    fontSize: scaleFont(12.5),
     color: AppColors.onSurfaceMuted,
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
   statDivider: { width: StyleSheet.hairlineWidth, height: 30, backgroundColor: AppColors.border },
 

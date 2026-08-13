@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { InterFont } from '@theme/typography';
 
 import GradientAvatar from '@core/components/GradientAvatar';
@@ -196,13 +197,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(8,3,8,0.98)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: moderateScale(32),
   },
   eyebrow: {
     position: 'absolute',
     top: 72,
     fontFamily: InterFont.medium,
-    fontSize: 12.5,
+    fontSize: scaleFont(12.5),
     letterSpacing: 1,
     textTransform: 'uppercase',
     color: AppColors.primary,
@@ -214,25 +215,25 @@ const styles = StyleSheet.create({
   ring3: { width: 280, height: 280, borderColor: AppColors.primaryBorderSubtle },
   name: {
     fontFamily: InterFont.semibold,
-    fontSize: 26,
+    fontSize: scaleFont(26),
     color: AppColors.onSurface,
-    marginTop: 8,
+    marginTop: moderateScale(8),
   },
   wants: {
     fontFamily: InterFont.regular,
-    fontSize: 15,
+    fontSize: scaleFont(15),
     color: AppColors.onSurfaceMuted,
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
 
   countdown: {
     fontFamily: InterFont.regular,
-    fontSize: 13,
+    fontSize: scaleFont(13),
     color: AppColors.coinGold,
-    marginTop: 12,
+    marginTop: moderateScale(12),
   },
-  actions: { flexDirection: 'row', gap: 56, marginTop: 44 },
-  actionCol: { alignItems: 'center', gap: 10 },
+  actions: { flexDirection: 'row', gap: moderateScale(56), marginTop: moderateScale(44) },
+  actionCol: { alignItems: 'center', gap: moderateScale(10) },
   circleBtn: {
     width: 68,
     height: 68,
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
   declineBtn: { backgroundColor: AppColors.surface, borderWidth: 1, borderColor: AppColors.border },
   acceptBtn: { backgroundColor: AppColors.primary },
   pressed: { opacity: 0.8 },
-  actionLabel: { fontFamily: InterFont.regular, fontSize: 13, color: AppColors.onSurfaceMuted },
+  actionLabel: { fontFamily: InterFont.regular, fontSize: scaleFont(13), color: AppColors.onSurfaceMuted },
 });
 
 export default IncomingChatRequestModal;

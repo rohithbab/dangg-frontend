@@ -4,6 +4,7 @@ import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 
@@ -253,18 +254,18 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: 'Inter-SemiBold',
-    fontSize: 22,
+    fontSize: scaleFont(22),
     fontWeight: '700',
     color: AppColors.onSurface,
     letterSpacing: -0.3,
   },
   subtitle: {
     fontFamily: 'Inter-Regular',
-    fontSize: 14,
+    fontSize: scaleFont(14),
     fontWeight: '400',
     color: AppColors.onSurfaceMuted,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: scaleFont(20),
     marginTop: AppSpacing.xs,
     paddingHorizontal: AppSpacing.sm,
   },
@@ -287,13 +288,13 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.primarySubtle,
     borderRadius: AppRadii.full,
     paddingHorizontal: AppSpacing.sm + 2,
-    paddingVertical: 3,
+    paddingVertical: moderateScale(3),
     borderWidth: 1,
     borderColor: AppColors.primaryBorderSoft,
   },
   badgeLabel: {
     fontFamily: 'Inter-Regular',
-    fontSize: 10,
+    fontSize: scaleFont(10),
     fontWeight: '800',
     color: AppColors.primary,
     letterSpacing: 0.8,
@@ -306,18 +307,18 @@ const styles = StyleSheet.create({
   offerLeft: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 4,
+    gap: moderateScale(4),
   },
   offerCoins: {
     fontFamily: 'Inter-SemiBold',
-    fontSize: 28,
+    fontSize: scaleFont(28),
     fontWeight: '800',
     color: AppColors.onSurface,
     letterSpacing: -0.5,
   },
   offerCoinsLabel: {
     fontFamily: 'Inter-Regular',
-    fontSize: 14,
+    fontSize: scaleFont(14),
     fontWeight: '600',
     color: AppColors.onSurfaceMuted,
   },
@@ -326,17 +327,17 @@ const styles = StyleSheet.create({
   },
   offerPrice: {
     fontFamily: 'Inter-SemiBold',
-    fontSize: 22,
+    fontSize: scaleFont(22),
     fontWeight: '700',
     color: AppColors.onSurface,
     letterSpacing: -0.3,
   },
   offerPriceLabel: {
     fontFamily: 'Inter-Regular',
-    fontSize: 11,
+    fontSize: scaleFont(11),
     fontWeight: '500',
     color: AppColors.onSurfaceMuted,
-    marginTop: 1,
+    marginTop: moderateScale(1),
   },
   offerAction: {
     marginTop: AppSpacing.md,
@@ -352,7 +353,7 @@ const styles = StyleSheet.create({
   },
   gradientCtaLabel: {
     fontFamily: 'Inter-Regular',
-    fontSize: 16,
+    fontSize: scaleFont(16),
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.3,
@@ -369,7 +370,7 @@ const styles = StyleSheet.create({
   },
   walletBtnLabel: {
     fontFamily: 'Inter-Regular',
-    fontSize: 15,
+    fontSize: scaleFont(15),
     fontWeight: '600',
     color: AppColors.onSurface,
     letterSpacing: 0.2,
@@ -382,7 +383,7 @@ const styles = StyleSheet.create({
   },
   cancelBtnLabel: {
     fontFamily: 'Inter-Regular',
-    fontSize: 13,
+    fontSize: scaleFont(13),
     fontWeight: '500',
     color: AppColors.onSurfaceMuted,
   },

@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -173,7 +174,7 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: AppSpacing.lg, paddingBottom: AppSpacing.lg },
   title: {
     fontFamily: InterFont.regular,
-    fontSize: 28,
+    fontSize: scaleFont(28),
     letterSpacing: -0.6,
     color: AppColors.onSurface,
     marginBottom: AppSpacing.lg,
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
   fieldWrap: { marginBottom: AppSpacing.md },
   label: {
     fontFamily: InterFont.medium,
-    fontSize: 11.5,
+    fontSize: scaleFont(11.5),
     letterSpacing: 0.7,
     color: '#6B6B73',
     marginBottom: AppSpacing.sm,
@@ -192,14 +193,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#0E0E10',
     borderWidth: 1.5,
     borderColor: AppColors.border,
-    paddingHorizontal: 14,
+    paddingHorizontal: moderateScale(14),
     justifyContent: 'center',
   },
   fieldFocused: { borderColor: 'rgba(220,48,143,0.8)' },
-  input: { fontFamily: InterFont.regular, fontSize: 16, color: AppColors.onSurface, padding: 0 },
+  input: { fontFamily: InterFont.regular, fontSize: scaleFont(16), color: AppColors.onSurface, padding: moderateScale(0) },
   errorText: {
     fontFamily: InterFont.medium,
-    fontSize: 13,
+    fontSize: scaleFont(13),
     color: AppColors.error,
     marginTop: AppSpacing.sm,
   },

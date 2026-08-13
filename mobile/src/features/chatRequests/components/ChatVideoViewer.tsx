@@ -4,6 +4,8 @@ import { Modal, Pressable, StatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Video from 'react-native-video';
 
+import { moderateScale } from '@theme/responsive';
+
 import { logger } from '@core/utils/logger';
 
 /**
@@ -68,14 +70,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 2,
-    paddingHorizontal: 12,
+    paddingHorizontal: moderateScale(12),
   },
   closeBtn: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   video: { width: '100%', height: '100%' },

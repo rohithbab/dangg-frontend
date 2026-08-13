@@ -20,6 +20,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { InterFont } from '@theme/typography';
 
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
@@ -487,8 +488,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: FC.bg },
   scroll: { paddingHorizontal: FS.md + 4, paddingBottom: BOTTOM_CLEAR },
 
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: FS.xxl },
-  headerGreet: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: moderateScale(12), paddingTop: FS.xxl },
+  headerGreet: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: moderateScale(12) },
   headerText: { flex: 1 },
   chatBtn: {
     width: 40,
@@ -500,19 +501,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  greeting: { fontFamily: InterFont.light, fontSize: 13, color: '#8C8C94' },
+  greeting: { fontFamily: InterFont.light, fontSize: scaleFont(13), color: '#8C8C94' },
   name: {
     fontFamily: InterFont.regular,
-    fontSize: 20,
+    fontSize: scaleFont(20),
     color: FC.text,
     letterSpacing: -0.4,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
 
   verifyBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: moderateScale(12),
     marginTop: FS.lg,
     backgroundColor: '#0E0E10',
     borderRadius: 16,
@@ -525,11 +526,11 @@ const styles = StyleSheet.create({
   verifyText: {
     flex: 1,
     fontFamily: InterFont.regular,
-    fontSize: 13.5,
+    fontSize: scaleFont(13.5),
     color: FC.text,
-    lineHeight: 18,
+    lineHeight: scaleFont(18),
   },
-  verifyAction: { fontFamily: InterFont.medium, fontSize: 13.5, color: FC.primary },
+  verifyAction: { fontFamily: InterFont.medium, fontSize: scaleFont(13.5), color: FC.primary },
 
   onlineCard: {
     flexDirection: 'row',
@@ -539,19 +540,19 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: FC.hairline,
-    paddingHorizontal: 17,
-    paddingVertical: 15,
+    paddingHorizontal: moderateScale(17),
+    paddingVertical: moderateScale(15),
   },
   onlineCardActive: { borderColor: 'rgba(51,199,89,0.3)' },
-  onlineDotCol: { justifyContent: 'flex-start', alignSelf: 'flex-start', paddingTop: 5 },
+  onlineDotCol: { justifyContent: 'flex-start', alignSelf: 'flex-start', paddingTop: moderateScale(5) },
   onlineDot: { width: 10, height: 10, borderRadius: 5 },
-  onlineText: { flex: 1, marginLeft: 10 },
-  onlineTitle: { fontFamily: InterFont.medium, fontSize: 16, color: FC.text },
-  onlineSub: { fontFamily: InterFont.light, fontSize: 12.5, color: '#8C8C94', marginTop: 3 },
+  onlineText: { flex: 1, marginLeft: moderateScale(10) },
+  onlineTitle: { fontFamily: InterFont.medium, fontSize: scaleFont(16), color: FC.text },
+  onlineSub: { fontFamily: InterFont.light, fontSize: scaleFont(12.5), color: '#8C8C94', marginTop: moderateScale(3) },
 
   earningsLabel: {
     fontFamily: InterFont.medium,
-    fontSize: 11.5,
+    fontSize: scaleFont(11.5),
     letterSpacing: 0.7,
     color: '#73737A',
     marginTop: FS.xl,
@@ -563,16 +564,16 @@ const styles = StyleSheet.create({
     marginTop: FS.sm,
   },
   earningsLeft: { flex: 1 },
-  earningsValue: { fontFamily: InterFont.light, fontSize: 52, letterSpacing: -1.6, color: FC.text },
-  earningsSub: { fontFamily: InterFont.light, fontSize: 14, color: '#8C8C94', marginTop: 6 },
+  earningsValue: { fontFamily: InterFont.light, fontSize: scaleFont(52), letterSpacing: -1.6, color: FC.text },
+  earningsSub: { fontFamily: InterFont.light, fontSize: scaleFont(14), color: '#8C8C94', marginTop: moderateScale(6) },
 
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginTop: FS.xl },
 
   triplet: { flexDirection: 'row', alignItems: 'center', marginTop: FS.lg },
   tripletDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.07)' },
   statCol: { flex: 1, alignItems: 'center' },
-  statValue: { fontFamily: InterFont.light, fontSize: 24, color: FC.text },
-  statLabel: { fontFamily: InterFont.light, fontSize: 12, color: '#8C8C94', marginTop: 8 },
+  statValue: { fontFamily: InterFont.light, fontSize: scaleFont(24), color: FC.text },
+  statLabel: { fontFamily: InterFont.light, fontSize: scaleFont(12), color: '#8C8C94', marginTop: moderateScale(8) },
 
   sectionHeader: {
     marginTop: FS.xl,
@@ -581,10 +582,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  sectionTitle: { fontFamily: InterFont.medium, fontSize: 15, color: FC.text },
-  seeAll: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  sectionTitle: { fontFamily: InterFont.medium, fontSize: scaleFont(15), color: FC.text },
+  seeAll: { flexDirection: 'row', alignItems: 'center', gap: moderateScale(2) },
   seeAllPressed: { opacity: 0.6 },
-  seeAllText: { fontFamily: InterFont.regular, fontSize: 13, color: FC.textDim },
+  seeAllText: { fontFamily: InterFont.regular, fontSize: scaleFont(13), color: FC.textDim },
 
   activityCard: {
     backgroundColor: '#0E0E10',
@@ -596,13 +597,13 @@ const styles = StyleSheet.create({
   activityRow: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
 
   empty: { alignItems: 'center', paddingVertical: FS.xxl },
-  emptyTitle: { fontFamily: InterFont.medium, fontSize: 16, color: FC.text },
+  emptyTitle: { fontFamily: InterFont.medium, fontSize: scaleFont(16), color: FC.text },
   emptyBody: {
     fontFamily: InterFont.light,
-    fontSize: 13.5,
+    fontSize: scaleFont(13.5),
     color: '#8C8C94',
     textAlign: 'center',
-    marginTop: 6,
+    marginTop: moderateScale(6),
     paddingHorizontal: FS.lg,
   },
 
@@ -618,7 +619,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: FC.hairline,
   },
-  toastText: { fontFamily: InterFont.regular, fontSize: 14, color: FC.text, textAlign: 'center' },
+  toastText: { fontFamily: InterFont.regular, fontSize: scaleFont(14), color: FC.text, textAlign: 'center' },
 });
 
 export default FemaleHomeScreen;

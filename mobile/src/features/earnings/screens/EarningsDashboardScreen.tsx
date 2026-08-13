@@ -8,6 +8,7 @@ import Svg, { Rect } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -223,7 +224,7 @@ const styles = StyleSheet.create({
   },
   tab: {
     fontFamily: InterFont.regular,
-    fontSize: 22,
+    fontSize: scaleFont(22),
     letterSpacing: -0.5,
   },
   tabActive: { color: AppColors.onSurface, fontFamily: InterFont.medium },
@@ -239,7 +240,7 @@ const styles = StyleSheet.create({
   },
   availLabel: {
     fontFamily: InterFont.medium,
-    fontSize: 11.5,
+    fontSize: scaleFont(11.5),
     letterSpacing: 0.8,
     color: AppColors.onSurfaceMuted,
     marginTop: AppSpacing.xl,
@@ -252,32 +253,32 @@ const styles = StyleSheet.create({
   },
   balance: {
     fontFamily: InterFont.light,
-    fontSize: 52,
+    fontSize: scaleFont(52),
     letterSpacing: -1.6,
     color: AppColors.onSurface,
   },
   withdrawPill: {
     backgroundColor: AppColors.primary,
     borderRadius: 999,
-    paddingHorizontal: 22,
-    paddingVertical: 12,
+    paddingHorizontal: moderateScale(22),
+    paddingVertical: moderateScale(12),
   },
   pressed: { opacity: 0.85 },
-  withdrawLabel: { fontFamily: InterFont.semibold, fontSize: 15, color: '#FFFFFF' },
+  withdrawLabel: { fontFamily: InterFont.semibold, fontSize: scaleFont(15), color: '#FFFFFF' },
   subBalance: {
     fontFamily: InterFont.regular,
-    fontSize: 13.5,
+    fontSize: scaleFont(13.5),
     color: AppColors.onSurfaceMuted,
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
   chart: { marginTop: AppSpacing.xl + 8 },
   chartBars: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   barCol: { alignItems: 'center' },
   barLabel: {
     fontFamily: InterFont.regular,
-    fontSize: 12,
+    fontSize: scaleFont(12),
     color: AppColors.onSurfaceMuted,
-    marginTop: 8,
+    marginTop: moderateScale(8),
   },
   activityLink: {
     flexDirection: 'row',
@@ -287,12 +288,12 @@ const styles = StyleSheet.create({
     borderRadius: AppRadii.card,
     borderWidth: 1,
     borderColor: AppColors.border,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    paddingHorizontal: moderateScale(18),
+    paddingVertical: moderateScale(16),
     marginTop: AppSpacing.md,
   },
-  activityLinkText: { fontFamily: InterFont.medium, fontSize: 15, color: AppColors.onSurface },
-  summary: { marginTop: AppSpacing.xl + 8, gap: 10 },
+  activityLinkText: { fontFamily: InterFont.medium, fontSize: scaleFont(15), color: AppColors.onSurface },
+  summary: { marginTop: AppSpacing.xl + 8, gap: moderateScale(10) },
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -301,11 +302,11 @@ const styles = StyleSheet.create({
     borderRadius: AppRadii.card,
     borderWidth: 1,
     borderColor: AppColors.border,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    paddingHorizontal: moderateScale(18),
+    paddingVertical: moderateScale(16),
   },
-  summaryLabel: { fontFamily: InterFont.regular, fontSize: 15, color: AppColors.onSurface },
-  summaryValue: { fontFamily: InterFont.medium, fontSize: 15, color: AppColors.success },
+  summaryLabel: { fontFamily: InterFont.regular, fontSize: scaleFont(15), color: AppColors.onSurface },
+  summaryValue: { fontFamily: InterFont.medium, fontSize: scaleFont(15), color: AppColors.success },
 });
 
 export default EarningsDashboardScreen;

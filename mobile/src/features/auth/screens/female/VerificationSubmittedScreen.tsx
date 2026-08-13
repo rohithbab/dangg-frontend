@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -150,14 +151,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: InterFont.semibold,
-    fontSize: 23,
+    fontSize: scaleFont(23),
     color: AppColors.onSurface,
     marginTop: AppSpacing.lg,
     textAlign: 'center',
   },
   body2: {
     fontFamily: InterFont.regular,
-    fontSize: 14.5,
+    fontSize: scaleFont(14.5),
     color: AppColors.onSurfaceMuted,
     marginTop: AppSpacing.sm,
     textAlign: 'center',
@@ -165,18 +166,18 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: moderateScale(7),
     backgroundColor: 'rgba(245,181,61,0.14)',
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: moderateScale(14),
+    paddingVertical: moderateScale(7),
     marginTop: AppSpacing.lg,
   },
   pillDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: COIN_GOLD },
-  pillText: { fontFamily: InterFont.medium, fontSize: 13, color: COIN_GOLD },
+  pillText: { fontFamily: InterFont.medium, fontSize: scaleFont(13), color: COIN_GOLD },
   footer: { paddingHorizontal: AppSpacing.lg, paddingBottom: AppSpacing.md },
-  logoutBtn: { alignItems: 'center', paddingVertical: 14 },
-  logoutText: { fontFamily: InterFont.medium, fontSize: 15, color: AppColors.onSurfaceMuted },
+  logoutBtn: { alignItems: 'center', paddingVertical: moderateScale(14) },
+  logoutText: { fontFamily: InterFont.medium, fontSize: scaleFont(15), color: AppColors.onSurfaceMuted },
 });
 
 export default VerificationSubmittedScreen;

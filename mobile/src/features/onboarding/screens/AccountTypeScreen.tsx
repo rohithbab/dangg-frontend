@@ -6,6 +6,7 @@ import { ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -90,20 +91,20 @@ const styles = StyleSheet.create({
   },
   hero: {
     fontFamily: InterFont.light,
-    fontSize: 36,
-    lineHeight: 43,
+    fontSize: scaleFont(36),
+    lineHeight: scaleFont(43),
     letterSpacing: -0.9,
     color: AppColors.onSurface,
-    marginTop: 56,
+    marginTop: moderateScale(56),
   },
   subtitle: {
     fontFamily: InterFont.light,
-    fontSize: 15.5,
-    lineHeight: 23,
+    fontSize: scaleFont(15.5),
+    lineHeight: scaleFont(23),
     color: '#8F8F96',
     marginTop: AppSpacing.md,
   },
-  cards: { gap: 14, marginTop: AppSpacing.xl },
+  cards: { gap: moderateScale(14), marginTop: AppSpacing.xl },
   spacer: { flex: 1, minHeight: AppSpacing.xl },
   actions: { marginTop: AppSpacing.lg },
 });

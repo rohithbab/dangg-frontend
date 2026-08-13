@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -81,18 +82,18 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: AppSpacing.lg, paddingBottom: AppSpacing.xl },
   title: {
     fontFamily: InterFont.regular,
-    fontSize: 28,
+    fontSize: scaleFont(28),
     letterSpacing: -0.6,
     color: AppColors.onSurface,
     marginBottom: AppSpacing.lg,
   },
-  emptyWrap: { marginTop: 48 },
+  emptyWrap: { marginTop: moderateScale(48) },
   card: {
     backgroundColor: AppColors.surface,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: AppColors.border,
-    paddingHorizontal: 4,
+    paddingHorizontal: moderateScale(4),
   },
   rowDivider: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
 });

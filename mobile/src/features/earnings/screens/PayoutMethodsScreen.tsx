@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -109,15 +110,15 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: AppSpacing.lg, paddingBottom: AppSpacing.xl },
   title: {
     fontFamily: InterFont.regular,
-    fontSize: 28,
+    fontSize: scaleFont(28),
     letterSpacing: -0.6,
     color: AppColors.onSurface,
   },
   subtitle: {
     fontFamily: InterFont.regular,
-    fontSize: 14,
+    fontSize: scaleFont(14),
     color: AppColors.onSurfaceMuted,
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
   methodCard: {
     flexDirection: 'row',
@@ -126,8 +127,8 @@ const styles = StyleSheet.create({
     borderRadius: AppRadii.card,
     borderWidth: 1,
     borderColor: AppColors.border,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(16),
     marginTop: AppSpacing.lg,
   },
   pressed: { opacity: 0.85 },
@@ -141,34 +142,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  methodBody: { flex: 1, marginLeft: 14 },
-  methodName: { fontFamily: InterFont.medium, fontSize: 15.5, color: AppColors.onSurface },
+  methodBody: { flex: 1, marginLeft: moderateScale(14) },
+  methodName: { fontFamily: InterFont.medium, fontSize: scaleFont(15.5), color: AppColors.onSurface },
   methodSub: {
     fontFamily: InterFont.regular,
-    fontSize: 12.5,
+    fontSize: scaleFont(12.5),
     color: AppColors.onSurfaceMuted,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   defaultBadge: {
     backgroundColor: AppColors.primarySubtle,
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(5),
   },
-  defaultText: { fontFamily: InterFont.medium, fontSize: 12, color: AppColors.primaryLight },
+  defaultText: { fontFamily: InterFont.medium, fontSize: scaleFont(12), color: AppColors.primaryLight },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: moderateScale(8),
     backgroundColor: AppColors.surface,
     borderRadius: AppRadii.card,
     borderWidth: 1,
     borderColor: AppColors.border,
-    paddingVertical: 18,
+    paddingVertical: moderateScale(18),
     marginTop: AppSpacing.md,
   },
-  addText: { fontFamily: InterFont.medium, fontSize: 15, color: AppColors.onSurface },
+  addText: { fontFamily: InterFont.medium, fontSize: scaleFont(15), color: AppColors.onSurface },
 });
 
 export default PayoutMethodsScreen;

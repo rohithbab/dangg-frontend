@@ -6,6 +6,7 @@ import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -87,14 +88,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: InterFont.semibold,
-    fontSize: 22,
+    fontSize: scaleFont(22),
     color: AppColors.onSurface,
     marginTop: AppSpacing.lg,
     textAlign: 'center',
   },
   sub: {
     fontFamily: InterFont.regular,
-    fontSize: 14.5,
+    fontSize: scaleFont(14.5),
     color: AppColors.onSurfaceMuted,
     marginTop: AppSpacing.sm,
     textAlign: 'center',
@@ -104,14 +105,14 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     borderColor: AppColors.border,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(8),
     marginTop: AppSpacing.lg,
   },
-  chipText: { fontFamily: InterFont.regular, fontSize: 13, color: AppColors.onSurfaceMuted },
+  chipText: { fontFamily: InterFont.regular, fontSize: scaleFont(13), color: AppColors.onSurfaceMuted },
   ctaWrap: { paddingHorizontal: AppSpacing.lg, paddingBottom: AppSpacing.md },
-  doneBtn: { alignItems: 'center', paddingVertical: 14 },
-  doneText: { fontFamily: InterFont.medium, fontSize: 15, color: AppColors.onSurfaceMuted },
+  doneBtn: { alignItems: 'center', paddingVertical: moderateScale(14) },
+  doneText: { fontFamily: InterFont.medium, fontSize: scaleFont(15), color: AppColors.onSurfaceMuted },
 });
 
 export default WithdrawResultScreen;

@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -265,7 +266,7 @@ const styles = StyleSheet.create({
     borderRadius: AppRadii.md,
     borderWidth: 1,
     borderColor: AppColors.border,
-    padding: 4,
+    padding: moderateScale(4),
     marginBottom: AppSpacing.md,
   },
   segment: {

@@ -4,6 +4,7 @@ import { Modal, Pressable, StatusBar, StyleSheet, View } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { moderateScale } from '@theme/responsive';
 /**
  * Full-screen in-app viewer for a chat image (WhatsApp-style) instead of
  * kicking the user out to the browser. Tap anywhere or the ✕ to close.
@@ -59,14 +60,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 2,
-    paddingHorizontal: 12,
+    paddingHorizontal: moderateScale(12),
   },
   closeBtn: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   image: { width: '100%', height: '100%' },

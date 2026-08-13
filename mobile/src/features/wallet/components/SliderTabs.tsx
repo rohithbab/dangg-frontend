@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
+import { scaleFont } from '@theme/responsive';
+
 import { WC, WR, WShadow } from '../walletTheme';
 
 export type SliderTabsProps<T extends string> = {
@@ -96,7 +98,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   label: {
-    fontSize: 14,
+    fontSize: scaleFont(14),
     fontWeight: '700',
   },
   labelActive: { color: WC.text },

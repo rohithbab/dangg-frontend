@@ -11,7 +11,7 @@ import Animated, {
 import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
-
+import { scaleFont } from '@theme/responsive';
 const TOTAL_MS = 3500;
 
 export type SplashScreenProps = {
@@ -72,7 +72,7 @@ function TaglineLetter({ char, index, progress, scale }: TaglineLetterProps): Re
       style={[
         styles.taglineChar,
         {
-          fontSize: 22 * scale,
+          fontSize: scaleFont(22) * scale,
         },
         letterStyle,
       ]}

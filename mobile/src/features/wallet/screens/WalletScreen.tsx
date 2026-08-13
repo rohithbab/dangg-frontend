@@ -13,6 +13,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { InterFont } from '@theme/typography';
 
 import CoinIcon from '@core/components/CoinIcon';
@@ -279,7 +280,7 @@ const styles = StyleSheet.create({
 
   title: {
     fontFamily: InterFont.light,
-    fontSize: 30,
+    fontSize: scaleFont(30),
     letterSpacing: -0.75,
     color: WC.text,
     paddingHorizontal: PAD,
@@ -297,12 +298,12 @@ const styles = StyleSheet.create({
   balanceLeft: { flexDirection: 'row', alignItems: 'center', gap: WS.md },
   balanceNum: {
     fontFamily: InterFont.light,
-    fontSize: 52,
-    lineHeight: 60,
+    fontSize: scaleFont(52),
+    lineHeight: scaleFont(60),
     letterSpacing: -1,
     color: WC.text,
   },
-  coinsLabel: { fontFamily: InterFont.regular, fontSize: 14, color: WC.textDim, marginTop: -4 },
+  coinsLabel: { fontFamily: InterFont.regular, fontSize: scaleFont(14), color: WC.textDim, marginTop: moderateScale(-4) },
   addBtn: {
     height: 46,
     paddingHorizontal: WS.xl,
@@ -311,7 +312,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addBtnText: { fontFamily: InterFont.medium, fontSize: 15, color: WC.text },
+  addBtnText: { fontFamily: InterFont.medium, fontSize: scaleFont(15), color: WC.text },
 
   // Filter
   filterWrap: { paddingHorizontal: PAD, marginTop: WS.xl },
@@ -330,9 +331,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   txMid: { flex: 1, minWidth: 0 },
-  txTitle: { fontFamily: InterFont.regular, fontSize: 15, color: WC.text },
-  txSub: { fontFamily: InterFont.regular, fontSize: 12, color: WC.textDim, marginTop: 3 },
-  txAmount: { fontFamily: InterFont.medium, fontSize: 15.5 },
+  txTitle: { fontFamily: InterFont.regular, fontSize: scaleFont(15), color: WC.text },
+  txSub: { fontFamily: InterFont.regular, fontSize: scaleFont(12), color: WC.textDim, marginTop: moderateScale(3) },
+  txAmount: { fontFamily: InterFont.medium, fontSize: scaleFont(15.5) },
   txAmountPos: { color: WC.success },
   txAmountNeg: { color: WC.textDim },
 
@@ -340,19 +341,19 @@ const styles = StyleSheet.create({
   skelTile: { backgroundColor: WC.cardHi, borderColor: WC.transparent },
   skelLine: { backgroundColor: WC.cardHi, borderRadius: 6 },
   skelLineLg: { width: '55%', height: 13 },
-  skelLineSm: { width: '35%', height: 11, marginTop: 7 },
+  skelLineSm: { width: '35%', height: 11, marginTop: moderateScale(7) },
   skelAmt: { width: 44, height: 16, borderRadius: 6, backgroundColor: WC.cardHi },
 
   // Empty
   empty: { alignItems: 'center', paddingHorizontal: PAD, paddingTop: WS.huge + WS.lg },
-  emptyTitle: { fontFamily: InterFont.medium, fontSize: 17, color: WC.text },
+  emptyTitle: { fontFamily: InterFont.medium, fontSize: scaleFont(17), color: WC.text },
   emptyBody: {
     fontFamily: InterFont.regular,
-    fontSize: 13.5,
+    fontSize: scaleFont(13.5),
     color: WC.textDim,
     textAlign: 'center',
     marginTop: WS.sm,
-    lineHeight: 20,
+    lineHeight: scaleFont(20),
   },
 });
 

@@ -2,6 +2,8 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { moderateScale, scaleFont } from '@theme/responsive';
+
 import { FC, FR, FS } from '@features/femaleHome/femaleTheme';
 
 import { type Transaction } from '../api/earningsApi';
@@ -161,7 +163,7 @@ const styles = StyleSheet.create({
   },
   middle: { flex: 1, minWidth: 0 },
   title: {
-    fontSize: 15,
+    fontSize: scaleFont(15),
     fontWeight: '700',
     fontFamily: 'Inter-Regular',
     color: FC.text,
@@ -170,18 +172,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: FS.xs,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: scaleFont(12),
     fontWeight: '500',
     fontFamily: 'Inter-Regular',
     color: FC.textDim,
     flexShrink: 1,
   },
   statusBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 1,
+    paddingHorizontal: moderateScale(6),
+    paddingVertical: moderateScale(1),
     borderRadius: FR.sm,
     borderWidth: 1.5,
     backgroundColor: 'transparent',
@@ -193,7 +195,7 @@ const styles = StyleSheet.create({
     borderColor: FC.error,
   },
   statusBadgeText: {
-    fontSize: 9,
+    fontSize: scaleFont(9),
     fontWeight: '800',
     fontFamily: 'Inter-Regular',
     textTransform: 'uppercase',
@@ -208,10 +210,10 @@ const styles = StyleSheet.create({
   right: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: moderateScale(4),
   },
   amount: {
-    fontSize: 16,
+    fontSize: scaleFont(16),
     fontWeight: '800',
     fontFamily: 'Inter-SemiBold',
     letterSpacing: -0.3,

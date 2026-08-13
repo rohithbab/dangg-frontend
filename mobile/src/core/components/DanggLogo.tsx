@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
-
+import { scaleFont } from '@theme/responsive';
 // Traced SVG Paths from the Splash screen (accurate to the reference video)
 const D_PATH =
   'M 1,0 L 0,184 L 100,184 L 129,176 L 151,162 L 158,152 L 162,150 L 166,140 L 168,140 L 176,115 L 178,98 L 176,70 L 172,55 L 158,30 L 135,12 L 105,2 L 87,0 Z M 60,77 L 93,77 L 110,80 L 118,88 L 118,98 L 112,104 L 98,108 L 59,108 L 59,78 Z';
@@ -188,7 +188,7 @@ export function DanggLogo({
                   style={[
                     styles.taglineChar,
                     {
-                      fontSize: 22 * scale,
+                      fontSize: scaleFont(22) * scale,
                       color,
                     },
                   ]}

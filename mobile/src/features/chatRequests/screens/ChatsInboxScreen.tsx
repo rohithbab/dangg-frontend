@@ -9,6 +9,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
@@ -513,7 +514,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: AppSpacing.sm,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   snippet: {
     ...AppTypography.bodyMedium,
@@ -523,16 +524,16 @@ const styles = StyleSheet.create({
   durationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    gap: moderateScale(4),
+    marginTop: moderateScale(4),
   },
   durationText: {
     ...AppTypography.labelSmall,
     color: AppColors.onSurfaceMuted,
   },
   statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScale(2),
     borderRadius: AppRadii.full,
   },
   statusActive: { backgroundColor: AppColors.primarySubtle },
@@ -540,7 +541,7 @@ const styles = StyleSheet.create({
   statusPillText: {
     ...AppTypography.labelSmall,
     fontWeight: '700',
-    fontSize: 10,
+    fontSize: scaleFont(10),
   },
   statusActiveText: { color: AppColors.primary },
   statusEndedText: { color: AppColors.onSurfaceMuted },

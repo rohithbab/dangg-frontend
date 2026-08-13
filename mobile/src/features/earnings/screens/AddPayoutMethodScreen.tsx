@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -93,11 +94,11 @@ const styles = StyleSheet.create({
   body: { flex: 1, paddingHorizontal: AppSpacing.lg },
   title: {
     fontFamily: InterFont.regular,
-    fontSize: 28,
+    fontSize: scaleFont(28),
     letterSpacing: -0.6,
     color: AppColors.onSurface,
   },
-  options: { gap: 12, marginTop: AppSpacing.lg },
+  options: { gap: moderateScale(12), marginTop: AppSpacing.lg },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -105,8 +106,8 @@ const styles = StyleSheet.create({
     borderRadius: AppRadii.card,
     borderWidth: 1,
     borderColor: AppColors.border,
-    paddingHorizontal: 16,
-    paddingVertical: 18,
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(18),
   },
   pressed: { opacity: 0.85 },
   cardIcon: {
@@ -119,22 +120,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardBody: { flex: 1, marginLeft: 14 },
-  cardTitle: { fontFamily: InterFont.medium, fontSize: 16, color: AppColors.onSurface },
+  cardBody: { flex: 1, marginLeft: moderateScale(14) },
+  cardTitle: { fontFamily: InterFont.medium, fontSize: scaleFont(16), color: AppColors.onSurface },
   cardSub: {
     fontFamily: InterFont.regular,
-    fontSize: 12.5,
+    fontSize: scaleFont(12.5),
     color: AppColors.onSurfaceMuted,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
   secureRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: moderateScale(6),
     marginTop: AppSpacing.lg,
   },
-  secureText: { fontFamily: InterFont.regular, fontSize: 12.5, color: AppColors.onSurfaceMuted },
+  secureText: { fontFamily: InterFont.regular, fontSize: scaleFont(12.5), color: AppColors.onSurfaceMuted },
 });
 
 export default AddPayoutMethodScreen;

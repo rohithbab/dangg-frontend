@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
+import { scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -196,7 +197,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  illustrationGlyph: { fontSize: 100, lineHeight: 110 },
+  illustrationGlyph: { fontSize: scaleFont(100), lineHeight: scaleFont(110) },
   headline: {
     ...AppTypography.headlineLarge,
     color: AppColors.primaryDark,

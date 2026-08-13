@@ -5,6 +5,7 @@ import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { InterFont } from '@theme/typography';
 
 import { type MaleAppStackParamList } from '@navigation/types';
@@ -88,7 +89,7 @@ function PaymentFailedScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: WC.bg },
-  body: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+  body: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: moderateScale(24) },
   iconCircle: {
     width: 72,
     height: 72,
@@ -97,16 +98,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontFamily: InterFont.medium, fontSize: 20, color: WC.text, marginTop: WS.xl },
+  title: { fontFamily: InterFont.medium, fontSize: scaleFont(20), color: WC.text, marginTop: WS.xl },
   reason: {
     fontFamily: InterFont.regular,
-    fontSize: 15,
+    fontSize: scaleFont(15),
     color: WC.textDim,
     textAlign: 'center',
     marginTop: WS.xs,
-    lineHeight: 21,
+    lineHeight: scaleFont(21),
   },
-  footer: { paddingHorizontal: 24, paddingBottom: WS.xl, gap: WS.sm + 2 },
+  footer: { paddingHorizontal: moderateScale(24), paddingBottom: WS.xl, gap: WS.sm + 2 },
   primaryBtn: {
     height: 54,
     borderRadius: WR.lg - 2,
@@ -114,7 +115,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryText: { fontFamily: InterFont.medium, fontSize: 16.5, color: WC.text },
+  primaryText: { fontFamily: InterFont.medium, fontSize: scaleFont(16.5), color: WC.text },
   secondaryBtn: {
     height: 52,
     borderRadius: WR.lg - 2,
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryText: { fontFamily: InterFont.medium, fontSize: 15.5, color: WC.textDim },
+  secondaryText: { fontFamily: InterFont.medium, fontSize: scaleFont(15.5), color: WC.textDim },
   pressed: { transform: [{ scale: 0.98 }], opacity: 0.92 },
   pressedSoft: { opacity: 0.6 },
 });

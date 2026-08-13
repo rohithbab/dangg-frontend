@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -287,7 +288,7 @@ const styles = StyleSheet.create({
     ...AppTypography.bodyMedium,
     color: AppColors.primaryDark,
     opacity: 0.7,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
 
   // Warning Card
@@ -311,7 +312,7 @@ const styles = StyleSheet.create({
     ...AppTypography.bodyMedium,
     color: AppColors.onSurfaceMuted,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: scaleFont(20),
   },
 
   // Method Card
@@ -322,8 +323,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   methodInfo: {
-    marginTop: 4,
-    gap: 2,
+    marginTop: moderateScale(4),
+    gap: moderateScale(2),
   },
   methodType: {
     ...AppTypography.labelLarge,
@@ -355,7 +356,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: moderateScale(4),
   },
   maxBtn: {},
   maxBtnText: {
@@ -366,7 +367,7 @@ const styles = StyleSheet.create({
   hintText: {
     ...AppTypography.bodySmall,
     color: AppColors.onSurfaceMuted,
-    marginTop: 4,
+    marginTop: moderateScale(4),
   },
 
   // Errors

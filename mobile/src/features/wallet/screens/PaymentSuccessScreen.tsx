@@ -5,6 +5,7 @@ import { Animated, BackHandler, Pressable, StyleSheet, Text, View } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { InterFont } from '@theme/typography';
 
 import CoinIcon from '@core/components/CoinIcon';
@@ -97,32 +98,32 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: InterFont.medium,
-    fontSize: 20,
+    fontSize: scaleFont(20),
     color: WC.text,
     marginTop: WS.xl,
   },
   subtitle: {
     fontFamily: InterFont.regular,
-    fontSize: 15,
+    fontSize: scaleFont(15),
     color: WC.textDim,
     marginTop: WS.sm + 2,
   },
   balanceChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: moderateScale(8),
     height: 44,
-    paddingLeft: 16,
-    paddingRight: 18,
+    paddingLeft: moderateScale(16),
+    paddingRight: moderateScale(18),
     borderRadius: WR.lg + 2,
     backgroundColor: WC.surfaceDeep,
     borderWidth: 1,
     borderColor: WC.hairline,
     marginTop: WS.xl,
   },
-  balanceChipText: { fontFamily: InterFont.regular, fontSize: 15, color: WC.text },
+  balanceChipText: { fontFamily: InterFont.regular, fontSize: scaleFont(15), color: WC.text },
 
-  footer: { paddingHorizontal: 24, paddingBottom: WS.xl },
+  footer: { paddingHorizontal: moderateScale(24), paddingBottom: WS.xl },
   doneBtn: {
     height: 54,
     borderRadius: WR.lg - 2,
@@ -130,7 +131,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  doneText: { fontFamily: InterFont.medium, fontSize: 16.5, color: WC.bg },
+  doneText: { fontFamily: InterFont.medium, fontSize: scaleFont(16.5), color: WC.bg },
   pressed: { opacity: 0.85 },
 });
 

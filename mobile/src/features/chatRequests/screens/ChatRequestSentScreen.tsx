@@ -6,6 +6,7 @@ import { Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
+import { scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -211,21 +212,21 @@ const styles = StyleSheet.create({
   ring3: { width: 260, height: 260, borderColor: AppColors.primaryBorderSubtle },
   title: {
     fontFamily: InterFont.semibold,
-    fontSize: 22,
+    fontSize: scaleFont(22),
     color: AppColors.onSurface,
     textAlign: 'center',
     marginTop: AppSpacing.xl,
   },
   subtitle: {
     fontFamily: InterFont.regular,
-    fontSize: 14.5,
+    fontSize: scaleFont(14.5),
     color: AppColors.onSurfaceMuted,
     marginTop: AppSpacing.sm,
     textAlign: 'center',
   },
   expires: {
     fontFamily: InterFont.medium,
-    fontSize: 13,
+    fontSize: scaleFont(13),
     color: AppColors.onSurfaceMuted,
     marginTop: AppSpacing.lg,
   },
@@ -239,7 +240,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelBtnPressed: { opacity: 0.75 },
-  cancelLabel: { fontFamily: InterFont.medium, fontSize: 16, color: AppColors.primary },
+  cancelLabel: { fontFamily: InterFont.medium, fontSize: scaleFont(16), color: AppColors.primary },
 });
 
 export default ChatRequestSentScreen;

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, TextInput, type TextInputProps, View } fro
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography, InterFont } from '@theme/typography';
 
@@ -113,7 +114,7 @@ function TextFieldInner(
 const styles = StyleSheet.create({
   label: {
     fontFamily: InterFont.medium,
-    fontSize: 11.5,
+    fontSize: scaleFont(11.5),
     letterSpacing: 0.7,
     textTransform: 'uppercase',
     color: '#6B6B73',
@@ -135,10 +136,10 @@ const styles = StyleSheet.create({
   iconRight: { marginLeft: AppSpacing.sm },
   input: {
     fontFamily: InterFont.medium,
-    fontSize: 16.5,
+    fontSize: scaleFont(16.5),
     flex: 1,
     alignSelf: 'stretch',
-    paddingVertical: 0,
+    paddingVertical: moderateScale(0),
     textAlignVertical: 'center',
     color: AppColors.onSurface,
   },

@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -159,26 +160,26 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'flex-start',
     justifyContent: 'center',
-    marginLeft: 16,
+    marginLeft: moderateScale(16),
   },
   body: { flex: 1, paddingHorizontal: AppSpacing.lg, paddingTop: AppSpacing.xl },
   title: {
     fontFamily: InterFont.light,
-    fontSize: 33,
-    lineHeight: 40,
+    fontSize: scaleFont(33),
+    lineHeight: scaleFont(40),
     letterSpacing: -0.825,
     color: AppColors.onSurface,
   },
   subtitle: {
     fontFamily: InterFont.light,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: scaleFont(15),
+    lineHeight: scaleFont(22),
     color: '#8C8C94',
     marginTop: AppSpacing.md,
   },
   label: {
     fontFamily: InterFont.medium,
-    fontSize: 11.5,
+    fontSize: scaleFont(11.5),
     letterSpacing: 0.7,
     color: '#6B6B73',
     marginTop: AppSpacing.xl,
@@ -192,34 +193,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#0E0E10',
     borderWidth: 1.5,
     borderColor: AppColors.border,
-    paddingHorizontal: 16,
+    paddingHorizontal: moderateScale(16),
   },
   fieldFocused: { borderColor: 'rgba(220,48,143,0.8)' },
   fieldError: { borderColor: AppColors.error },
-  prefix: { fontFamily: InterFont.medium, fontSize: 17, color: AppColors.onSurface },
+  prefix: { fontFamily: InterFont.medium, fontSize: scaleFont(17), color: AppColors.onSurface },
   divider: {
     width: 1,
     height: 26,
     backgroundColor: 'rgba(255,255,255,0.14)',
-    marginHorizontal: 14,
+    marginHorizontal: moderateScale(14),
   },
   input: {
     flex: 1,
     fontFamily: InterFont.regular,
-    fontSize: 17,
+    fontSize: scaleFont(17),
     color: AppColors.onSurface,
-    padding: 0,
+    padding: moderateScale(0),
   },
   errorText: {
     fontFamily: InterFont.medium,
-    fontSize: 13,
+    fontSize: scaleFont(13),
     color: AppColors.error,
     marginTop: AppSpacing.sm,
   },
   infoText: {
     fontFamily: InterFont.medium,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: scaleFont(13),
+    lineHeight: scaleFont(19),
     color: AppColors.primary,
     marginTop: AppSpacing.sm,
   },

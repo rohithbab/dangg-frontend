@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
   body: { flex: 1, paddingHorizontal: AppSpacing.lg },
   title: {
     fontFamily: InterFont.regular,
-    fontSize: 28,
+    fontSize: scaleFont(28),
     letterSpacing: -0.6,
     color: AppColors.onSurface,
   },
@@ -152,37 +153,37 @@ const styles = StyleSheet.create({
     borderRadius: AppRadii.card,
     borderWidth: 1,
     borderColor: AppColors.border,
-    paddingHorizontal: 18,
+    paddingHorizontal: moderateScale(18),
     marginTop: AppSpacing.lg,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
+    paddingVertical: moderateScale(16),
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: AppColors.border,
   },
   rowLast: { borderBottomWidth: 0 },
-  rowLabel: { fontFamily: InterFont.regular, fontSize: 14.5, color: AppColors.onSurfaceMuted },
-  rowValue: { fontFamily: InterFont.medium, fontSize: 14.5, color: AppColors.onSurface },
+  rowLabel: { fontFamily: InterFont.regular, fontSize: scaleFont(14.5), color: AppColors.onSurfaceMuted },
+  rowValue: { fontFamily: InterFont.medium, fontSize: scaleFont(14.5), color: AppColors.onSurface },
   receiveRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: AppSpacing.lg,
   },
-  receiveLabel: { fontFamily: InterFont.regular, fontSize: 15, color: AppColors.onSurfaceMuted },
-  receiveValue: { fontFamily: InterFont.semibold, fontSize: 18, color: AppColors.onSurface },
+  receiveLabel: { fontFamily: InterFont.regular, fontSize: scaleFont(15), color: AppColors.onSurfaceMuted },
+  receiveValue: { fontFamily: InterFont.semibold, fontSize: scaleFont(18), color: AppColors.onSurface },
   note: {
     fontFamily: InterFont.regular,
-    fontSize: 13,
+    fontSize: scaleFont(13),
     color: AppColors.onSurfaceMuted,
     marginTop: AppSpacing.sm,
   },
   errorText: {
     fontFamily: InterFont.medium,
-    fontSize: 13,
+    fontSize: scaleFont(13),
     color: AppColors.error,
     marginTop: AppSpacing.md,
   },
@@ -191,8 +192,8 @@ const styles = StyleSheet.create({
     paddingBottom: AppSpacing.md,
     paddingTop: AppSpacing.sm,
   },
-  cancelBtn: { alignItems: 'center', paddingVertical: 14 },
-  cancelText: { fontFamily: InterFont.medium, fontSize: 15, color: AppColors.onSurfaceMuted },
+  cancelBtn: { alignItems: 'center', paddingVertical: moderateScale(14) },
+  cancelText: { fontFamily: InterFont.medium, fontSize: scaleFont(15), color: AppColors.onSurfaceMuted },
 });
 
 export default ReviewWithdrawalScreen;

@@ -2,6 +2,8 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { moderateScale, scaleFont } from '@theme/responsive';
+
 import { timeAgo } from '@core/utils/formatters';
 
 import { type WalletTransaction } from '../api/walletApi';
@@ -132,13 +134,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   middle: { flex: 1, minWidth: 0 },
-  title: { fontSize: 15, fontWeight: '700', color: WC.text },
-  subtitle: { fontSize: 12.5, fontWeight: '500', color: WC.textDim, marginTop: 2 },
+  title: { fontSize: scaleFont(15), fontWeight: '700', color: WC.text },
+  subtitle: { fontSize: scaleFont(12.5), fontWeight: '500', color: WC.textDim, marginTop: moderateScale(2) },
   right: { alignItems: 'flex-end' },
-  amount: { fontSize: 16, fontWeight: '800', letterSpacing: -0.3 },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
+  amount: { fontSize: scaleFont(16), fontWeight: '800', letterSpacing: -0.3 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: moderateScale(5), marginTop: moderateScale(3) },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 10.5, fontWeight: '700' },
+  statusText: { fontSize: scaleFont(10.5), fontWeight: '700' },
 });
 
 export default TransactionRow;

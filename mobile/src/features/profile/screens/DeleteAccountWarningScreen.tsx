@@ -6,6 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -138,7 +139,7 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: AppColors.primary,
-    marginTop: 8,
+    marginTop: moderateScale(8),
   },
   bulletText: {
     ...AppTypography.bodyMedium,

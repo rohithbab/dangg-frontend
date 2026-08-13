@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
+import { moderateScale, scaleFont } from '@theme/responsive';
+
 import CoinIcon from '@core/components/CoinIcon';
 
 import { type AvailableFemale } from '../api/maleHomeApi';
@@ -176,12 +178,12 @@ const styles = StyleSheet.create({
   },
   newBadge: {
     backgroundColor: HC.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScale(3),
     borderRadius: HR.pill,
   },
   newBadgeText: {
-    fontSize: 9,
+    fontSize: scaleFont(9),
     fontWeight: '800',
     letterSpacing: 0.5,
     color: '#FFFFFF',
@@ -203,7 +205,7 @@ const styles = StyleSheet.create({
     right: 0,
     padding: HS.md,
   },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: moderateScale(6) },
   onlineDot: {
     width: 8,
     height: 8,
@@ -212,7 +214,7 @@ const styles = StyleSheet.create({
   },
   name: {
     flex: 1,
-    fontSize: 16,
+    fontSize: scaleFont(16),
     fontWeight: '800',
     letterSpacing: -0.2,
     color: '#FFFFFF',
@@ -221,23 +223,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 6,
+    marginTop: moderateScale(6),
   },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  rating: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: moderateScale(4) },
+  rating: { fontSize: scaleFont(13), fontWeight: '700', color: '#FFFFFF' },
   coinPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: moderateScale(4),
     backgroundColor: HC.glassStrong,
     borderWidth: 1,
     borderColor: HC.hairline,
-    paddingHorizontal: 8,
+    paddingHorizontal: moderateScale(8),
     height: 24,
     borderRadius: HR.pill,
     justifyContent: 'center',
   },
-  coinPillText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
+  coinPillText: { fontSize: scaleFont(12), fontWeight: '800', color: '#FFFFFF' },
 });
 
 export default AvailableFemaleCard;

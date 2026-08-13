@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -46,7 +47,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: AppSpacing.md,
     borderRadius: AppRadii.full,
     borderWidth: 1,
-    gap: 6,
+    gap: moderateScale(6),
   },
   chipActive: {
     backgroundColor: AppColors.primary,

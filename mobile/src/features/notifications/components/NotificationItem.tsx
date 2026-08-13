@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -166,9 +167,9 @@ const styles = StyleSheet.create({
   body: {
     ...AppTypography.bodyMedium,
     color: AppColors.onSurfaceMuted,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
-  right: { alignItems: 'flex-end', gap: 4 },
+  right: { alignItems: 'flex-end', gap: moderateScale(4) },
   time: {
     ...AppTypography.labelSmall,
     color: AppColors.onSurfaceMuted,

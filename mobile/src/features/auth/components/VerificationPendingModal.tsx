@@ -3,6 +3,7 @@ import { Modal, StyleSheet, Text, View } from 'react-native';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { scaleFont } from '@theme/responsive';
 import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
@@ -79,7 +80,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: AppSpacing.md,
   },
-  iconGlyph: { fontSize: 32, lineHeight: 36 },
+  iconGlyph: { fontSize: scaleFont(32), lineHeight: scaleFont(36) },
   title: {
     ...AppTypography.titleLarge,
     color: AppColors.primaryDark,

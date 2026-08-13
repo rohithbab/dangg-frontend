@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -141,13 +142,13 @@ const styles = StyleSheet.create({
   body: { flex: 1, paddingHorizontal: AppSpacing.lg },
   title: {
     fontFamily: InterFont.regular,
-    fontSize: 28,
+    fontSize: scaleFont(28),
     letterSpacing: -0.6,
     color: AppColors.onSurface,
   },
   label: {
     fontFamily: InterFont.medium,
-    fontSize: 11.5,
+    fontSize: scaleFont(11.5),
     letterSpacing: 0.7,
     color: '#6B6B73',
     marginTop: AppSpacing.xl,
@@ -159,21 +160,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#0E0E10',
     borderWidth: 1.5,
     borderColor: AppColors.border,
-    paddingHorizontal: 16,
+    paddingHorizontal: moderateScale(16),
     justifyContent: 'center',
   },
   fieldFocused: { borderColor: 'rgba(220,48,143,0.8)' },
   fieldError: { borderColor: AppColors.error },
-  input: { fontFamily: InterFont.regular, fontSize: 16, color: AppColors.onSurface, padding: 0 },
+  input: { fontFamily: InterFont.regular, fontSize: scaleFont(16), color: AppColors.onSurface, padding: moderateScale(0) },
   hint: {
     fontFamily: InterFont.regular,
-    fontSize: 13,
+    fontSize: scaleFont(13),
     color: AppColors.onSurfaceMuted,
     marginTop: AppSpacing.sm,
   },
   errorText: {
     fontFamily: InterFont.medium,
-    fontSize: 13,
+    fontSize: scaleFont(13),
     color: AppColors.error,
     marginTop: AppSpacing.sm,
   },

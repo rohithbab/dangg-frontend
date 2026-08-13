@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -124,16 +125,16 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: AppSpacing.lg, paddingBottom: AppSpacing.xl },
   title: {
     fontFamily: InterFont.regular,
-    fontSize: 28,
+    fontSize: scaleFont(28),
     letterSpacing: -0.6,
     color: AppColors.onSurface,
     marginBottom: AppSpacing.lg,
   },
-  emptyWrap: { marginTop: 48 },
+  emptyWrap: { marginTop: moderateScale(48) },
   group: { marginBottom: AppSpacing.lg },
   groupLabel: {
     fontFamily: InterFont.medium,
-    fontSize: 11.5,
+    fontSize: scaleFont(11.5),
     letterSpacing: 0.8,
     color: AppColors.onSurfaceMuted,
     marginBottom: AppSpacing.sm,
@@ -145,28 +146,28 @@ const styles = StyleSheet.create({
     borderRadius: AppRadii.card,
     borderWidth: 1,
     borderColor: AppColors.border,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 10,
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(14),
+    marginBottom: moderateScale(10),
   },
   rowPressed: { opacity: 0.85 },
-  dot: { width: 9, height: 9, borderRadius: 4.5, marginRight: 12 },
+  dot: { width: 9, height: 9, borderRadius: 4.5, marginRight: moderateScale(12) },
   rowMain: { flex: 1 },
-  amount: { fontFamily: InterFont.semibold, fontSize: 16, color: AppColors.onSurface },
+  amount: { fontFamily: InterFont.semibold, fontSize: scaleFont(16), color: AppColors.onSurface },
   method: {
     fontFamily: InterFont.regular,
-    fontSize: 12.5,
+    fontSize: scaleFont(12.5),
     color: AppColors.onSurfaceMuted,
-    marginTop: 3,
+    marginTop: moderateScale(3),
   },
   rowRight: { alignItems: 'flex-end' },
-  badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
-  badgeText: { fontFamily: InterFont.medium, fontSize: 12 },
+  badge: { borderRadius: 999, paddingHorizontal: moderateScale(10), paddingVertical: moderateScale(4) },
+  badgeText: { fontFamily: InterFont.medium, fontSize: scaleFont(12) },
   date: {
     fontFamily: InterFont.regular,
-    fontSize: 12,
+    fontSize: scaleFont(12),
     color: AppColors.onSurfaceMuted,
-    marginTop: 6,
+    marginTop: moderateScale(6),
   },
 });
 

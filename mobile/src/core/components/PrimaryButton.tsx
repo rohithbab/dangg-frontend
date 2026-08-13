@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { scaleFont } from '@theme/responsive';
 import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
   icon: { marginRight: AppSpacing.sm },
   label: {
     fontFamily: InterFont.medium,
-    fontSize: 16,
+    fontSize: scaleFont(16),
     letterSpacing: 0,
   },
 });

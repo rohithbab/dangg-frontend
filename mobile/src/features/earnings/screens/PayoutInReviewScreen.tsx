@@ -15,6 +15,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -226,8 +227,8 @@ const styles = StyleSheet.create({
   badge: {
     backgroundColor: AppColors.warningLight,
     borderRadius: AppRadii.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScale(4),
     borderWidth: 1,
     borderColor: AppColors.warningLight,
   },
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
     ...AppTypography.bodyMedium,
     color: AppColors.onSurfaceMuted,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: scaleFont(20),
     paddingHorizontal: AppSpacing.md,
   },
 

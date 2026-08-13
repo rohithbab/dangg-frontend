@@ -24,6 +24,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -212,7 +213,7 @@ const styles = StyleSheet.create({
   },
   heroBlock: { alignItems: 'center' },
   avatarRing: {
-    padding: 4,
+    padding: moderateScale(4),
     borderRadius: 999,
     borderWidth: 3,
     borderColor: AppColors.primary,
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
     gap: AppSpacing.sm,
     marginTop: AppSpacing.xl,
   },
-  starBtn: { padding: 2 },
+  starBtn: { padding: moderateScale(2) },
   ratingHint: {
     ...AppTypography.labelLarge,
     color: AppColors.primaryDark,

@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -227,9 +228,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: AppSpacing.lg,
     height: 52,
   },
-  cancel: { fontFamily: InterFont.regular, fontSize: 15, color: AppColors.onSurfaceMuted },
-  headerTitle: { fontFamily: InterFont.medium, fontSize: 16, color: AppColors.onSurface },
-  save: { fontFamily: InterFont.semibold, fontSize: 15, color: AppColors.primary },
+  cancel: { fontFamily: InterFont.regular, fontSize: scaleFont(15), color: AppColors.onSurfaceMuted },
+  headerTitle: { fontFamily: InterFont.medium, fontSize: scaleFont(16), color: AppColors.onSurface },
+  save: { fontFamily: InterFont.semibold, fontSize: scaleFont(15), color: AppColors.primary },
   saveDisabled: { color: AppColors.onSurfaceDisabled },
   scroll: {
     paddingHorizontal: AppSpacing.lg,
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
   },
   changePhoto: {
     fontFamily: InterFont.medium,
-    fontSize: 13.5,
+    fontSize: scaleFont(13.5),
     color: AppColors.onSurfaceMuted,
     textAlign: 'center',
     alignSelf: 'center',
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: InterFont.medium,
-    fontSize: 11.5,
+    fontSize: scaleFont(11.5),
     letterSpacing: 0.7,
     color: '#6B6B73',
     marginTop: AppSpacing.lg,
@@ -272,15 +273,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#0E0E10',
     borderWidth: 1,
     borderColor: AppColors.border,
-    paddingHorizontal: 14,
+    paddingHorizontal: moderateScale(14),
     justifyContent: 'center',
   },
-  bioField: { minHeight: 100, paddingVertical: 12 },
-  input: { fontFamily: InterFont.regular, fontSize: 16, color: AppColors.onSurface, padding: 0 },
+  bioField: { minHeight: 100, paddingVertical: moderateScale(12) },
+  input: { fontFamily: InterFont.regular, fontSize: scaleFont(16), color: AppColors.onSurface, padding: moderateScale(0) },
   bioInput: { minHeight: 76, textAlignVertical: 'top' },
   errorText: {
     fontFamily: InterFont.medium,
-    fontSize: 13,
+    fontSize: scaleFont(13),
     color: AppColors.error,
     marginTop: AppSpacing.lg,
   },

@@ -31,6 +31,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
@@ -1123,7 +1124,7 @@ const styles = StyleSheet.create({
   },
   headerOnline: {
     ...AppTypography.labelSmall,
-    fontSize: 12,
+    fontSize: scaleFont(12),
     color: AppColors.onlineGreen,
   },
   headerEnded: {
@@ -1134,22 +1135,22 @@ const styles = StyleSheet.create({
   headerRightCol: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: moderateScale(8),
   },
   countdownChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: moderateScale(4),
     backgroundColor: AppColors.surface,
     borderWidth: 1,
     borderColor: AppColors.border,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(5),
     borderRadius: 13,
   },
   countdownText: {
     ...AppTypography.labelLarge,
-    fontSize: 14,
+    fontSize: scaleFont(14),
     color: AppColors.onSurface,
   },
   endBtn: {
@@ -1164,7 +1165,7 @@ const styles = StyleSheet.create({
   msgList: { flex: 1 },
   awayBanner: {
     backgroundColor: AppColors.warningLight,
-    paddingVertical: 8,
+    paddingVertical: moderateScale(8),
     paddingHorizontal: AppSpacing.lg,
     alignItems: 'center',
   },
@@ -1187,12 +1188,12 @@ const styles = StyleSheet.create({
   datePill: {
     backgroundColor: AppColors.surface,
     borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(4),
   },
   dateLabel: {
     ...AppTypography.labelSmall,
-    fontSize: 11,
+    fontSize: scaleFont(11),
     letterSpacing: 0.44,
     color: AppColors.onSurfaceMuted,
   },
@@ -1203,12 +1204,12 @@ const styles = StyleSheet.create({
   msgRowReceived: { alignSelf: 'flex-start' },
   bubble: {
     borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingTop: 9,
-    paddingBottom: 8,
-    gap: 3,
+    paddingHorizontal: moderateScale(14),
+    paddingTop: moderateScale(9),
+    paddingBottom: moderateScale(8),
+    gap: moderateScale(3),
   },
-  bubbleMedia: { paddingHorizontal: 4, paddingTop: 4, paddingBottom: 6 },
+  bubbleMedia: { paddingHorizontal: moderateScale(4), paddingTop: moderateScale(4), paddingBottom: moderateScale(6) },
   mediaTile: {
     width: 200,
     height: 200,
@@ -1228,10 +1229,10 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: moderateScale(6),
     backgroundColor: '#1A1A1F',
   },
-  videoLabel: { ...AppTypography.labelSmall, color: '#FFFFFF', fontSize: 11 },
+  videoLabel: { ...AppTypography.labelSmall, color: '#FFFFFF', fontSize: scaleFont(11) },
   attachBtn: {
     width: 38,
     height: 38,
@@ -1251,8 +1252,8 @@ const styles = StyleSheet.create({
   },
   bubbleText: {
     ...AppTypography.bodyMedium,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: scaleFont(15),
+    lineHeight: scaleFont(20),
   },
   bubbleTextSent: { color: AppColors.onPrimary },
   bubbleTextReceived: { color: AppColors.onSurface },
@@ -1260,12 +1261,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-end',
-    gap: 4,
-    marginTop: 2,
+    gap: moderateScale(4),
+    marginTop: moderateScale(2),
   },
   timeText: {
     ...AppTypography.labelSmall,
-    fontSize: 10,
+    fontSize: scaleFont(10),
   },
   timeTextSent: { color: 'rgba(255,255,255,0.65)' },
   timeTextReceived: { color: AppColors.onSurfaceMuted },
@@ -1273,7 +1274,7 @@ const styles = StyleSheet.create({
   typingBubble: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: moderateScale(6),
     backgroundColor: AppColors.surfaceVariant,
     borderRadius: AppRadii.lg,
     borderBottomLeftRadius: 4,
@@ -1312,10 +1313,10 @@ const styles = StyleSheet.create({
     borderRadius: 23,
     borderWidth: 1,
     borderColor: AppColors.border,
-    paddingHorizontal: 18,
+    paddingHorizontal: moderateScale(18),
     paddingVertical: AppSpacing.sm,
     ...AppTypography.bodyMedium,
-    fontSize: 15,
+    fontSize: scaleFont(15),
     color: AppColors.onSurface,
   },
   sendBtn: {

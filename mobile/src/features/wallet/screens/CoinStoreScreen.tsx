@@ -7,6 +7,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { InterFont } from '@theme/typography';
 
 import CoinIcon from '@core/components/CoinIcon';
@@ -231,20 +232,20 @@ const styles = StyleSheet.create({
   balanceChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: moderateScale(7),
     height: 36,
-    paddingLeft: 12,
-    paddingRight: 14,
+    paddingLeft: moderateScale(12),
+    paddingRight: moderateScale(14),
     borderRadius: WR.lg - 2,
     backgroundColor: WC.surfaceDeep,
     borderWidth: 1,
     borderColor: WC.hairline,
   },
-  balanceChipText: { fontFamily: InterFont.medium, fontSize: 15, color: WC.text },
+  balanceChipText: { fontFamily: InterFont.medium, fontSize: scaleFont(15), color: WC.text },
 
   title: {
     fontFamily: InterFont.light,
-    fontSize: 30,
+    fontSize: scaleFont(30),
     letterSpacing: -0.75,
     color: WC.text,
     paddingHorizontal: PAD,
@@ -273,12 +274,12 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     backgroundColor: WC.primary,
     borderRadius: WR.pill,
-    paddingHorizontal: 11,
-    paddingVertical: 4,
+    paddingHorizontal: moderateScale(11),
+    paddingVertical: moderateScale(4),
   },
   badgeText: {
     fontFamily: InterFont.medium,
-    fontSize: 10.5,
+    fontSize: scaleFont(10.5),
     letterSpacing: 0.63,
     color: WC.text,
   },
@@ -290,19 +291,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: WS.xl,
     paddingVertical: WS.lg + 2,
   },
-  cardInfo: { flex: 1, gap: 8 },
-  coinRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  coins: { fontFamily: InterFont.light, fontSize: 26, color: WC.text, letterSpacing: -0.3 },
-  coinsUnit: { fontFamily: InterFont.regular, fontSize: 13, color: WC.textDim },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  price: { fontFamily: InterFont.regular, fontSize: 14, color: WC.textDim },
+  cardInfo: { flex: 1, gap: moderateScale(8) },
+  coinRow: { flexDirection: 'row', alignItems: 'baseline', gap: moderateScale(8) },
+  coins: { fontFamily: InterFont.light, fontSize: scaleFont(26), color: WC.text, letterSpacing: -0.3 },
+  coinsUnit: { fontFamily: InterFont.regular, fontSize: scaleFont(13), color: WC.textDim },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: moderateScale(10) },
+  price: { fontFamily: InterFont.regular, fontSize: scaleFont(14), color: WC.textDim },
   bonusPill: {
     backgroundColor: WC.successSoft,
     borderRadius: WR.sm,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(3),
   },
-  bonusText: { fontFamily: InterFont.medium, fontSize: 12, color: WC.successText },
+  bonusText: { fontFamily: InterFont.medium, fontSize: scaleFont(12), color: WC.successText },
 
   buyBtn: {
     width: 72,
@@ -312,12 +313,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buyText: { fontFamily: InterFont.medium, fontSize: 14, color: WC.text },
+  buyText: { fontFamily: InterFont.medium, fontSize: scaleFont(14), color: WC.text },
   pressed: { transform: [{ scale: 0.96 }], opacity: 0.92 },
 
   footer: {
     fontFamily: InterFont.regular,
-    fontSize: 13,
+    fontSize: scaleFont(13),
     color: WC.textFaint,
     textAlign: 'center',
     paddingVertical: WS.md,

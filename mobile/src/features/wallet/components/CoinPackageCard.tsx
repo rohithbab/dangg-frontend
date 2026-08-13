@@ -2,6 +2,8 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { moderateScale, scaleFont } from '@theme/responsive';
+
 import CoinIcon from '@core/components/CoinIcon';
 import { inr } from '@core/utils/formatters';
 
@@ -125,35 +127,35 @@ const styles = StyleSheet.create({
   },
   radioOn: { borderColor: WC.primary, backgroundColor: WC.primary },
   mid: { flex: 1 },
-  name: { fontSize: 13, fontWeight: '600', color: WC.textDim },
-  coinRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 2 },
-  coins: { fontSize: 20, fontWeight: '800', color: WC.text, letterSpacing: -0.3 },
-  coinsUnit: { fontSize: 13, fontWeight: '600', color: WC.textDim },
+  name: { fontSize: scaleFont(13), fontWeight: '600', color: WC.textDim },
+  coinRow: { flexDirection: 'row', alignItems: 'center', gap: moderateScale(7), marginTop: moderateScale(2) },
+  coins: { fontSize: scaleFont(20), fontWeight: '800', color: WC.text, letterSpacing: -0.3 },
+  coinsUnit: { fontSize: scaleFont(13), fontWeight: '600', color: WC.textDim },
   bonus: {
-    fontSize: 11,
+    fontSize: scaleFont(11),
     fontWeight: '700',
     color: WC.successText,
     backgroundColor: WC.successSoft,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScale(3),
     borderRadius: WR.pill,
     overflow: 'hidden',
   },
   right: { alignItems: 'flex-end' },
-  price: { fontSize: 19, fontWeight: '800', color: WC.text },
-  perCoin: { fontSize: 11, fontWeight: '500', color: WC.textFaint, marginTop: 1 },
+  price: { fontSize: scaleFont(19), fontWeight: '800', color: WC.text },
+  perCoin: { fontSize: scaleFont(11), fontWeight: '500', color: WC.textFaint, marginTop: moderateScale(1) },
   badge: {
     position: 'absolute',
     top: -9,
     right: 16,
     zIndex: 2,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: moderateScale(10),
+    paddingVertical: moderateScale(4),
     borderRadius: WR.pill,
     overflow: 'hidden',
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: scaleFont(10),
     fontWeight: '800',
     letterSpacing: 0.4,
     textTransform: 'uppercase',

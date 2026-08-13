@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -84,15 +85,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   glyph: {
-    fontSize: 20,
-    lineHeight: 22,
+    fontSize: scaleFont(20),
+    lineHeight: scaleFont(22),
   },
   titleBlock: { flex: 1 },
   title: AppTypography.bodyLarge,
   subtitle: {
     ...AppTypography.bodySmall,
     color: AppColors.onSurfaceMuted,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
 });
 

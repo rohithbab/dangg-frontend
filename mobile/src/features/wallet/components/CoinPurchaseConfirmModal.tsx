@@ -2,6 +2,8 @@ import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { moderateScale, scaleFont } from '@theme/responsive';
+
 import CoinIcon from '@core/components/CoinIcon';
 import { inr } from '@core/utils/formatters';
 
@@ -131,7 +133,7 @@ const styles = StyleSheet.create({
     backgroundColor: WC.hairline,
     marginBottom: WS.lg,
   },
-  title: { fontSize: 20, fontWeight: '800', color: WC.text, letterSpacing: -0.3 },
+  title: { fontSize: scaleFont(20), fontWeight: '800', color: WC.text, letterSpacing: -0.3 },
   summary: {
     backgroundColor: WC.surface,
     borderWidth: 1,
@@ -141,21 +143,21 @@ const styles = StyleSheet.create({
     marginTop: WS.lg,
   },
   coinRow: { flexDirection: 'row', alignItems: 'center', gap: WS.sm + 2 },
-  coins: { fontSize: 28, fontWeight: '800', color: WC.text, letterSpacing: -0.5 },
-  coinsUnit: { fontSize: 15, fontWeight: '600', color: WC.textDim },
-  bonus: { fontSize: 13, fontWeight: '700', color: WC.successText, marginTop: 6 },
+  coins: { fontSize: scaleFont(28), fontWeight: '800', color: WC.text, letterSpacing: -0.5 },
+  coinsUnit: { fontSize: scaleFont(15), fontWeight: '600', color: WC.textDim },
+  bonus: { fontSize: scaleFont(13), fontWeight: '700', color: WC.successText, marginTop: moderateScale(6) },
   divider: { height: 1, backgroundColor: WC.divider, marginVertical: WS.md },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  priceLabel: { fontSize: 14, fontWeight: '500', color: WC.textDim },
-  priceValue: { fontSize: 18, fontWeight: '800', color: WC.text },
+  priceLabel: { fontSize: scaleFont(14), fontWeight: '500', color: WC.textDim },
+  priceValue: { fontSize: scaleFont(18), fontWeight: '800', color: WC.text },
   secureRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: moderateScale(6),
     marginTop: WS.md + 2,
   },
-  secureText: { fontSize: 12.5, fontWeight: '600', color: WC.textDim },
+  secureText: { fontSize: scaleFont(12.5), fontWeight: '600', color: WC.textDim },
   actions: { flexDirection: 'row', gap: WS.md, marginTop: WS.lg },
   pressed: { transform: [{ scale: 0.97 }], opacity: 0.94 },
   cancelBtn: {
@@ -168,7 +170,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: WC.hairline,
   },
-  cancelText: { fontSize: 15, fontWeight: '700', color: WC.text },
+  cancelText: { fontSize: scaleFont(15), fontWeight: '700', color: WC.text },
   payBtn: {
     flex: 1.4,
     height: 54,
@@ -178,7 +180,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: WC.primary,
   },
-  payText: { fontSize: 16, fontWeight: '800', color: WC.text },
+  payText: { fontSize: scaleFont(16), fontWeight: '800', color: WC.text },
 });
 
 export default CoinPurchaseConfirmModal;

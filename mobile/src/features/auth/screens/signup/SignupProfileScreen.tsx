@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -221,7 +222,7 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'flex-start',
     justifyContent: 'center',
-    marginLeft: 16,
+    marginLeft: moderateScale(16),
   },
   scroll: {
     paddingHorizontal: AppSpacing.lg,
@@ -230,18 +231,18 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: InterFont.light,
-    fontSize: 33,
-    lineHeight: 40,
+    fontSize: scaleFont(33),
+    lineHeight: scaleFont(40),
     letterSpacing: -0.825,
     color: AppColors.onSurface,
   },
-  fieldsRow: { flexDirection: 'row', gap: 12 },
+  fieldsRow: { flexDirection: 'row', gap: moderateScale(12) },
   fieldsRowTop: { marginTop: AppSpacing.xl },
   nameField: { flex: 1 },
   ageField: { width: 92 },
   label: {
     fontFamily: InterFont.medium,
-    fontSize: 11.5,
+    fontSize: scaleFont(11.5),
     letterSpacing: 0.7,
     color: '#6B6B73',
     marginBottom: AppSpacing.sm,
@@ -252,12 +253,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#0E0E10',
     borderWidth: 1,
     borderColor: AppColors.border,
-    paddingHorizontal: 14,
+    paddingHorizontal: moderateScale(14),
     justifyContent: 'center',
   },
-  input: { fontFamily: InterFont.medium, fontSize: 16, color: AppColors.onSurface, padding: 0 },
+  input: { fontFamily: InterFont.medium, fontSize: scaleFont(16), color: AppColors.onSurface, padding: moderateScale(0) },
   joiningLabel: { marginTop: AppSpacing.lg },
-  rolesRow: { flexDirection: 'row', gap: 12 },
+  rolesRow: { flexDirection: 'row', gap: moderateScale(12) },
   roleCard: {
     flex: 1,
     height: 96,
@@ -283,17 +284,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  roleGlyph: { fontFamily: InterFont.regular, fontSize: 24, color: AppColors.onSurface },
+  roleGlyph: { fontFamily: InterFont.regular, fontSize: scaleFont(24), color: AppColors.onSurface },
   roleTitle: {
     fontFamily: InterFont.medium,
-    fontSize: 16,
+    fontSize: scaleFont(16),
     color: AppColors.onSurface,
-    marginTop: 6,
+    marginTop: moderateScale(6),
   },
-  roleSubtitle: { fontFamily: InterFont.light, fontSize: 12.5, color: '#8C8C94', marginTop: 2 },
+  roleSubtitle: { fontFamily: InterFont.light, fontSize: scaleFont(12.5), color: '#8C8C94', marginTop: moderateScale(2) },
   errorText: {
     fontFamily: InterFont.medium,
-    fontSize: 13,
+    fontSize: scaleFont(13),
     color: AppColors.error,
     marginTop: AppSpacing.lg,
   },

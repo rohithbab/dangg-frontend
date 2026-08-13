@@ -4,6 +4,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { InterFont } from '@theme/typography';
 
 /**
@@ -49,22 +50,22 @@ const styles = StyleSheet.create({
     borderColor: AppColors.border,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: moderateScale(20),
     overflow: 'hidden',
   },
   iconWrap: { width: 24, alignItems: 'center', justifyContent: 'center' },
-  textWrap: { flex: 1, marginLeft: 16 },
+  textWrap: { flex: 1, marginLeft: moderateScale(16) },
   title: {
     fontFamily: InterFont.medium,
-    fontSize: 16.5,
+    fontSize: scaleFont(16.5),
     color: AppColors.onSurface,
   },
   subtitle: {
     fontFamily: InterFont.light,
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: scaleFont(13),
+    lineHeight: scaleFont(17),
     color: '#9999A1',
-    marginTop: 3,
+    marginTop: moderateScale(3),
   },
 });
 

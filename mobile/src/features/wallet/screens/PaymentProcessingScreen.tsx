@@ -12,6 +12,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
+import { scaleFont } from '@theme/responsive';
 import { InterFont } from '@theme/typography';
 
 import { logger } from '@core/utils/logger';
@@ -125,17 +126,17 @@ const styles = StyleSheet.create({
   body: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   amount: {
     fontFamily: InterFont.light,
-    fontSize: 40,
+    fontSize: scaleFont(40),
     color: WC.text,
     marginTop: WS.xxl + WS.md,
   },
   title: {
     fontFamily: InterFont.medium,
-    fontSize: 18,
+    fontSize: scaleFont(18),
     color: WC.text,
     marginTop: WS.lg,
   },
-  hint: { fontFamily: InterFont.regular, fontSize: 14, color: WC.textDim, marginTop: WS.xs + 2 },
+  hint: { fontFamily: InterFont.regular, fontSize: scaleFont(14), color: WC.textDim, marginTop: WS.xs + 2 },
 });
 
 export default PaymentProcessingScreen;

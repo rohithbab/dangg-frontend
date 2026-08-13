@@ -6,6 +6,7 @@ import { BackHandler, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
+import { scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -64,15 +65,15 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: InterFont.semibold,
-    fontSize: 24,
+    fontSize: scaleFont(24),
     letterSpacing: -0.5,
     color: AppColors.onSurface,
     marginTop: AppSpacing.xl,
   },
   subtitle: {
     fontFamily: InterFont.regular,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: scaleFont(15),
+    lineHeight: scaleFont(22),
     color: AppColors.onSurfaceMuted,
     marginTop: AppSpacing.sm,
     textAlign: 'center',

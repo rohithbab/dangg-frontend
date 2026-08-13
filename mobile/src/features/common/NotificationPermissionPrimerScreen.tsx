@@ -14,6 +14,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
@@ -157,7 +158,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: AppSpacing.md,
   },
-  rowIcon: { fontSize: 22 },
+  rowIcon: { fontSize: scaleFont(22) },
   rowText: {
     ...AppTypography.bodyMedium,
     color: AppColors.onSurface,

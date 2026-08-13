@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -171,17 +172,17 @@ const styles = StyleSheet.create({
   header: { height: 48, justifyContent: 'center', paddingHorizontal: AppSpacing.md },
   back: { width: 40, height: 40, alignItems: 'flex-start', justifyContent: 'center' },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { fontFamily: InterFont.regular, fontSize: 15, color: AppColors.onSurfaceMuted },
+  loadingText: { fontFamily: InterFont.regular, fontSize: scaleFont(15), color: AppColors.onSurfaceMuted },
   scroll: { paddingHorizontal: AppSpacing.lg, paddingBottom: AppSpacing.xl },
   title: {
     fontFamily: InterFont.regular,
-    fontSize: 28,
+    fontSize: scaleFont(28),
     letterSpacing: -0.6,
     color: AppColors.onSurface,
   },
   amount: {
     fontFamily: InterFont.light,
-    fontSize: 46,
+    fontSize: scaleFont(46),
     letterSpacing: -1.4,
     color: AppColors.onSurface,
     marginTop: AppSpacing.md,
@@ -189,11 +190,11 @@ const styles = StyleSheet.create({
   statusPill: {
     alignSelf: 'flex-start',
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(5),
     marginTop: AppSpacing.sm,
   },
-  statusText: { fontFamily: InterFont.medium, fontSize: 13 },
+  statusText: { fontFamily: InterFont.medium, fontSize: scaleFont(13) },
   timeline: { marginTop: AppSpacing.xl + 4 },
   step: { flexDirection: 'row' },
   stepRail: { width: 28, alignItems: 'center' },
@@ -214,46 +215,46 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 26,
     backgroundColor: AppColors.border,
-    marginVertical: 2,
+    marginVertical: moderateScale(2),
   },
   stepLineDone: { backgroundColor: AppColors.success },
-  stepBody: { flex: 1, marginLeft: 14, paddingBottom: 20 },
-  stepLabel: { fontFamily: InterFont.medium, fontSize: 15.5, color: AppColors.onSurface },
+  stepBody: { flex: 1, marginLeft: moderateScale(14), paddingBottom: moderateScale(20) },
+  stepLabel: { fontFamily: InterFont.medium, fontSize: scaleFont(15.5), color: AppColors.onSurface },
   stepLabelPending: { color: AppColors.onSurfaceMuted },
   stepSub: {
     fontFamily: InterFont.regular,
-    fontSize: 12.5,
+    fontSize: scaleFont(12.5),
     color: AppColors.onSurfaceMuted,
-    marginTop: 3,
+    marginTop: moderateScale(3),
   },
   card: {
     backgroundColor: AppColors.surface,
     borderRadius: AppRadii.card,
     borderWidth: 1,
     borderColor: AppColors.border,
-    paddingHorizontal: 18,
+    paddingHorizontal: moderateScale(18),
     marginTop: AppSpacing.md,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 15,
+    paddingVertical: moderateScale(15),
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: AppColors.border,
   },
   detailRowLast: { borderBottomWidth: 0 },
-  detailLabel: { fontFamily: InterFont.regular, fontSize: 14, color: AppColors.onSurfaceMuted },
-  detailValue: { fontFamily: InterFont.medium, fontSize: 14, color: AppColors.onSurface },
+  detailLabel: { fontFamily: InterFont.regular, fontSize: scaleFont(14), color: AppColors.onSurfaceMuted },
+  detailValue: { fontFamily: InterFont.medium, fontSize: scaleFont(14), color: AppColors.onSurface },
   paidLine: {
     fontFamily: InterFont.medium,
-    fontSize: 13.5,
+    fontSize: scaleFont(13.5),
     color: AppColors.success,
     textAlign: 'center',
     marginTop: AppSpacing.lg,
   },
-  receiptBtn: { alignItems: 'center', paddingVertical: 12, marginTop: 2 },
-  receiptText: { fontFamily: InterFont.medium, fontSize: 14, color: AppColors.onSurfaceMuted },
+  receiptBtn: { alignItems: 'center', paddingVertical: moderateScale(12), marginTop: moderateScale(2) },
+  receiptText: { fontFamily: InterFont.medium, fontSize: scaleFont(14), color: AppColors.onSurfaceMuted },
 });
 
 export default PayoutDetailScreen;

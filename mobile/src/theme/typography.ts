@@ -1,6 +1,7 @@
 import { type TextStyle } from 'react-native';
 
 import { AppColors } from './colors';
+import { scaleFont } from './responsive';
 
 /**
  * Type-scale tokens — "DANGG · Neue".
@@ -33,8 +34,8 @@ export const AppTypography = {
   displayLarge: {
     ...base,
     fontFamily: InterFont.light,
-    fontSize: 34,
-    lineHeight: 41,
+    fontSize: scaleFont(34),
+    lineHeight: scaleFont(41),
     letterSpacing: -0.8,
   } satisfies TextStyle,
 
@@ -42,8 +43,8 @@ export const AppTypography = {
   headlineLarge: {
     ...base,
     fontFamily: InterFont.light,
-    fontSize: 30,
-    lineHeight: 36,
+    fontSize: scaleFont(30),
+    lineHeight: scaleFont(36),
     letterSpacing: -0.6,
   } satisfies TextStyle,
 
@@ -51,8 +52,8 @@ export const AppTypography = {
   displayNumeric: {
     ...base,
     fontFamily: InterFont.light,
-    fontSize: 56,
-    lineHeight: 62,
+    fontSize: scaleFont(56),
+    lineHeight: scaleFont(62),
     letterSpacing: -1.6,
   } satisfies TextStyle,
 
@@ -60,8 +61,8 @@ export const AppTypography = {
   headlineMedium: {
     ...base,
     fontFamily: InterFont.regular,
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: scaleFont(22),
+    lineHeight: scaleFont(28),
     letterSpacing: -0.3,
   } satisfies TextStyle,
 
@@ -69,8 +70,8 @@ export const AppTypography = {
   headlineAccent: {
     ...base,
     fontFamily: InterFont.medium,
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: scaleFont(22),
+    lineHeight: scaleFont(28),
     letterSpacing: -0.3,
     color: AppColors.primary,
   } satisfies TextStyle,
@@ -79,16 +80,16 @@ export const AppTypography = {
   titleLarge: {
     ...base,
     fontFamily: InterFont.medium,
-    fontSize: 18,
-    lineHeight: 24,
+    fontSize: scaleFont(18),
+    lineHeight: scaleFont(24),
     letterSpacing: -0.2,
   } satisfies TextStyle,
 
   titleMedium: {
     ...base,
     fontFamily: InterFont.medium,
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: scaleFont(16),
+    lineHeight: scaleFont(22),
     letterSpacing: -0.1,
   } satisfies TextStyle,
 
@@ -96,24 +97,24 @@ export const AppTypography = {
   bodyLarge: {
     ...base,
     fontFamily: InterFont.regular,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: scaleFont(16),
+    lineHeight: scaleFont(24),
   } satisfies TextStyle,
 
   // Caption (14px)
   bodyMedium: {
     ...base,
     fontFamily: InterFont.regular,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: scaleFont(14),
+    lineHeight: scaleFont(20),
   } satisfies TextStyle,
 
   // Small text
   bodySmall: {
     ...base,
     fontFamily: InterFont.regular,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: scaleFont(12),
+    lineHeight: scaleFont(16),
     color: AppColors.onSurfaceMuted,
   } satisfies TextStyle,
 
@@ -121,16 +122,16 @@ export const AppTypography = {
   labelLarge: {
     ...base,
     fontFamily: InterFont.medium,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: scaleFont(15),
+    lineHeight: scaleFont(20),
     letterSpacing: 0,
   } satisfies TextStyle,
 
   labelSmall: {
     ...base,
     fontFamily: InterFont.medium,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: scaleFont(12),
+    lineHeight: scaleFont(16),
     letterSpacing: 0.2,
     color: AppColors.onSurfaceMuted,
   } satisfies TextStyle,

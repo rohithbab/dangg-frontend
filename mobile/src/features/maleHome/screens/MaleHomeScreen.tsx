@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -472,30 +473,30 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? AppSpacing.xl : AppSpacing.lg,
     paddingBottom: AppSpacing.sm,
   },
-  greetWrap: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 },
+  greetWrap: { flexDirection: 'row', alignItems: 'center', gap: moderateScale(12), flex: 1, minWidth: 0 },
   greetText: { flex: 1, minWidth: 0 },
-  greeting: { fontFamily: InterFont.light, fontSize: 13, color: '#8C8C94' },
+  greeting: { fontFamily: InterFont.light, fontSize: scaleFont(13), color: '#8C8C94' },
   greetName: {
     fontFamily: InterFont.regular,
-    fontSize: 20,
+    fontSize: scaleFont(20),
     color: AppColors.onSurface,
     letterSpacing: -0.4,
-    marginTop: 2,
+    marginTop: moderateScale(2),
   },
-  topRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  topRight: { flexDirection: 'row', alignItems: 'center', gap: moderateScale(12) },
   balancePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: moderateScale(7),
     height: 32,
-    paddingLeft: 10,
-    paddingRight: 14,
+    paddingLeft: moderateScale(10),
+    paddingRight: moderateScale(14),
     borderRadius: 16,
     backgroundColor: '#0E0E10',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-  balanceText: { fontFamily: InterFont.medium, fontSize: 14.5, color: AppColors.onSurface },
+  balanceText: { fontFamily: InterFont.medium, fontSize: scaleFont(14.5), color: AppColors.onSurface },
   chatBtn: {
     width: 40,
     height: 40,
@@ -509,27 +510,27 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: AppSpacing.lg, paddingBottom: BOTTOM_CLEAR },
   favLabel: {
     fontFamily: InterFont.light,
-    fontSize: 22,
+    fontSize: scaleFont(22),
     letterSpacing: -0.44,
     color: AppColors.onSurface,
     marginTop: AppSpacing.xl,
   },
-  rail: { gap: 12, paddingTop: AppSpacing.md, paddingRight: AppSpacing.lg },
+  rail: { gap: moderateScale(12), paddingTop: AppSpacing.md, paddingRight: AppSpacing.lg },
   favEmpty: {
     paddingTop: AppSpacing.md,
     paddingBottom: AppSpacing.xs,
   },
   favEmptyText: {
     fontFamily: InterFont.light,
-    fontSize: 14,
+    fontSize: scaleFont(14),
     color: '#8C8C94',
   },
   railItem: { width: 56, alignItems: 'center' },
   railName: {
     fontFamily: InterFont.light,
-    fontSize: 12,
+    fontSize: scaleFont(12),
     color: '#8C8C94',
-    marginTop: 8,
+    marginTop: moderateScale(8),
     textAlign: 'center',
   },
   sectionHeader: {
@@ -539,20 +540,20 @@ const styles = StyleSheet.create({
     marginTop: AppSpacing.lg,
     marginBottom: AppSpacing.md,
   },
-  sectionTitle: { fontFamily: InterFont.medium, fontSize: 15, color: AppColors.onSurface },
-  rowWrap: { marginBottom: 8 },
+  sectionTitle: { fontFamily: InterFont.medium, fontSize: scaleFont(15), color: AppColors.onSurface },
+  rowWrap: { marginBottom: moderateScale(8) },
   empty: { alignItems: 'center', paddingVertical: AppSpacing.xxl },
   emptyTitle: {
     fontFamily: InterFont.medium,
-    fontSize: 16,
+    fontSize: scaleFont(16),
     color: AppColors.onSurface,
     marginTop: AppSpacing.md,
   },
   emptyBody: {
     fontFamily: InterFont.light,
-    fontSize: 14,
+    fontSize: scaleFont(14),
     color: '#8C8C94',
-    marginTop: 4,
+    marginTop: moderateScale(4),
     textAlign: 'center',
   },
 });

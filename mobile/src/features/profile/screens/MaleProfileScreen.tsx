@@ -16,6 +16,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { InterFont } from '@theme/typography';
 
 import CoinIcon from '@core/components/CoinIcon';
@@ -273,8 +274,8 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    marginTop: 20,
+    gap: moderateScale(14),
+    marginTop: moderateScale(20),
   },
   avatarWrap: { position: 'relative' },
   cameraBadge: {
@@ -291,38 +292,38 @@ const styles = StyleSheet.create({
     borderColor: AppColors.background,
   },
   identity: { flex: 1, minWidth: 0 },
-  name: { fontFamily: InterFont.medium, fontSize: 18, color: AppColors.onSurface },
+  name: { fontFamily: InterFont.medium, fontSize: scaleFont(18), color: AppColors.onSurface },
   maskedPhone: {
     fontFamily: InterFont.regular,
-    fontSize: 13,
+    fontSize: scaleFont(13),
     color: AppColors.onSurfaceMuted,
-    marginTop: 3,
+    marginTop: moderateScale(3),
   },
 
   // Coins
   coinCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: moderateScale(12),
     height: 60,
-    paddingHorizontal: 16,
+    paddingHorizontal: moderateScale(16),
     borderRadius: 18,
     backgroundColor: AppColors.surface,
     borderWidth: 1,
     borderColor: AppColors.border,
-    marginTop: 24,
+    marginTop: moderateScale(24),
   },
-  coinText: { flex: 1, fontFamily: InterFont.medium, fontSize: 16, color: AppColors.onSurface },
-  addCoins: { fontFamily: InterFont.medium, fontSize: 14, color: AppColors.primary },
+  coinText: { flex: 1, fontFamily: InterFont.medium, fontSize: scaleFont(16), color: AppColors.onSurface },
+  addCoins: { fontFamily: InterFont.medium, fontSize: scaleFont(14), color: AppColors.primary },
 
   // Sections
-  sectionWrap: { marginTop: 22 },
+  sectionWrap: { marginTop: moderateScale(22) },
   sectionLabel: {
     fontFamily: InterFont.medium,
-    fontSize: 12,
+    fontSize: scaleFont(12),
     letterSpacing: 0.72,
     color: AppColors.onSurfaceMuted,
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   card: {
     backgroundColor: AppColors.surface,
@@ -337,9 +338,9 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: moderateScale(12),
     height: 48,
-    paddingHorizontal: 15,
+    paddingHorizontal: moderateScale(15),
   },
   rowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -347,16 +348,16 @@ const styles = StyleSheet.create({
   },
   rowPressed: { backgroundColor: AppColors.surfaceVariant },
   rowIcon: { width: 22, alignItems: 'center' },
-  rowLabel: { flex: 1, fontFamily: InterFont.regular, fontSize: 15, color: AppColors.onSurface },
+  rowLabel: { flex: 1, fontFamily: InterFont.regular, fontSize: scaleFont(15), color: AppColors.onSurface },
   rowLabelDanger: { fontFamily: InterFont.medium, color: AppColors.error },
 
-  brandFooter: { alignItems: 'center', marginTop: 28 },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  brandFooter: { alignItems: 'center', marginTop: moderateScale(28) },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: moderateScale(8) },
   brandVersion: {
     fontFamily: InterFont.regular,
-    fontSize: 12,
+    fontSize: scaleFont(12),
     color: AppColors.onSurfaceDisabled,
-    marginTop: 6,
+    marginTop: moderateScale(6),
   },
 });
 

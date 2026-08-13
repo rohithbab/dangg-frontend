@@ -5,6 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { InterFont } from '@theme/typography';
 
 const BAR_HEIGHT = 72;
@@ -158,11 +159,11 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: moderateScale(6),
   },
   label: {
     fontFamily: InterFont.medium,
-    fontSize: 11,
+    fontSize: scaleFont(11),
   },
 });
 
