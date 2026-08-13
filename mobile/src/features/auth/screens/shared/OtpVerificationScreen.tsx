@@ -6,6 +6,7 @@ import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } fro
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
+import { moderateScale, scaleFont } from '@theme/responsive';
 import { AppSpacing } from '@theme/spacing';
 import { InterFont } from '@theme/typography';
 
@@ -135,15 +136,16 @@ function OtpVerificationScreen(): React.ReactElement {
           const { needsProfile } = await finishLogin(phone);
           if (needsProfile) {
             // Phone verified but the account never finished signup — send the
-            // user to the Profile setup screen to complete it.
+            // user through consent, then the Profile setup screen, to complete it.
             useSignupDraftStore.getState().setPhone(phone);
-            navigation.reset({ index: 0, routes: [{ name: 'SignupProfile' }] });
+            navigation.reset({ index: 0, routes: [{ name: 'SignupConsent' }] });
           }
           // Otherwise the session is established and RootNavigator routes by role.
           return;
         }
-        // Signup: phone proven → collect the profile (Phone → OTP → Profile).
-        navigation.reset({ index: 0, routes: [{ name: 'SignupProfile' }] });
+        // Signup: phone proven → accept policies, then collect the profile
+        // (Phone → OTP → Consent → Profile).
+        navigation.reset({ index: 0, routes: [{ name: 'SignupConsent' }] });
       } catch (e) {
         if (e instanceof InvalidOtpException) {
           const lockNow = recordFailure();
@@ -276,20 +278,20 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'flex-start',
     justifyContent: 'center',
-    marginLeft: 16,
+    marginLeft: moderateScale(16),
   },
   body: { flex: 1, paddingHorizontal: AppSpacing.lg, paddingTop: AppSpacing.xl },
   title: {
     fontFamily: InterFont.light,
-    fontSize: 33,
-    lineHeight: 40,
+    fontSize: scaleFont(33),
+    lineHeight: scaleFont(40),
     letterSpacing: -0.825,
     color: AppColors.onSurface,
   },
   subtitle: {
     fontFamily: InterFont.light,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: scaleFont(15),
+    lineHeight: scaleFont(22),
     color: '#8C8C94',
     marginTop: AppSpacing.md,
   },
@@ -297,21 +299,21 @@ const styles = StyleSheet.create({
   otpWrap: { marginTop: AppSpacing.xl },
   resend: {
     fontFamily: InterFont.light,
-    fontSize: 14,
+    fontSize: scaleFont(14),
     color: '#73737A',
     textAlign: 'center',
     marginTop: AppSpacing.lg,
   },
   resendAction: {
     fontFamily: InterFont.medium,
-    fontSize: 14,
+    fontSize: scaleFont(14),
     color: AppColors.primary,
     textAlign: 'center',
     marginTop: AppSpacing.sm,
   },
   error: {
     fontFamily: InterFont.medium,
-    fontSize: 14,
+    fontSize: scaleFont(14),
     color: AppColors.error,
     textAlign: 'center',
     marginTop: AppSpacing.lg,

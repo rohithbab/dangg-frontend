@@ -9,6 +9,7 @@ import ChatSessionScreen from '@features/chatRequests/screens/ChatSessionScreen'
 import ChatsInboxScreen from '@features/chatRequests/screens/ChatsInboxScreen';
 import LikeDislikeRatingScreen from '@features/chatRequests/screens/LikeDislikeRatingScreen';
 import NotificationPermissionPrimerScreen from '@features/common/NotificationPermissionPrimerScreen';
+import PolicyViewerScreen from '@features/legal/screens/PolicyViewerScreen';
 import FemaleProfilePreviewScreen from '@features/maleHome/screens/FemaleProfilePreviewScreen';
 import NotificationsScreen from '@features/notifications/screens/NotificationsScreen';
 import AboutAppScreen from '@features/profile/screens/AboutAppScreen';
@@ -78,6 +79,7 @@ function MaleAppStack(): React.ReactElement {
       <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
       <Stack.Screen name="ReportIssue" component={ReportIssueScreen} />
       <Stack.Screen name="AboutApp" component={AboutAppScreen} />
+      <Stack.Screen name="PolicyViewer" component={PolicyViewerScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="DeleteAccount" component={DeleteAccountWarningScreen} />

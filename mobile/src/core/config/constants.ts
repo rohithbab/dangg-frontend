@@ -1,6 +1,10 @@
 /** App-wide constants — non-secret values used across features. */
 export const APP_NAME = 'Dangg';
 
+/** Marketing version — keep in sync with android `versionName` / iOS bundle
+ *  version. Stored in the policy-acceptance audit trail. */
+export const APP_VERSION = '1.0.0';
+
 /** User-Agent suffix added to outgoing requests where customisable. */
 export const USER_AGENT = 'Dangg-Mobile/1.0';
 

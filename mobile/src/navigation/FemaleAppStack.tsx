@@ -19,6 +19,7 @@ import ReviewWithdrawalScreen from '@features/earnings/screens/ReviewWithdrawalS
 import WithdrawAmountScreen from '@features/earnings/screens/WithdrawAmountScreen';
 import WithdrawResultScreen from '@features/earnings/screens/WithdrawResultScreen';
 import RecentActivityScreen from '@features/femaleHome/screens/RecentActivityScreen';
+import PolicyViewerScreen from '@features/legal/screens/PolicyViewerScreen';
 import NotificationsScreen from '@features/notifications/screens/NotificationsScreen';
 import AboutAppScreen from '@features/profile/screens/AboutAppScreen';
 import DeleteAccountConfirmScreen from '@features/profile/screens/DeleteAccountConfirmScreen';
@@ -51,6 +52,7 @@ function FemaleAppStack(): React.ReactElement {
       <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
       <Stack.Screen name="ReportIssue" component={ReportIssueScreen} />
       <Stack.Screen name="AboutApp" component={AboutAppScreen} />
+      <Stack.Screen name="PolicyViewer" component={PolicyViewerScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="PayoutRequest" component={PayoutRequestScreen} />

@@ -1,14 +1,20 @@
 import { type NavigatorScreenParams } from '@react-navigation/native';
 
+import { type PolicyId } from '@features/legal/content/policies.generated';
+
 /** Auth-stack route params — every screen typed for `navigation.navigate(...)`. */
 export type AuthStackParamList = {
   AccountType: undefined;
   MaleOnboardingCarousel: undefined;
 
-  // Signup: Phone → OTP → Profile (role/name/age collected on the Profile step).
+  // Signup: Phone → OTP → Consent → Profile (role/name/age on the Profile step).
   SignupPhone: undefined;
   SignupOtp: { phone: string };
+  SignupConsent: undefined;
   SignupProfile: undefined;
+
+  // In-app legal document reader (opened from the consent screen).
+  PolicyViewer: { policyId: PolicyId };
 
   // Female post-profile verification flow.
   FemaleSignupBankUpi: undefined;
@@ -38,6 +44,7 @@ export type FemaleAppStackParamList = {
   HelpSupport: undefined;
   ReportIssue: undefined;
   AboutApp: undefined;
+  PolicyViewer: { policyId: PolicyId };
   Settings: undefined;
   /** Placeholder for the payout flow shipped in a later prompt. */
   PayoutRequest: undefined;
@@ -91,6 +98,7 @@ export type MaleAppStackParamList = {
   HelpSupport: undefined;
   ReportIssue: undefined;
   AboutApp: undefined;
+  PolicyViewer: { policyId: PolicyId };
   Settings: undefined;
   EditProfile: undefined;
   DeleteAccount: undefined;

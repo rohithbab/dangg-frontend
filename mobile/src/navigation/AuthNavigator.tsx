@@ -16,6 +16,8 @@ import LoginPhoneScreen from '@features/auth/screens/login/LoginPhoneScreen';
 import OtpVerificationScreen from '@features/auth/screens/shared/OtpVerificationScreen';
 import SignupPhoneScreen from '@features/auth/screens/signup/SignupPhoneScreen';
 import SignupProfileScreen from '@features/auth/screens/signup/SignupProfileScreen';
+import PolicyConsentScreen from '@features/legal/screens/PolicyConsentScreen';
+import PolicyViewerScreen from '@features/legal/screens/PolicyViewerScreen';
 import AccountTypeScreen from '@features/onboarding/screens/AccountTypeScreen';
 import MaleOnboardingCarousel from '@features/onboarding/screens/MaleOnboardingCarousel';
 
@@ -90,7 +92,9 @@ function AuthNavigator(): React.ReactElement {
 
       <Stack.Screen name="SignupPhone" component={SignupPhoneScreen} />
       <Stack.Screen name="SignupOtp" component={OtpVerificationScreen} />
+      <Stack.Screen name="SignupConsent" component={PolicyConsentScreen} />
       <Stack.Screen name="SignupProfile" component={SignupProfileScreen} />
+      <Stack.Screen name="PolicyViewer" component={PolicyViewerScreen} />
 
       <Stack.Screen name="FemaleSignupBankUpi" component={BankUpiDetailsScreen} />
       <Stack.Screen name="FemaleSignupVerificationInfo" component={VerificationInfoScreen} />

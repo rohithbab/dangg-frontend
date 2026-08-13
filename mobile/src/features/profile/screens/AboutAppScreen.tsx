@@ -1,19 +1,27 @@
+import { useNavigation } from '@react-navigation/native';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback } from 'react';
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { AppColors } from '@theme/colors';
 import { AppRadii } from '@theme/radii';
+import { moderateScale } from '@theme/responsive';
 import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import AppBar from '@core/components/AppBar';
-import { APP_NAME, PRIVACY_POLICY_URL, TERMS_URL } from '@core/config/constants';
-import { logger } from '@core/utils/logger';
+import { APP_NAME } from '@core/config/constants';
+
+import { type PolicyId, POLICIES } from '@features/legal/content/policies.generated';
 
 import MenuRow from '../components/MenuRow';
+
+/** Local nav typing — AboutApp is registered in both the Male and Female
+ *  stacks, and both expose `PolicyViewer` with the same param shape. */
+type PolicyNav = NativeStackNavigationProp<{ PolicyViewer: { policyId: PolicyId } }>;
 
 function DescriptionIcon(c: string): React.ReactElement {
   return (
@@ -26,33 +34,16 @@ function DescriptionIcon(c: string): React.ReactElement {
   );
 }
 
-function PrivacyIcon(c: string): React.ReactElement {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24">
-      <Path
-        d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"
-        fill={c}
-      />
-    </Svg>
-  );
-}
-
-function CodeIcon(c: string): React.ReactElement {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24">
-      <Path
-        d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"
-        fill={c}
-      />
-    </Svg>
-  );
-}
-
-/** About page — logo, version, and legal/license links. */
+/** About page — logo, version, and the full set of legal policies (in-app). */
 function AboutAppScreen(): React.ReactElement {
-  const handleOpen = useCallback((url: string): void => {
-    Linking.openURL(url).catch(e => logger.warn('Failed to open link', url, e));
-  }, []);
+  const navigation = useNavigation<PolicyNav>();
+
+  const openPolicy = useCallback(
+    (policyId: PolicyId): void => {
+      navigation.navigate('PolicyViewer', { policyId });
+    },
+    [navigation],
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -66,23 +57,17 @@ function AboutAppScreen(): React.ReactElement {
           <Text style={styles.version}>Version 1.0.0 (1)</Text>
         </View>
 
+        <Text style={styles.sectionLabel}>Legal & Policies</Text>
         <View style={[styles.menuCard, AppShadows.e1]}>
-          <MenuRow
-            title="Terms of Service"
-            renderIcon={DescriptionIcon}
-            onPress={() => handleOpen(TERMS_URL)}
-          />
-          <MenuRow
-            title="Privacy Policy"
-            renderIcon={PrivacyIcon}
-            onPress={() => handleOpen(PRIVACY_POLICY_URL)}
-          />
-          <MenuRow
-            title="Open-Source Licenses"
-            renderIcon={CodeIcon}
-            onPress={() => undefined}
-            last
-          />
+          {POLICIES.map((policy, i) => (
+            <MenuRow
+              key={policy.id}
+              title={policy.title}
+              renderIcon={DescriptionIcon}
+              onPress={() => openPolicy(policy.id)}
+              last={i === POLICIES.length - 1}
+            />
+          ))}
         </View>
 
         <Text style={styles.tagline}>Made with love in India</Text>
@@ -116,18 +101,26 @@ const styles = StyleSheet.create({
   version: {
     ...AppTypography.bodyMedium,
     color: AppColors.onSurfaceMuted,
-    marginTop: 4,
+    marginTop: moderateScale(4),
+  },
+  sectionLabel: {
+    ...AppTypography.labelSmall,
+    color: AppColors.onSurfaceMuted,
+    textTransform: 'uppercase',
+    marginBottom: AppSpacing.sm,
+    marginLeft: moderateScale(4),
   },
   menuCard: {
     backgroundColor: AppColors.surface,
     borderRadius: AppRadii.lg,
     overflow: 'hidden',
+    marginBottom: AppSpacing.lg,
   },
   tagline: {
     ...AppTypography.bodyMedium,
     color: AppColors.onSurfaceMuted,
     textAlign: 'center',
-    marginTop: AppSpacing.xl,
+    marginTop: AppSpacing.md,
   },
   copyright: {
     ...AppTypography.labelSmall,
