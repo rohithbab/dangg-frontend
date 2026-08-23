@@ -95,7 +95,16 @@ function LoginPhoneScreen(): React.ReactElement {
           accessibilityRole="button"
           accessibilityLabel="Back"
           hitSlop={12}
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            // Post-logout, LoginPhone is the stack root (see resolveInitialRoute),
+            // so there's nothing to pop — fall back to the Get started screen
+            // instead of firing an unhandled GO_BACK.
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.reset({ index: 0, routes: [{ name: 'AccountType' }] });
+            }
+          }}
           style={styles.back}
         >
           <ChevronLeft size={26} color={AppColors.onSurface} strokeWidth={2} />
