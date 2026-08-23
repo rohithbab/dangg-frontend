@@ -2,7 +2,16 @@ import { type RouteProp, useNavigation, useRoute } from '@react-navigation/nativ
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import {
+  AppState,
+  type AppStateStatus,
+  Platform,
+  Pressable,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@theme/colors';
@@ -22,6 +31,8 @@ import { type MaleAppStackParamList } from '@navigation/types';
 import {
   cancelSentRequest,
   getSentRequestStatus,
+  serverNowMs,
+  syncServerClock,
   type SentRequestStatus,
 } from '../api/chatRequestApi';
 
@@ -40,9 +51,19 @@ const POLL_INTERVAL_MS = 3000;
 function ChatRequestSentScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const { requestId, femaleName } = route.params;
+  const { requestId, femaleName, expiresAt: resumedExpiresAt } = route.params;
 
-  const [secondsLeft, setSecondsLeft] = useState(REQUEST_EXPIRY_S);
+  // Absolute expiry (epoch ms, server clock), fixed once for this request. On a
+  // fresh send we estimate it from now + the window; on resume the real
+  // `expires_at` is passed in. Deriving the countdown from this — instead of a
+  // decrementing counter — keeps it synced with the female and immune to the JS
+  // timer pausing while the app is backgrounded.
+  const expiresAtRef = useRef(resumedExpiresAt ?? serverNowMs() + REQUEST_EXPIRY_S * 1000);
+  const remaining = useCallback(
+    (): number => Math.max(0, Math.round((expiresAtRef.current - serverNowMs()) / 1000)),
+    [],
+  );
+  const [secondsLeft, setSecondsLeft] = useState(remaining);
   const [cancelDialog, setCancelDialog] = useState(false);
   const cancelInFlightRef = useRef(false);
 
@@ -66,12 +87,41 @@ function ChatRequestSentScreen(): React.ReactElement {
     [navigation, requestId],
   );
 
+  // Smooth 1s countdown from the absolute expiry.
   useEffect(() => {
-    const tick = setInterval(() => {
-      setSecondsLeft(prev => Math.max(0, prev - 1));
-    }, 1000);
+    const tick = setInterval(() => setSecondsLeft(remaining()), 1000);
     return () => clearInterval(tick);
-  }, []);
+  }, [remaining]);
+
+  // Keep the clock honest against the SERVER, not the device — emulators and
+  // skewed phones drift, and JS timers freeze while backgrounded. Re-sync on
+  // mount and on every foreground, then recompute, so reopening snaps to the
+  // true remaining and stays in step with the female's countdown.
+  useEffect(() => {
+    let cancelled = false;
+    const resync = async (rebaseFresh: boolean): Promise<void> => {
+      await syncServerClock();
+      if (cancelled) {
+        return;
+      }
+      // Fresh send (no resumed expiry): re-base the target on the corrected
+      // clock so the full window is accurate from the start.
+      if (rebaseFresh && resumedExpiresAt == null) {
+        expiresAtRef.current = serverNowMs() + REQUEST_EXPIRY_S * 1000;
+      }
+      setSecondsLeft(remaining());
+    };
+    void resync(true);
+    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      if (next === 'active') {
+        void resync(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+      sub.remove();
+    };
+  }, [remaining, resumedExpiresAt]);
 
   // DEV MODE: auto-accept after 5s so the full flow can be exercised.
   useEffect(() => {

@@ -79,7 +79,7 @@ export type MaleAppStackParamList = {
   MaleTabs: NavigatorScreenParams<MaleTabParamList>;
   ChatsInbox: undefined;
   FemaleProfilePreview: { femaleId: string };
-  ChatRequestSent: { requestId: string; femaleName?: string };
+  ChatRequestSent: { requestId: string; femaleName?: string; expiresAt?: number };
   ChatRequestAccepted: { requestId: string };
   ChatRequestDeclined: { requestId: string };
   ChatRequestTimeout: { requestId: string };

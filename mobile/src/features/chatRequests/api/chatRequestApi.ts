@@ -239,6 +239,58 @@ export async function fetchPendingIncomingRequest(): Promise<IncomingChatRequest
 }
 
 /**
+ * Returns the male's own pending OUTGOING chat request so the app can drop him
+ * back on the "waiting for response" screen after a force-close — otherwise he
+ * lands on home while the request is still pending server-side (female still
+ * sees it), the timer is gone, and any new request 409s ("already pending").
+ * Null when he has no pending request. `expiresAt` is the request's absolute
+ * `expires_at` in epoch ms — the waiting screen derives its countdown from it
+ * against the server clock, so it stays synced with the female and can't drift
+ * across a background pause.
+ */
+export async function getMyPendingSentRequest(): Promise<{
+  requestId: string;
+  femaleName: string | null;
+  expiresAt: number;
+} | null> {
+  if (USE_MOCK_DATA) {
+    return null;
+  }
+  const client = getSupabaseClient();
+  const { data: sessionData } = await client.auth.getSession();
+  const maleId = sessionData.session?.user.id;
+  if (!maleId) {
+    return null;
+  }
+
+  const { data: req, error } = await client
+    .from('chat_requests')
+    .select('id, female_id, expires_at')
+    .eq('male_id', maleId)
+    .eq('status', 'pending')
+    .order('sent_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !req) {
+    return null;
+  }
+
+  let femaleName: string | null = null;
+  const { data: female } = await client
+    .from('users')
+    .select('name')
+    .eq('id', req.female_id as string)
+    .maybeSingle();
+  if (female) {
+    femaleName = (female as { name?: string }).name ?? null;
+  }
+
+  const expiresAt = new Date(req.expires_at as string).getTime();
+
+  return { requestId: req.id as string, femaleName, expiresAt };
+}
+
+/**
  * Returns the caller's active chat session requestId (their ChatSession route
  * key) so the app can reconnect them into a live chat on launch — e.g. after a
  * force-close, where they'd otherwise land on home while the partner still

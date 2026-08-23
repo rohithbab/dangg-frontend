@@ -41,6 +41,8 @@ import { sendChatRequest } from '@features/chatRequests/api/chatRequestApi';
 import ChatRequestConfirmModal from '@features/chatRequests/components/ChatRequestConfirmModal';
 import InsufficientCoinsModal from '@features/chatRequests/components/InsufficientCoinsModal';
 import { useResumeActiveChat } from '@features/chatRequests/hooks/useResumeActiveChat';
+import { useResumeSentRequest } from '@features/chatRequests/hooks/useResumeSentRequest';
+import { useNotificationPrimer } from '@features/common/useNotificationPrimer';
 import { getProfile } from '@features/profile/api/profileApi';
 import { fetchWalletSnapshot } from '@features/wallet/api/walletApi';
 import { COIN_PACKAGES } from '@features/wallet/constants';
@@ -80,6 +82,8 @@ function greetingForNow(): string {
  */
 function MaleHomeScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
+  // One-time notification-permission ask for newly-installed users.
+  useNotificationPrimer();
   const coinBalance = useCoinBalance();
 
   const session = useSessionStore(s => s.session);
@@ -112,6 +116,22 @@ function MaleHomeScreen(): React.ReactElement {
         setTimeout(() => {
           navigation.navigate('ChatSession', { requestId });
         }, 900);
+      },
+      [navigation],
+    ),
+  );
+
+  // Force-close recovery for a still-pending outgoing request: return him to
+  // the waiting screen (with the real remaining time) instead of home, where
+  // the timer is gone and a new request would 409 as "already pending".
+  useResumeSentRequest(
+    useCallback(
+      (req): void => {
+        navigation.navigate('ChatRequestSent', {
+          requestId: req.requestId,
+          femaleName: req.femaleName ?? undefined,
+          expiresAt: req.expiresAt,
+        });
       },
       [navigation],
     ),
