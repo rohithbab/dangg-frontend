@@ -21,7 +21,12 @@ import { logger } from '@core/utils/logger';
 
 import { type MaleAppStackParamList } from '@navigation/types';
 
-import { blockUser, reportUser, toReportReason } from '@features/blockReport/api/blockReportApi';
+import {
+  blockUser,
+  reportUser,
+  toReportReason,
+  unblockUser,
+} from '@features/blockReport/api/blockReportApi';
 import { sendChatRequest } from '@features/chatRequests/api/chatRequestApi';
 import ChatRequestConfirmModal from '@features/chatRequests/components/ChatRequestConfirmModal';
 import InsufficientCoinsModal from '@features/chatRequests/components/InsufficientCoinsModal';
@@ -54,6 +59,7 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [blockReportOpen, setBlockReportOpen] = useState(false);
+  const [blocked, setBlocked] = useState(false);
 
   const handleBlock = useCallback(async (): Promise<void> => {
     if (!female) {
@@ -61,14 +67,29 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
     }
     try {
       await blockUser(female.id);
+      // Stay on the profile and flip the CTA to "Unblock" so he can reverse it
+      // right here. She's filtered out of browse/favourites on the next refresh.
+      setBlocked(true);
       setNotice(`${female.name} has been blocked.`);
-      // She must disappear from his world immediately, not on next refresh.
-      navigation.goBack();
     } catch (e) {
       logger.warn('blockUser failed', e);
       setNotice(e instanceof AppException ? e.message : "Couldn't block. Please try again.");
     }
-  }, [female, navigation]);
+  }, [female]);
+
+  const handleUnblock = useCallback(async (): Promise<void> => {
+    if (!female) {
+      return;
+    }
+    try {
+      await unblockUser(female.id);
+      setBlocked(false);
+      setNotice(`${female.name} has been unblocked.`);
+    } catch (e) {
+      logger.warn('unblockUser failed', e);
+      setNotice(e instanceof AppException ? e.message : "Couldn't unblock. Please try again.");
+    }
+  }, [female]);
 
   const handleReport = useCallback(
     async (reason: string, comment: string): Promise<void> => {
@@ -256,11 +277,21 @@ function FemaleProfilePreviewScreen(): React.ReactElement {
       </ScrollView>
 
       <View style={[styles.ctaWrap, { paddingBottom: Math.max(insets.bottom, AppSpacing.md) }]}>
-        <PrimaryButton
-          label="Send chat request"
-          disabled={!female.isOnline}
-          onPress={handleSendPress}
-        />
+        {blocked ? (
+          <PrimaryButton
+            label={`Unblock ${female.name}`}
+            variant="white"
+            onPress={() => {
+              void handleUnblock();
+            }}
+          />
+        ) : (
+          <PrimaryButton
+            label="Send chat request"
+            disabled={!female.isOnline}
+            onPress={handleSendPress}
+          />
+        )}
       </View>
 
       <ChatRequestConfirmModal
