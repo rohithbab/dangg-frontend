@@ -10,7 +10,6 @@ import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
 import PrimaryButton from '@core/components/PrimaryButton';
-import TextButton from '@core/components/TextButton';
 
 import { type MaleAppStackParamList } from '@navigation/types';
 
@@ -51,7 +50,6 @@ function ChatRequestTimeoutScreen(): React.ReactElement {
       </View>
       <View style={styles.footer}>
         <PrimaryButton label="Try Someone Else" onPress={goHome} />
-        <TextButton label="Back to Home" onPress={goHome} />
       </View>
     </SafeAreaView>
   );
