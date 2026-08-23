@@ -42,6 +42,7 @@ import {
 } from '@store/sessionStore';
 
 import { useResumeActiveChat } from '@features/chatRequests/hooks/useResumeActiveChat';
+import { useNotificationPrimer } from '@features/common/useNotificationPrimer';
 import { getProfile } from '@features/profile/api/profileApi';
 
 import { VerificationStatus } from '@app-types/domain';
@@ -84,6 +85,8 @@ function greetingForNow(): string {
 
 function FemaleHomeScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
+  // One-time notification-permission ask for newly-installed users.
+  useNotificationPrimer();
   const session = useSessionStore(s => s.session);
   const firstName = firstNameFromSession(session?.user.user_metadata?.name);
   const verificationStatus = useVerificationStatus();

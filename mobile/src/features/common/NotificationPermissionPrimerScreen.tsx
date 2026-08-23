@@ -20,7 +20,8 @@ import { AppTypography } from '@theme/typography';
 
 import PrimaryButton from '@core/components/PrimaryButton';
 import SecondaryButton from '@core/components/SecondaryButton';
-import { permissionService } from '@core/services/permissionService';
+import { showAlert } from '@core/feedback';
+import { AppPermissionStatus, permissionService } from '@core/services/permissionService';
 import { logger } from '@core/utils/logger';
 
 function BellIcon(): React.ReactElement {
@@ -72,7 +73,24 @@ function NotificationPermissionPrimerScreen(): React.ReactElement {
     }
     setBusy(true);
     try {
-      await permissionService.requestNotifications();
+      const status = await permissionService.requestNotifications();
+      // Already blocked → the OS won't show its dialog again, so Settings is
+      // the only way to turn notifications on.
+      if (status === AppPermissionStatus.PermanentlyDenied) {
+        showAlert({
+          title: 'Turn on notifications',
+          message: 'Notifications are turned off for Dangg. Open Settings to turn them on.',
+          buttons: [
+            { text: 'Not now', style: 'cancel' },
+            {
+              text: 'Open Settings',
+              onPress: () => {
+                void permissionService.openAppSettings();
+              },
+            },
+          ],
+        });
+      }
     } catch (e) {
       logger.warn('requestNotifications failed', e);
     } finally {

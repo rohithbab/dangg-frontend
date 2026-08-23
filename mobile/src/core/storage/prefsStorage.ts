@@ -8,6 +8,9 @@ export enum PrefsKey {
   ThemePref = 'THEME_PREF',
   /** Set once we've shown the first-launch camera permission prompt. */
   CameraPrimed = 'CAMERA_PRIMED',
+  /** Set once we've shown the first-launch notification permission primer, so
+   *  a newly-installed user is asked exactly once (never nagged again). */
+  NotifPermissionPrimed = 'NOTIF_PERMISSION_PRIMED',
   /** Per-category notification toggles (Settings screen). */
   NotifChatRequests = 'NOTIF_CHAT_REQUESTS',
   NotifPayments = 'NOTIF_PAYMENTS',
