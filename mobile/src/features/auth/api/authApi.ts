@@ -186,24 +186,56 @@ export async function verifyOtp(
  * set by the Supabase auth listener (real), and RootNavigator routes by role.
  */
 export async function finishLogin(phone: string): Promise<{ needsProfile: boolean }> {
-  let role: UserRole | null = null;
-  try {
-    role = await resolveUserRoleByPhone(phone);
-  } catch {
-    role = null;
-  }
-  if (!role) {
-    return { needsProfile: true };
-  }
   if (USE_MOCK_DATA) {
+    let role: UserRole | null = null;
+    try {
+      role = await resolveUserRoleByPhone(phone);
+    } catch {
+      role = null;
+    }
+    if (!role) {
+      return { needsProfile: true };
+    }
     if (role === UserRole.Female) {
       const info = await getFemaleVerificationStatus(phone);
       useSessionStore.getState().setVerificationStatus(info.status);
     }
     useSessionStore.getState().setSession(buildStubSession(role, phone));
+    return { needsProfile: false };
   }
-  // Real: the auth listener already set session + role + verification status.
-  return { needsProfile: false };
+
+  // Real path: the just-verified session already carries the account's role for
+  // a completed signup (set on user_metadata at completeSignupProfile), and the
+  // auth listener sets session/role/verification. `needsProfile` means only that
+  // the phone is verified but signup never finished — i.e. no role anywhere.
+  //
+  // Determine that from the session's JWT role, falling back to a public.users
+  // lookup BY ID (auth.uid()). The previous phone-based lookup was fragile: a
+  // stored-format mismatch made it miss the row for a *complete* user, so this
+  // returned needsProfile=true and the OTP screen bounced the user into the
+  // signup flow for a frame — visible as a login "screen flash" on the female
+  // side (the male app masks it because role resolves synchronously).
+  const client = getSupabaseClient();
+  const { data: sessionData } = await client.auth.getSession();
+  const session = sessionData.session;
+  if (!session) {
+    return { needsProfile: true };
+  }
+  let role =
+    parseUserRole(session.user.app_metadata?.role) ??
+    parseUserRole(session.user.user_metadata?.role);
+  if (!role) {
+    const { data, error } = await client
+      .from('users')
+      .select('role')
+      .eq('id', session.user.id)
+      .maybeSingle();
+    if (error) {
+      logger.warn('finishLogin: users lookup by id failed', error);
+    }
+    role = parseUserRole(data?.role);
+  }
+  return { needsProfile: !role };
 }
 
 /**
