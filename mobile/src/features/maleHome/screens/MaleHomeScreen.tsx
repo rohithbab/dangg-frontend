@@ -42,7 +42,7 @@ import ChatRequestConfirmModal from '@features/chatRequests/components/ChatReque
 import InsufficientCoinsModal from '@features/chatRequests/components/InsufficientCoinsModal';
 import { useResumeActiveChat } from '@features/chatRequests/hooks/useResumeActiveChat';
 import { useResumeSentRequest } from '@features/chatRequests/hooks/useResumeSentRequest';
-import { useNotificationPrimer } from '@features/common/useNotificationPrimer';
+import { useAskNotificationPermission } from '@features/common/useAskNotificationPermission';
 import { getProfile } from '@features/profile/api/profileApi';
 import { fetchWalletSnapshot } from '@features/wallet/api/walletApi';
 import { COIN_PACKAGES } from '@features/wallet/constants';
@@ -83,7 +83,7 @@ function greetingForNow(): string {
 function MaleHomeScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   // One-time notification-permission ask for newly-installed users.
-  useNotificationPrimer();
+  useAskNotificationPermission();
   const coinBalance = useCoinBalance();
 
   const session = useSessionStore(s => s.session);

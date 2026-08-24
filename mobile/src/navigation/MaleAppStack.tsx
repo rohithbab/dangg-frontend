@@ -8,7 +8,6 @@ import ChatRequestTimeoutScreen from '@features/chatRequests/screens/ChatRequest
 import ChatSessionScreen from '@features/chatRequests/screens/ChatSessionScreen';
 import ChatsInboxScreen from '@features/chatRequests/screens/ChatsInboxScreen';
 import LikeDislikeRatingScreen from '@features/chatRequests/screens/LikeDislikeRatingScreen';
-import NotificationPermissionPrimerScreen from '@features/common/NotificationPermissionPrimerScreen';
 import PolicyViewerScreen from '@features/legal/screens/PolicyViewerScreen';
 import FemaleProfilePreviewScreen from '@features/maleHome/screens/FemaleProfilePreviewScreen';
 import NotificationsScreen from '@features/notifications/screens/NotificationsScreen';
@@ -84,7 +83,6 @@ function MaleAppStack(): React.ReactElement {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="DeleteAccount" component={DeleteAccountWarningScreen} />
       <Stack.Screen name="DeleteAccountConfirm" component={DeleteAccountConfirmScreen} />
-      <Stack.Screen name="NotificationPermission" component={NotificationPermissionPrimerScreen} />
       <Stack.Screen
         name="LikeDislikeRating"
         component={LikeDislikeRatingScreen}

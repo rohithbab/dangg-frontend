@@ -4,7 +4,6 @@ import React from 'react';
 import ChatsInboxScreen from '@features/chatRequests/screens/ChatsInboxScreen';
 import FemaleChatRequestAcceptedScreen from '@features/chatRequests/screens/FemaleChatRequestAcceptedScreen';
 import FemaleChatSessionScreen from '@features/chatRequests/screens/FemaleChatSessionScreen';
-import NotificationPermissionPrimerScreen from '@features/common/NotificationPermissionPrimerScreen';
 import AddBankScreen from '@features/earnings/screens/AddBankScreen';
 import AddPayoutMethodScreen from '@features/earnings/screens/AddPayoutMethodScreen';
 import AddUpiScreen from '@features/earnings/screens/AddUpiScreen';
@@ -81,7 +80,6 @@ function FemaleAppStack(): React.ReactElement {
       />
       <Stack.Screen name="DeleteAccount" component={DeleteAccountWarningScreen} />
       <Stack.Screen name="DeleteAccountConfirm" component={DeleteAccountConfirmScreen} />
-      <Stack.Screen name="NotificationPermission" component={NotificationPermissionPrimerScreen} />
       <Stack.Screen
         name="ChatRequestAccepted"
         component={FemaleChatRequestAcceptedScreen}

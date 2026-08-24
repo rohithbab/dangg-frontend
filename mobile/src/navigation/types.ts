@@ -62,7 +62,6 @@ export type FemaleAppStackParamList = {
   EditProfile: undefined;
   DeleteAccount: undefined;
   DeleteAccountConfirm: undefined;
-  NotificationPermission: undefined;
   ChatRequestAccepted: { requestId: string };
   ChatSession: { requestId: string };
 };
@@ -103,7 +102,6 @@ export type MaleAppStackParamList = {
   EditProfile: undefined;
   DeleteAccount: undefined;
   DeleteAccountConfirm: undefined;
-  NotificationPermission: undefined;
   LikeDislikeRating: { femaleId: string; requestId: string };
 };
 
