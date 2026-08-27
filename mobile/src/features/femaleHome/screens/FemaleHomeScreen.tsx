@@ -18,7 +18,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { moderateScale, scaleFont } from '@theme/responsive';
 import { InterFont } from '@theme/typography';
@@ -450,6 +450,7 @@ function ShakeToast({
   message: string | null;
   onHide: () => void;
 }): React.ReactElement | null {
+  const insets = useSafeAreaInsets();
   const tx = useSharedValue(0);
   const opacity = useSharedValue(0);
 
@@ -481,7 +482,10 @@ function ShakeToast({
     return null;
   }
   return (
-    <Animated.View style={[styles.toast, style]} pointerEvents="none">
+    <Animated.View
+      style={[styles.toast, { top: insets.top + FS.sm }, style]}
+      pointerEvents="none"
+    >
       <Text style={styles.toastText}>{message}</Text>
     </Animated.View>
   );
@@ -612,7 +616,8 @@ const styles = StyleSheet.create({
 
   toast: {
     position: 'absolute',
-    top: FS.sm,
+    // top is applied inline as insets.top + FS.sm so the toast clears the
+    // status bar / notch instead of rendering under it.
     left: FS.lg,
     right: FS.lg,
     backgroundColor: FC.card,

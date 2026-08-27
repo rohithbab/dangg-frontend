@@ -10,7 +10,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -1394,10 +1393,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: AppSpacing.md,
-    paddingTop:
-      Platform.OS === 'android'
-        ? (StatusBar.currentHeight ?? 0) + AppSpacing.sm + 2
-        : AppSpacing.sm + 2,
+    // The screen's SafeAreaView (edges top) already pads for the status bar /
+    // notch — the header only adds a small gap on top of that. (Previously this
+    // also added StatusBar.currentHeight, double-counting the inset, which
+    // desynced from the real safe area on edge-to-edge Android.)
+    paddingTop: AppSpacing.sm + 2,
     paddingBottom: AppSpacing.sm + 2,
     backgroundColor: AppColors.background,
     borderBottomWidth: StyleSheet.hairlineWidth,
