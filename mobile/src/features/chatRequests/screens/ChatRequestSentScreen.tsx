@@ -43,6 +43,16 @@ type Route = RouteProp<MaleAppStackParamList, 'ChatRequestSent'>;
 const REQUEST_EXPIRY_S = CHAT_REQUEST_AUTO_DECLINE_S;
 const POLL_INTERVAL_MS = 3000;
 
+// Never show a request window longer than our configured max. A backend still
+// issuing an over-long expires_at (e.g. a not-yet-redeployed 120s build) would
+// otherwise make the male's countdown disagree with the real 30s auto-decline;
+// min() trims that down while leaving a genuine shorter remaining (resume)
+// untouched. `undefined` → a fresh full window from now.
+const cappedExpiry = (target: number | undefined): number => {
+  const cap = serverNowMs() + REQUEST_EXPIRY_S * 1000;
+  return target == null ? cap : Math.min(target, cap);
+};
+
 /**
  * B8 · Waiting (Neue). Ripple-ring avatar of the requested female + "Waiting
  * for {name} to accept…". Polls status every 3s and routes to the matching
@@ -58,7 +68,7 @@ function ChatRequestSentScreen(): React.ReactElement {
   // `expires_at` is passed in. Deriving the countdown from this — instead of a
   // decrementing counter — keeps it synced with the female and immune to the JS
   // timer pausing while the app is backgrounded.
-  const expiresAtRef = useRef(resumedExpiresAt ?? serverNowMs() + REQUEST_EXPIRY_S * 1000);
+  const expiresAtRef = useRef(cappedExpiry(resumedExpiresAt));
   const remaining = useCallback(
     (): number => Math.max(0, Math.round((expiresAtRef.current - serverNowMs()) / 1000)),
     [],
@@ -104,10 +114,12 @@ function ChatRequestSentScreen(): React.ReactElement {
       if (cancelled) {
         return;
       }
-      // Fresh send (no resumed expiry): re-base the target on the corrected
-      // clock so the full window is accurate from the start.
-      if (rebaseFresh && resumedExpiresAt == null) {
-        expiresAtRef.current = serverNowMs() + REQUEST_EXPIRY_S * 1000;
+      // On mount, re-base against the corrected clock — this also trims a stale
+      // over-long server window (a not-yet-redeployed backend) down to our max.
+      // On a plain foreground we keep the fixed absolute target so the countdown
+      // never jumps.
+      if (rebaseFresh) {
+        expiresAtRef.current = cappedExpiry(resumedExpiresAt);
       }
       setSecondsLeft(remaining());
     };

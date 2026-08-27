@@ -48,6 +48,13 @@ export const NOTCH_WIDTH = 88;
 export const NOTCH_DEPTH = 30;
 
 // --- Chat request modal -------------------------------------------------
+// The chat-request auto-decline window (seconds). Must match the backend
+// `chat-requests-send` TIMEOUT_SECONDS and the DB clamp trigger
+// (clamp_chat_request_expiry). Both the male's waiting screen and the female's
+// incoming card derive their countdown from the request's real `expires_at` but
+// CAP it at this value — so a backend still issuing an over-long window (e.g. a
+// not-yet-redeployed 120s build) can never make either side wait past the true
+// auto-decline. Also the fallback window when no `expires_at` is available yet.
 export const CHAT_REQUEST_AUTO_DECLINE_S = 30;
 
 // --- Payouts ------------------------------------------------------------

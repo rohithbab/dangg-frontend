@@ -1,6 +1,6 @@
 import { Check, X } from 'lucide-react-native';
-import React, { useCallback, useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppColors } from '@theme/colors';
 import { moderateScale, scaleFont } from '@theme/responsive';
@@ -16,7 +16,7 @@ import { useSessionStore } from '@store/sessionStore';
 
 import { UserRole } from '@app-types/domain';
 
-import { acceptRequest, declineRequest } from '../api/chatRequestApi';
+import { acceptRequest, declineRequest, serverNowMs, syncServerClock } from '../api/chatRequestApi';
 import { type IncomingChatRequest, useChatRequestStore } from '../store/chatRequestStore';
 
 function formatCountdown(secondsLeft: number): string {
@@ -53,36 +53,85 @@ function IncomingChatRequestModal(): React.ReactElement | null {
 
   const displayRequest = incoming || lastRequest;
 
+  // Absolute expiry we count down to, captured once per request (after the
+  // clock is synced) and CAPPED at our configured max. A backend that hasn't
+  // picked up the shortened window yet can still hand us an over-long
+  // expires_at (e.g. a not-yet-redeployed 120s build); capping keeps her card
+  // in step with the real 30s auto-decline. Fixed once so `now + max` moving
+  // forward each tick can't freeze the countdown.
+  const effectiveExpiryRef = useRef(0);
+
+  // Countdown derived from the request's ABSOLUTE (capped) expiry — server
+  // clock, not a naive counter — so it shows the true time left even if she was
+  // backgrounded when the request arrived, stays in lockstep with the male's
+  // waiting screen, and hits 0 exactly when the backend expires it (never lets
+  // her accept a request the male has already given up on).
+  const remaining = useCallback(
+    (): number =>
+      incoming
+        ? Math.max(0, Math.round((effectiveExpiryRef.current - serverNowMs()) / 1000))
+        : 0,
+    [incoming],
+  );
+
   useEffect(() => {
     if (!incoming) {
       setSecondsLeft(CHAT_REQUEST_AUTO_DECLINE_S);
       return undefined;
     }
+    const serverExpiry = incoming.expiresAt;
+    let cancelled = false;
+    let tick: ReturnType<typeof setInterval> | null = null;
+    // `expiresAt` is a SERVER timestamp — sync the clock so the countdown is
+    // measured against server time, not the device clock (which can be skewed,
+    // esp. on emulators, otherwise showing absurd values like "2645:31"). Show a
+    // placeholder until the sync lands, then start ticking against real time.
+    const start = async (): Promise<void> => {
+      await syncServerClock();
+      if (cancelled) {
+        return;
+      }
+      // Cap the window at our configured max the moment it lands (see
+      // effectiveExpiryRef); leaves a genuine shorter remaining untouched.
+      effectiveExpiryRef.current = Math.min(
+        serverExpiry,
+        serverNowMs() + CHAT_REQUEST_AUTO_DECLINE_S * 1000,
+      );
+      setSecondsLeft(remaining());
+      tick = setInterval(() => setSecondsLeft(remaining()), 1000);
+    };
     setSecondsLeft(CHAT_REQUEST_AUTO_DECLINE_S);
-    const tick = setInterval(() => {
-      setSecondsLeft(prev => Math.max(0, prev - 1));
-    }, 1000);
-    return () => clearInterval(tick);
-  }, [incoming]);
-
-  const autoDecline = useCallback(async (): Promise<void> => {
-    if (!incoming) {
-      return;
-    }
-    const reqId = incoming.id;
-    clear();
-    try {
-      await declineRequest(reqId, 'timeout');
-    } catch (e) {
-      logger.warn('autoDecline failed in background', e);
-    }
-  }, [clear, incoming]);
+    void start();
+    // Recompute immediately on return (the interval is throttled while
+    // backgrounded, so it would otherwise resume from a stale value).
+    const sub = AppState.addEventListener('change', next => {
+      if (next === 'active') {
+        void syncServerClock().then(() => {
+          if (!cancelled) {
+            setSecondsLeft(remaining());
+          }
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+      if (tick) {
+        clearInterval(tick);
+      }
+      sub.remove();
+    };
+  }, [incoming, remaining]);
 
   useEffect(() => {
     if (incoming && secondsLeft === 0) {
-      void autoDecline();
+      // Timed out — just dismiss the card locally and let the request EXPIRE on
+      // the backend (the expiry cron notifies the male "no response"). We must
+      // NOT decline it here: a timeout is not a decline, and declining wrongly
+      // tells the male "she declined your chat request" when she simply never
+      // answered (both the "No Response" screen AND a false "declined" toast).
+      clear();
     }
-  }, [autoDecline, incoming, secondsLeft]);
+  }, [clear, incoming, secondsLeft]);
 
   const handleDecline = useCallback(async (): Promise<void> => {
     if (!incoming) {
