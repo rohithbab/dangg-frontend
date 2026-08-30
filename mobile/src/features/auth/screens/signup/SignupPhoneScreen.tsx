@@ -118,7 +118,8 @@ function SignupPhoneScreen(): React.ReactElement {
               style={styles.input}
               value={phone}
               onChangeText={t => {
-                setPhoneInput(t);
+                // Digits only, max 10 — strips any pasted +/spaces/symbols.
+                setPhoneInput(t.replace(/\D/g, '').slice(0, 10));
                 if (error) {
                   setError(null);
                 }
@@ -131,7 +132,7 @@ function SignupPhoneScreen(): React.ReactElement {
               placeholder="98765 43210"
               placeholderTextColor="#5A5A62"
               keyboardType="phone-pad"
-              maxLength={11}
+              maxLength={10}
               autoFocus
             />
           </View>
