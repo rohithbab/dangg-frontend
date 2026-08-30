@@ -45,6 +45,7 @@ export type FemaleAppStackParamList = {
   ReportIssue: undefined;
   AboutApp: undefined;
   PolicyViewer: { policyId: PolicyId };
+  BlockedUsers: undefined;
   Settings: undefined;
   /** Placeholder for the payout flow shipped in a later prompt. */
   PayoutRequest: undefined;
@@ -98,6 +99,7 @@ export type MaleAppStackParamList = {
   ReportIssue: undefined;
   AboutApp: undefined;
   PolicyViewer: { policyId: PolicyId };
+  BlockedUsers: undefined;
   Settings: undefined;
   EditProfile: undefined;
   DeleteAccount: undefined;

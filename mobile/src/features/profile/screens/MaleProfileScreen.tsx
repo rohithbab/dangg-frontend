@@ -1,6 +1,7 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
+  Ban,
   Bell,
   Camera,
   ChevronRight,
@@ -191,6 +192,11 @@ function MaleProfileScreen(): React.ReactElement {
             icon={mutedIcon(Bell)}
             label="Notifications"
             onPress={() => navigation.navigate('Settings')}
+          />
+          <Row
+            icon={mutedIcon(Ban)}
+            label="Blocked users"
+            onPress={() => navigation.navigate('BlockedUsers')}
             last
           />
         </Section>

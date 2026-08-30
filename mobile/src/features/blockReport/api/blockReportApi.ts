@@ -62,6 +62,36 @@ export async function blockUser(blockedUserId: string, reason?: string): Promise
   }
 }
 
+export type BlockedUser = {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  blockedAt: string;
+};
+
+/** The users the caller has blocked, for the "Blocked users" management screen. */
+export async function getBlockedUsers(): Promise<BlockedUser[]> {
+  if (USE_MOCK_DATA) {
+    return [];
+  }
+  const { data, error } = await getSupabaseClient().rpc('get_my_blocked_users');
+  if (error) {
+    throw mapSupabaseError(error);
+  }
+  const rows = (data ?? []) as Array<{
+    id: string;
+    name: string | null;
+    profile_picture_url: string | null;
+    blocked_at: string;
+  }>;
+  return rows.map(r => ({
+    id: r.id,
+    name: r.name ?? 'User',
+    avatarUrl: r.profile_picture_url ?? null,
+    blockedAt: r.blocked_at,
+  }));
+}
+
 export async function unblockUser(blockedUserId: string): Promise<void> {
   if (USE_MOCK_DATA) {
     await sleep(500);

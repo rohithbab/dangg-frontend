@@ -12,6 +12,7 @@ import PolicyViewerScreen from '@features/legal/screens/PolicyViewerScreen';
 import FemaleProfilePreviewScreen from '@features/maleHome/screens/FemaleProfilePreviewScreen';
 import NotificationsScreen from '@features/notifications/screens/NotificationsScreen';
 import AboutAppScreen from '@features/profile/screens/AboutAppScreen';
+import BlockedUsersScreen from '@features/profile/screens/BlockedUsersScreen';
 import DeleteAccountConfirmScreen from '@features/profile/screens/DeleteAccountConfirmScreen';
 import DeleteAccountWarningScreen from '@features/profile/screens/DeleteAccountWarningScreen';
 import EditProfileScreen from '@features/profile/screens/EditProfileScreen';
@@ -78,6 +79,7 @@ function MaleAppStack(): React.ReactElement {
       <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
       <Stack.Screen name="ReportIssue" component={ReportIssueScreen} />
       <Stack.Screen name="AboutApp" component={AboutAppScreen} />
+      <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
       <Stack.Screen name="PolicyViewer" component={PolicyViewerScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />

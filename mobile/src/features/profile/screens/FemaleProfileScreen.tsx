@@ -2,6 +2,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   BadgeCheck,
+  Ban,
   Bell,
   Camera,
   ChevronRight,
@@ -209,6 +210,11 @@ function FemaleProfileScreen(): React.ReactElement {
             icon={mutedIcon(User)}
             label="Personal info"
             onPress={() => navigation.navigate('EditProfile')}
+          />
+          <Row
+            icon={mutedIcon(Ban)}
+            label="Blocked users"
+            onPress={() => navigation.navigate('BlockedUsers')}
             last
           />
         </Section>
