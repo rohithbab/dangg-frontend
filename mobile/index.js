@@ -10,6 +10,7 @@ import 'react-native-gesture-handler';
 // Global stylesheet interceptor for dynamic dark mode
 import './src/theme/darkModeInterceptor';
 
+import notifee, { EventType } from '@notifee/react-native';
 import messaging from '@react-native-firebase/messaging';
 import { AppRegistry } from 'react-native';
 import Config from 'react-native-config';
@@ -34,5 +35,15 @@ if (Config.ENABLE_FIREBASE === 'true') {
     logger.warn('FCM background handler not registered:', e?.message ?? e);
   }
 }
+
+// notifee background/quit event handler — MUST be registered at module scope
+// (notifee warns otherwise). Tapping a step-away reminder brings the app
+// forward, where the chat-reconnect logic lands the user back in; we just clear
+// the remaining reminders so nothing stale lingers once they've responded.
+notifee.onBackgroundEvent(async ({ type }) => {
+  if (type === EventType.PRESS || type === EventType.DISMISSED) {
+    await notifee.cancelAllNotifications().catch(() => undefined);
+  }
+});
 
 AppRegistry.registerComponent(appName, () => App);

@@ -45,6 +45,10 @@ import { showActionAlert, showAlert } from '@core/feedback';
 import { isBareMediaKey } from '@core/network/mediaService';
 import { getSupabaseClient } from '@core/network/supabaseClient';
 import { AppPermissionStatus, permissionService } from '@core/services/permissionService';
+import {
+  cancelStepAwayNotifications,
+  scheduleStepAwayNotifications,
+} from '@core/services/stepAwayNotifications';
 import { logger } from '@core/utils/logger';
 
 import { type MaleAppStackParamList } from '@navigation/types';
@@ -862,15 +866,31 @@ function ChatSessionScreen(): React.ReactElement {
     if (!isLive || !sessionId) {
       return;
     }
+    // On (re)entry the user is present — proactively clear any stale "stepped
+    // away" marker (and pending reminders) left by an earlier background /
+    // force-close. The listener below only fires on TRANSITIONS, so a fresh
+    // mount after a force-close+reopen would otherwise leave the marker set and
+    // the peer would end the chat while this user is actually here (#5).
+    if (AppState.currentState === 'active') {
+      void chatSessionSetBackground(sessionId, false).catch(() => undefined);
+      void cancelStepAwayNotifications();
+    }
     const sub = AppState.addEventListener('change', next => {
       if (next === 'background' && !pickingMediaRef.current) {
         void chatSessionSetBackground(sessionId, true).catch(() => undefined);
+        // He's backgrounded and can't see the in-app banner — remind him via
+        // OS notifications that the grace clock is running.
+        void scheduleStepAwayNotifications(partnerName);
       } else if (next === 'active') {
         void chatSessionSetBackground(sessionId, false).catch(() => undefined);
+        void cancelStepAwayNotifications();
       }
     });
-    return () => sub.remove();
-  }, [isLive, sessionId]);
+    return () => {
+      sub.remove();
+      void cancelStepAwayNotifications();
+    };
+  }, [isLive, sessionId, partnerName]);
 
   useEffect(() => {
     if (USE_MOCK_DATA) {
