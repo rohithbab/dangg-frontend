@@ -48,9 +48,12 @@ const POLL_INTERVAL_MS = 3000;
 // otherwise make the male's countdown disagree with the real 30s auto-decline;
 // min() trims that down while leaving a genuine shorter remaining (resume)
 // untouched. `undefined` → a fresh full window from now.
-const cappedExpiry = (target: number | undefined): number => {
+const cappedExpiry = (target: number | undefined | null): number => {
   const cap = serverNowMs() + REQUEST_EXPIRY_S * 1000;
-  return target == null ? cap : Math.min(target, cap);
+  // Only trust a finite, positive target — undefined/null/NaN → fresh window.
+  return typeof target === 'number' && Number.isFinite(target) && target > 0
+    ? Math.min(target, cap)
+    : cap;
 };
 
 /**

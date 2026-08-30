@@ -7,6 +7,10 @@ export type IncomingChatRequest = {
   requesterAvatarUrl: string | null;
   coinAmount: number;
   receivedAt: Date;
+  /** Absolute request expiry in epoch ms (server clock) — drives the card's
+   *  countdown and matches the male's waiting screen + the backend's accept
+   *  guard, so both sides end at the same moment. */
+  expiresAt: number;
   requesterRating?: number;
   requesterTotalChats?: number;
   requesterOnlineStatus?: 'online' | 'offline' | 'away' | 'busy';
@@ -14,7 +18,15 @@ export type IncomingChatRequest = {
 
 type ChatRequestState = {
   incoming: IncomingChatRequest | null;
+  /** Id of the last request the female resolved (accepted / declined / timed
+   *  out). Any driver — the poll in IncomingChatRequestListener AND the
+   *  realtime subscription in sessionStore — that tries to re-surface the SAME
+   *  id is ignored, so a just-cleared card can't loop back while the backend
+   *  status flip is still in flight. */
+  dismissedId: string | null;
   setIncoming: (request: IncomingChatRequest | null) => void;
+  /** Resolve + remember: clears the card and blocks this id from re-appearing. */
+  dismiss: (id: string) => void;
   clear: () => void;
 };
 
@@ -28,9 +40,18 @@ type ChatRequestState = {
  * Subscribe with a selector — `useChatRequestStore(s => s.incoming)`.
  */
 export const useChatRequestStore = create<ChatRequestState>()(
-  subscribeWithSelector(set => ({
+  subscribeWithSelector((set, get) => ({
     incoming: null,
-    setIncoming: (request): void => set({ incoming: request }),
+    dismissedId: null,
+    setIncoming: (request): void => {
+      // Ignore a re-surface of an already-resolved request (loop guard). A
+      // brand-new request (different id) always passes through.
+      if (request && request.id === get().dismissedId) {
+        return;
+      }
+      set({ incoming: request });
+    },
+    dismiss: (id): void => set({ incoming: null, dismissedId: id }),
     clear: (): void => set({ incoming: null }),
   })),
 );

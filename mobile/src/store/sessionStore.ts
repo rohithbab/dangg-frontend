@@ -586,6 +586,7 @@ export function subscribeSupabaseAuth(client: SupabaseClient): { unsubscribe: ()
                       requesterAvatarUrl: maleData.profile_picture_url,
                       coinAmount: req.chat_cost_coins,
                       receivedAt: new Date(req.sent_at || Date.now()),
+                      expiresAt: new Date(req.expires_at || Date.now()).getTime(),
                     });
                   }
                 } catch (e) {

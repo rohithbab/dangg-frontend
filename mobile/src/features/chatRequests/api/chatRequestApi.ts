@@ -163,9 +163,9 @@ export type SentRequestStatus = 'pending' | 'accepted' | 'declined' | 'expired';
 export async function sendChatRequest(payload: {
   femaleId: string;
   coinCost: number;
-}): Promise<{ requestId: string; newCoinBalance: number | null }> {
+}): Promise<{ requestId: string; newCoinBalance: number | null; expiresAt: number | null }> {
   if (USE_MOCK_DATA) {
-    return { requestId: `local-${Date.now()}`, newCoinBalance: null };
+    return { requestId: `local-${Date.now()}`, newCoinBalance: null, expiresAt: null };
   }
   const { data, error } = await getSupabaseClient().functions.invoke('chat-requests-send', {
     body: { femaleId: payload.femaleId },
@@ -179,10 +179,17 @@ export async function sendChatRequest(payload: {
     }
     throw mapSupabaseError(error);
   }
-  const body = unwrapFunctionData<{ chatRequestId: string; newCoinBalance?: number }>(data);
+  const body = unwrapFunctionData<{
+    chatRequestId: string;
+    newCoinBalance?: number;
+    expiresAt?: string;
+  }>(data);
   return {
     requestId: body.chatRequestId,
     newCoinBalance: typeof body.newCoinBalance === 'number' ? body.newCoinBalance : null,
+    // Real server expiry — the waiting screen counts down from this so it stays
+    // aligned with the backend (and the female) whatever the timeout window is.
+    expiresAt: body.expiresAt ? new Date(body.expiresAt).getTime() : null,
   };
 }
 
@@ -206,13 +213,22 @@ export async function fetchPendingIncomingRequest(): Promise<IncomingChatRequest
 
   const { data: req, error } = await client
     .from('chat_requests')
-    .select('id, male_id, chat_cost_coins, sent_at, status')
+    .select('id, male_id, chat_cost_coins, sent_at, status, expires_at')
     .eq('female_id', femaleId)
     .eq('status', 'pending')
     .order('sent_at', { ascending: false })
     .limit(1)
     .maybeSingle();
   if (error || !req) {
+    return null;
+  }
+
+  // Guard the window the cron hasn't swept yet: a request past its expires_at is
+  // effectively dead (the backend accept guard rejects it), so never surface a
+  // card the female could tap only to fail — or worse, a stale card left over
+  // after the male already gave up.
+  const expiresAt = new Date(req.expires_at as string).getTime();
+  if (expiresAt <= serverNowMs()) {
     return null;
   }
 
@@ -235,6 +251,7 @@ export async function fetchPendingIncomingRequest(): Promise<IncomingChatRequest
     requesterAvatarUrl,
     coinAmount: req.chat_cost_coins as number,
     receivedAt: new Date((req.sent_at as string) ?? Date.now()),
+    expiresAt,
   };
 }
 

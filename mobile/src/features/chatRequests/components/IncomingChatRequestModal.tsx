@@ -1,3 +1,4 @@
+import notifee from '@notifee/react-native';
 import { Check, X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -8,7 +9,14 @@ import { InterFont } from '@theme/typography';
 
 import GradientAvatar from '@core/components/GradientAvatar';
 import { CHAT_REQUEST_AUTO_DECLINE_S } from '@core/config/constants';
+import { showToast } from '@core/feedback';
 import { logger } from '@core/utils/logger';
+
+/** Clear any OS notification for this request once it's resolved/expired, so a
+ *  stale "New chat request" push can't linger after the card is gone. */
+function clearRequestNotifications(): void {
+  void notifee.cancelAllNotifications().catch(() => undefined);
+}
 
 import { navigationRef } from '@navigation/navigationRef';
 
@@ -36,7 +44,7 @@ function initialsFromName(name: string): string {
  */
 function IncomingChatRequestModal(): React.ReactElement | null {
   const incoming = useChatRequestStore(s => s.incoming);
-  const clear = useChatRequestStore(s => s.clear);
+  const dismiss = useChatRequestStore(s => s.dismiss);
   // Only an authenticated female may see incoming requests. Gating here (in
   // addition to clearing the store on logout) makes it impossible for a card
   // to appear after sign-out, even if an in-flight poll/realtime callback
@@ -44,6 +52,7 @@ function IncomingChatRequestModal(): React.ReactElement | null {
   const isAuthedFemale = useSessionStore(s => s.session !== null && s.role === UserRole.Female);
   const [secondsLeft, setSecondsLeft] = useState(CHAT_REQUEST_AUTO_DECLINE_S);
   const [lastRequest, setLastRequest] = useState<IncomingChatRequest | null>(null);
+  const [accepting, setAccepting] = useState(false);
 
   useEffect(() => {
     if (incoming) {
@@ -77,9 +86,15 @@ function IncomingChatRequestModal(): React.ReactElement | null {
   useEffect(() => {
     if (!incoming) {
       setSecondsLeft(CHAT_REQUEST_AUTO_DECLINE_S);
+      setAccepting(false);
       return undefined;
     }
-    const serverExpiry = incoming.expiresAt;
+    // Defensive: only trust a finite, positive expiry. A payload that arrived
+    // without a usable `expires_at` (a push-open path that didn't hydrate it,
+    // or an older build) must fall back to a fresh full window — never render
+    // "NaN:NaN" from Math.min(undefined/NaN, …).
+    const raw = incoming.expiresAt;
+    const serverExpiry = typeof raw === 'number' && Number.isFinite(raw) && raw > 0 ? raw : null;
     let cancelled = false;
     let tick: ReturnType<typeof setInterval> | null = null;
     // `expiresAt` is a SERVER timestamp — sync the clock so the countdown is
@@ -92,11 +107,10 @@ function IncomingChatRequestModal(): React.ReactElement | null {
         return;
       }
       // Cap the window at our configured max the moment it lands (see
-      // effectiveExpiryRef); leaves a genuine shorter remaining untouched.
-      effectiveExpiryRef.current = Math.min(
-        serverExpiry,
-        serverNowMs() + CHAT_REQUEST_AUTO_DECLINE_S * 1000,
-      );
+      // effectiveExpiryRef); leaves a genuine shorter remaining untouched. With
+      // no usable server expiry, start a fresh full window.
+      const cap = serverNowMs() + CHAT_REQUEST_AUTO_DECLINE_S * 1000;
+      effectiveExpiryRef.current = serverExpiry != null ? Math.min(serverExpiry, cap) : cap;
       setSecondsLeft(remaining());
       tick = setInterval(() => setSecondsLeft(remaining()), 1000);
     };
@@ -124,46 +138,62 @@ function IncomingChatRequestModal(): React.ReactElement | null {
 
   useEffect(() => {
     if (incoming && secondsLeft === 0) {
-      // Timed out — just dismiss the card locally and let the request EXPIRE on
-      // the backend (the expiry cron notifies the male "no response"). We must
-      // NOT decline it here: a timeout is not a decline, and declining wrongly
+      // Timed out (or arrived already expired) — dismiss the card locally and
+      // let the request EXPIRE on the backend (the expiry cron notifies the
+      // male "no response"). `dismiss` (not `clear`) records the id so a
+      // competing driver can't re-surface the dead card in a loop. We must NOT
+      // decline it here: a timeout is not a decline, and declining wrongly
       // tells the male "she declined your chat request" when she simply never
       // answered (both the "No Response" screen AND a false "declined" toast).
-      clear();
+      dismiss(incoming.id);
+      clearRequestNotifications();
     }
-  }, [clear, incoming, secondsLeft]);
+  }, [dismiss, incoming, secondsLeft]);
 
   const handleDecline = useCallback(async (): Promise<void> => {
     if (!incoming) {
       return;
     }
     const reqId = incoming.id;
-    clear();
+    dismiss(reqId);
+    clearRequestNotifications();
     try {
       await declineRequest(reqId, 'manual');
     } catch (e) {
       logger.warn('declineRequest failed in background', e);
     }
-  }, [clear, incoming]);
+  }, [dismiss, incoming]);
 
   const handleAccept = useCallback(async (): Promise<void> => {
-    if (!incoming) {
+    if (accepting || !incoming) {
       return;
     }
     const reqId = incoming.id;
+    setAccepting(true);
+    // Confirm the accept with the backend BEFORE navigating. If the request
+    // already expired / was withdrawn, chat-requests-respond returns 409 and no
+    // session exists — navigating optimistically would strand her on a broken
+    // "accepted" screen that a competing driver then re-surfaces in a loop.
+    try {
+      await acceptRequest(reqId);
+    } catch (e) {
+      logger.warn('acceptRequest failed', e);
+      dismiss(reqId);
+      clearRequestNotifications();
+      setAccepting(false);
+      showToast('This request has expired.');
+      return;
+    }
+    dismiss(reqId);
+    clearRequestNotifications();
+    setAccepting(false);
     if (navigationRef.isReady()) {
       navigationRef.navigate('FemaleApp', {
         screen: 'ChatRequestAccepted',
         params: { requestId: reqId },
       });
     }
-    clear();
-    try {
-      await acceptRequest(reqId);
-    } catch (e) {
-      logger.warn('acceptRequest failed in background', e);
-    }
-  }, [clear, incoming]);
+  }, [accepting, dismiss, incoming]);
 
   if (!displayRequest || !isAuthedFemale) {
     return null;
@@ -221,6 +251,7 @@ function IncomingChatRequestModal(): React.ReactElement | null {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Accept"
+              disabled={accepting}
               onPress={() => {
                 void handleAccept();
               }}
@@ -228,6 +259,7 @@ function IncomingChatRequestModal(): React.ReactElement | null {
                 styles.circleBtn,
                 styles.acceptBtn,
                 pressed && styles.pressed,
+                accepting && styles.pressed,
               ]}
             >
               <Check size={30} color="#FFFFFF" strokeWidth={2.6} />
