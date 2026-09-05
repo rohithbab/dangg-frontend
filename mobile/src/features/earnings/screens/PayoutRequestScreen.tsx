@@ -84,7 +84,7 @@ function PayoutRequestScreen(): React.ReactElement {
       return;
     }
     if (amt < MIN_PAYOUT_AMOUNT_INR) {
-      setErrorText(`Minimum payout is ${MIN_PAYOUT_AMOUNT_INR.toLocaleString()} coins`);
+      setErrorText(`Minimum payout is ₹${MIN_PAYOUT_AMOUNT_INR}`);
       return;
     }
     if (amt > availableBalance) {
@@ -233,7 +233,7 @@ function PayoutRequestScreen(): React.ReactElement {
                 />
 
                 <Text style={styles.hintText}>
-                  Min withdrawal is {MIN_PAYOUT_AMOUNT_INR.toLocaleString()} coins. 1 coin = ₹1.
+                  Min withdrawal is ₹{MIN_PAYOUT_AMOUNT_INR}. Your coins are converted at ₹0.04 each.
                 </Text>
               </Card>
 

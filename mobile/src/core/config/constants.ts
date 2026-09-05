@@ -58,4 +58,4 @@ export const NOTCH_DEPTH = 30;
 export const CHAT_REQUEST_AUTO_DECLINE_S = 30;
 
 // --- Payouts ------------------------------------------------------------
-export const MIN_PAYOUT_AMOUNT_INR = 500;
+export const MIN_PAYOUT_AMOUNT_INR = 100;

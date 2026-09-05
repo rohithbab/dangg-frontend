@@ -29,7 +29,7 @@ const FAQS: ReadonlyArray<{ q: string; a: string }> = [
   },
   {
     q: 'How do payouts work?',
-    a: 'Tap Request Payout on the Earnings screen. The minimum payout is ₹500 and only one payout can be in review at a time.',
+    a: 'Tap Request Payout on the Earnings screen. The minimum payout is ₹100 and only one payout can be in review at a time.',
   },
   {
     q: 'How do I report a user?',
