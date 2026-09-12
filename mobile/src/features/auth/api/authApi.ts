@@ -355,6 +355,36 @@ export async function getFemaleVerificationStatus(
   };
 }
 
+/**
+ * The admin's reason for rejecting the current female's verification, for the
+ * rejection screen. Best-effort: RLS lets a female read her own `females` row
+ * (including `verification_rejection_reason`); any failure or a null reason
+ * degrades to `null` so the screen just shows its generic copy.
+ */
+export async function getMyVerificationRejectionReason(): Promise<string | null> {
+  if (USE_MOCK_DATA) {
+    await sleep(DEV_DELAY_MS / 2);
+    return 'Your selfie was too blurry to verify. Please retake it in good lighting.';
+  }
+  const client = getSupabaseClient();
+  const { data: userData } = await client.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) {
+    return null;
+  }
+  const { data, error } = await client
+    .from('females')
+    .select('verification_rejection_reason')
+    .eq('id', uid)
+    .maybeSingle();
+  if (error) {
+    logger.warn('getMyVerificationRejectionReason failed', error);
+    return null;
+  }
+  return (data as { verification_rejection_reason?: string | null } | null)
+    ?.verification_rejection_reason ?? null;
+}
+
 function parseVerificationStatus(raw: unknown): VerificationStatus {
   switch (raw) {
     case VerificationStatus.Pending:

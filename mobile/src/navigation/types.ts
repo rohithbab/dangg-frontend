@@ -21,6 +21,7 @@ export type AuthStackParamList = {
   FemaleSignupVerificationInfo: undefined;
   FemaleSignupFaceCapture: undefined;
   FemaleSignupVerificationSubmitted: undefined;
+  FemaleSignupVerificationRejected: undefined;
 
   // OTP login (no passwords anywhere in the app).
   LoginPhone: undefined;
