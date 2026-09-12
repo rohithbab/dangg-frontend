@@ -5,9 +5,11 @@ import {
   useIsAuthenticated,
   useIsBootstrapped,
   useSessionRole,
+  useVerificationPending,
   useVerificationStatus,
 } from '@store/sessionStore';
 
+import AuthResolvingScreen from '@features/splash/screens/AuthResolvingScreen';
 import SplashScreen from '@features/splash/screens/SplashScreen';
 
 import { UserRole, VerificationStatus } from '@app-types/domain';
@@ -44,6 +46,7 @@ function RootNavigator(): React.ReactElement {
   const authed = useIsAuthenticated();
   const role = useSessionRole();
   const verificationStatus = useVerificationStatus();
+  const verificationPending = useVerificationPending();
   const [splashPlayed, setSplashPlayed] = useState(false);
 
   const handleSplashDone = useCallback((): void => setSplashPlayed(true), []);
@@ -59,10 +62,18 @@ function RootNavigator(): React.ReactElement {
   // animation has to finish, so a fast restore doesn't flash the splash.
   const ready = bootstrapped && splashPlayed;
 
+  // Fresh female sign-in whose verification status is still being fetched: hold
+  // a neutral loader instead of routing on the stale post-logout status, which
+  // flashed the "verify your account" screen for a frame before Home. Bounded by
+  // the fetch (see `verificationPending`), never a fixed delay.
+  const resolvingFemaleVerification = authed && role === UserRole.Female && verificationPending;
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
       {!ready ? (
         <Stack.Screen name="Boot">{() => <SplashScreen onDone={handleSplashDone} />}</Stack.Screen>
+      ) : resolvingFemaleVerification ? (
+        <Stack.Screen name="AuthResolving" component={AuthResolvingScreen} />
       ) : showFemaleApp ? (
         <Stack.Screen name="FemaleApp" component={FemaleAppStack} />
       ) : showMaleApp ? (

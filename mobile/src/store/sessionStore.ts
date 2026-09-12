@@ -41,10 +41,22 @@ export type SessionState = {
    * state is what bounced restored users back to Login.
    */
   bootstrapped: boolean;
+  /**
+   * Transient: a female just signed in (fresh SIGNED_IN) and her verification
+   * status has NOT yet been fetched for this session. `session`/`role` are set
+   * synchronously in the auth callback, but the female verification fetch is
+   * deferred (async), so for that window `verificationStatus` is still the
+   * post-logout `None`. Routing on that stale value flashed the "verify your
+   * account" screen for a split second before the real status landed and swapped
+   * her to Home. RootNavigator holds a neutral loader while this is true so no
+   * wrong route is ever mounted. Cleared the moment hydration completes.
+   */
+  verificationPending: boolean;
   setSession: (session: Session | null) => void;
   setVerificationStatus: (status: VerificationStatus) => void;
   setJustVerified: (value: boolean) => void;
   setBootstrapped: (value: boolean) => void;
+  setVerificationPending: (value: boolean) => void;
   clear: () => void;
 };
 
@@ -130,6 +142,7 @@ export const useSessionStore = create<SessionState>()(
     verificationStatus: readPersistedVerificationStatus(),
     justVerified: false,
     bootstrapped: false,
+    verificationPending: false,
 
     setSession: (session): void => set({ session, role: deriveRole(session) }),
 
@@ -141,6 +154,8 @@ export const useSessionStore = create<SessionState>()(
     setJustVerified: (value): void => set({ justVerified: value }),
 
     setBootstrapped: (value): void => set({ bootstrapped: value }),
+
+    setVerificationPending: (value): void => set({ verificationPending: value }),
 
     clear: (): void => {
       // A logged-out user must receive nothing — drop any pending incoming
@@ -154,6 +169,7 @@ export const useSessionStore = create<SessionState>()(
         role: null,
         verificationStatus: VerificationStatus.None,
         justVerified: false,
+        verificationPending: false,
       });
     },
   })),
@@ -167,6 +183,7 @@ export const useVerificationStatus = (): VerificationStatus =>
   useSessionStore(s => s.verificationStatus);
 export const useJustVerified = (): boolean => useSessionStore(s => s.justVerified);
 export const useIsBootstrapped = (): boolean => useSessionStore(s => s.bootstrapped);
+export const useVerificationPending = (): boolean => useSessionStore(s => s.verificationPending);
 /**
  * Authenticated, but signup never got past the Profile step — `public.users`
  * has no role for them. Routing sends these users back to SignupProfile
@@ -485,6 +502,22 @@ export function subscribeSupabaseAuth(client: SupabaseClient): { unsubscribe: ()
     // Guard against inheriting the previous account's persisted routing state.
     reconcilePersistedUser(session.user.id);
 
+    // Fresh female sign-in: hold routing until her verification status is fetched
+    // (below, deferred). Without this, RootNavigator would route on the stale
+    // post-logout `None` for the window before the fetch lands — flashing the
+    // "verify your account" screen before swapping to Home. Only for a genuine
+    // SIGNED_IN (not token refresh / cold-start restore, which either already
+    // routed correctly or are gated by `bootstrapped`) and only when we can't
+    // already prove she's verified, so a pending female sitting on the waiting
+    // screen never re-flashes the loader on a token refresh.
+    if (
+      event === 'SIGNED_IN' &&
+      deriveRole(session) === UserRole.Female &&
+      store.verificationStatus !== VerificationStatus.Verified
+    ) {
+      store.setVerificationPending(true);
+    }
+
     // DEV_MODE: derive verification status synchronously from the phone — no
     // network, so it's safe to run inside the callback.
     if (USE_MOCK_DATA) {
@@ -501,6 +534,7 @@ export function subscribeSupabaseAuth(client: SupabaseClient): { unsubscribe: ()
         }
         store.setVerificationStatus(status);
       }
+      store.setVerificationPending(false);
       store.setBootstrapped(true);
       return;
     }
@@ -643,6 +677,10 @@ async function hydrateSessionRoleAndStatus(
     // The persisted verification status seeded at store creation carries the
     // routing decision in that case, so a pending female still lands on the
     // "waiting for approval" screen rather than being bounced to Login.
+    // Clearing `verificationPending` here (always, even on failure) releases the
+    // fresh-sign-in loader so we never hang on it — the worst case is routing on
+    // the persisted/None status, exactly as before this gate existed.
+    useSessionStore.getState().setVerificationPending(false);
     useSessionStore.getState().setBootstrapped(true);
   }
 }

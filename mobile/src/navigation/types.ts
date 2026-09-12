@@ -124,6 +124,12 @@ export type RootStackParamList = {
    * hand — RootNavigator swaps it out once `bootstrapped` flips.
    */
   Boot: undefined;
+  /**
+   * Neutral loader held for the brief window after a fresh female sign-in while
+   * her verification status is fetched. Never navigated to by hand —
+   * RootNavigator swaps it in via `verificationPending`.
+   */
+  AuthResolving: undefined;
   Auth: NavigatorScreenParams<AuthStackParamList>;
   FemaleApp: NavigatorScreenParams<FemaleAppStackParamList>;
   MaleApp: NavigatorScreenParams<MaleAppStackParamList>;
