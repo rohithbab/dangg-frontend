@@ -1,6 +1,6 @@
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Clock, Play, Plus } from 'lucide-react-native';
+import { Clock, MoreVertical, Play, Plus } from 'lucide-react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -35,10 +35,12 @@ import { AppShadows } from '@theme/shadows';
 import { AppSpacing } from '@theme/spacing';
 import { AppTypography } from '@theme/typography';
 
+import BlockReportSheet from '@core/components/BlockReportSheet';
 import ConfirmationDialog from '@core/components/ConfirmationDialog';
 import GradientAvatar from '@core/components/GradientAvatar';
 import { USE_MOCK_DATA } from '@core/config/env';
-import { showActionAlert, showAlert } from '@core/feedback';
+import { showActionAlert, showAlert, showToast } from '@core/feedback';
+import { AppException } from '@core/network/apiException';
 import { isBareMediaKey } from '@core/network/mediaService';
 import { getSupabaseClient } from '@core/network/supabaseClient';
 import { AppPermissionStatus, permissionService } from '@core/services/permissionService';
@@ -49,6 +51,8 @@ import {
 import { logger } from '@core/utils/logger';
 
 import { type FemaleAppStackParamList } from '@navigation/types';
+
+import { blockUser, reportUser, toReportReason } from '@features/blockReport/api/blockReportApi';
 
 import {
   ensureChatMediaPermission,
@@ -344,6 +348,7 @@ function ChatHeader({
   isLive,
   onBack,
   onEnd,
+  onMenu,
 }: {
   name: string;
   avatarUri: string | null;
@@ -351,6 +356,8 @@ function ChatHeader({
   isLive: boolean;
   onBack: () => void;
   onEnd: () => void;
+  /** Overflow (block / report the male). Shown only while the chat is live. */
+  onMenu: () => void;
 }): React.ReactElement {
   const mm = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
   const ss = String(secondsElapsed % 60).padStart(2, '0');
@@ -390,6 +397,17 @@ function ChatHeader({
             <Clock size={13} color={AppColors.onSurface} strokeWidth={2} />
             <Text style={styles.countdownText}>{`${mm}:${ss}`}</Text>
           </View>
+        ) : null}
+        {isLive ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Block or report"
+            hitSlop={6}
+            onPress={onMenu}
+            style={styles.endBtn}
+          >
+            <MoreVertical size={20} color={AppColors.onSurface} strokeWidth={2} />
+          </Pressable>
         ) : null}
         {isLive ? (
           <Pressable
@@ -469,6 +487,10 @@ function FemaleChatSessionScreen(): React.ReactElement {
   // until the live session loads.
   const [partnerName, setPartnerName] = useState(MOCK_MALE_NAME);
   const [partnerAvatarUrl, setPartnerAvatarUrl] = useState<string | null>(null);
+  // The male participant's user id — captured from the session so she can block
+  // or report him from this chat (symmetric with the male's block-from-profile).
+  const [maleId, setMaleId] = useState<string | null>(null);
+  const [blockReportOpen, setBlockReportOpen] = useState(false);
 
   // Disconnect-to-home, invoked either by this user (confirmEnd) or by the poll
   // when the OTHER participant ends the session. Guarded so it runs once.
@@ -588,6 +610,7 @@ function FemaleChatSessionScreen(): React.ReactElement {
 
       setSelfId(currentUserId);
       setSessionId(session.id);
+      setMaleId(session.maleId);
       const startedMs = session.startedAt ? new Date(session.startedAt).getTime() : Date.now();
       setStartedAtMs(Number.isNaN(startedMs) ? Date.now() : startedMs);
       if (session.partnerName) {
@@ -936,6 +959,47 @@ function FemaleChatSessionScreen(): React.ReactElement {
     remoteEndRef.current();
   };
 
+  // Block the male she's chatting with. Reuses the same gender-agnostic
+  // `users-block` backend the male uses (blocker = auth.uid()), so it is
+  // server-enforced: the bidirectional check in chat-requests-send stops him
+  // sending her any future request. Blocking also ends THIS session (mirrors
+  // the "end chat" exit) so he's disconnected immediately, then exits to Home.
+  const handleBlockMale = async (): Promise<void> => {
+    setBlockReportOpen(false);
+    if (!maleId) {
+      return;
+    }
+    try {
+      await blockUser(maleId);
+      if (!USE_MOCK_DATA && sessionId) {
+        await endChatSession(sessionId).catch(e => logger.warn('endChatSession failed', e));
+      }
+      showToast(`${partnerName} has been blocked.`);
+    } catch (e) {
+      logger.warn('handleBlockMale failed', e);
+      showToast(e instanceof AppException ? e.message : "Couldn't block. Please try again.");
+    } finally {
+      remoteEndRef.current();
+    }
+  };
+
+  const handleReportMale = async (reason: string, comment: string): Promise<void> => {
+    if (!maleId) {
+      return;
+    }
+    try {
+      await reportUser({
+        reportedUserId: maleId,
+        reason: toReportReason(reason),
+        description: comment,
+      });
+      showToast('Report submitted. Our team will review it.');
+    } catch (e) {
+      logger.warn('handleReportMale failed', e);
+      showToast(e instanceof AppException ? e.message : "Couldn't submit report. Please try again.");
+    }
+  };
+
   if (loadError) {
     return (
       <SafeAreaView style={styles.loading} edges={['top', 'bottom']}>
@@ -974,6 +1038,7 @@ function FemaleChatSessionScreen(): React.ReactElement {
           }
         }}
         onEnd={() => setEndDialog(true)}
+        onMenu={() => setBlockReportOpen(true)}
       />
 
       <KeyboardAvoidingView
@@ -1072,6 +1137,14 @@ function FemaleChatSessionScreen(): React.ReactElement {
         visible={videoUri !== null}
         uri={videoUri}
         onClose={() => setVideoUri(null)}
+      />
+      <BlockReportSheet
+        visible={blockReportOpen}
+        onClose={() => setBlockReportOpen(false)}
+        target="male"
+        targetName={partnerName}
+        onBlock={handleBlockMale}
+        onReport={handleReportMale}
       />
       <ConfirmationDialog
         visible={permDenied !== null}
