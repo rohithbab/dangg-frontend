@@ -42,6 +42,7 @@ import ChatRequestConfirmModal from '@features/chatRequests/components/ChatReque
 import InsufficientCoinsModal from '@features/chatRequests/components/InsufficientCoinsModal';
 import { useResumeActiveChat } from '@features/chatRequests/hooks/useResumeActiveChat';
 import { useResumeSentRequest } from '@features/chatRequests/hooks/useResumeSentRequest';
+import { claimAcceptedTransition } from '@features/chatRequests/navigation/acceptedChatTransition';
 import { useAskNotificationPermission } from '@features/common/useAskNotificationPermission';
 import { getProfile } from '@features/profile/api/profileApi';
 import { fetchWalletSnapshot } from '@features/wallet/api/walletApi';
@@ -112,6 +113,14 @@ function MaleHomeScreen(): React.ReactElement {
   useResumeActiveChat(
     useCallback(
       (requestId: string): void => {
+        // On a cold start opened from the "accepted" push, both this resume
+        // check and navigateFromPush fire for the same acceptance. Claim the
+        // shared transition so only one opens the room — resuming straight into
+        // ChatSession here, or the push's ChatRequestAccepted → ChatSession, but
+        // never both (which would duplicate the room + its Realtime subscription).
+        if (!claimAcceptedTransition(requestId)) {
+          return;
+        }
         setResumeToast('Reconnecting to your chat…');
         setTimeout(() => {
           navigation.navigate('ChatSession', { requestId });
@@ -266,7 +275,7 @@ function MaleHomeScreen(): React.ReactElement {
     }
     setSubmitting(true);
     try {
-      const { requestId, newCoinBalance } = await sendChatRequest({
+      const { requestId, newCoinBalance, expiresAt } = await sendChatRequest({
         femaleId: selected.id,
         coinCost: 0,
       });
@@ -274,7 +283,11 @@ function MaleHomeScreen(): React.ReactElement {
         useWalletStore.getState().setBalance(newCoinBalance);
       }
       setConfirmOpen(false);
-      navigation.navigate('ChatRequestSent', { requestId, femaleName: selected.name });
+      navigation.navigate('ChatRequestSent', {
+        requestId,
+        femaleName: selected.name,
+        expiresAt: expiresAt ?? undefined,
+      });
     } catch (e) {
       logger.warn('sendChatRequest failed', e);
       setConfirmOpen(false);

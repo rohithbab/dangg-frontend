@@ -38,6 +38,7 @@ import { subscribeSupabaseAuth, useSessionStore } from '@store/sessionStore';
 
 import IncomingChatRequestListener from '@features/chatRequests/components/IncomingChatRequestListener';
 import IncomingChatRequestModal from '@features/chatRequests/components/IncomingChatRequestModal';
+import { claimAcceptedTransition } from '@features/chatRequests/navigation/acceptedChatTransition';
 import DeviceKickedNotice from '@features/common/DeviceKickedNotice';
 import OfflineOverlay from '@features/common/OfflineOverlay';
 
@@ -53,8 +54,14 @@ function navigateFromPush(message: RemoteMessage): void {
         // Realtime once the app is foregrounded — no extra navigation needed.
         break;
       case 'chat_request_accepted':
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (navigationRef as any).navigate('ChatRequestAccepted', { requestId });
+        // Idempotent: the in-app waiting-screen poll and the cold-start resume
+        // check drive the same accepted→room transition. Whoever claims the
+        // requestId first wins; this push no-ops if one already did, so tapping
+        // the notification can't stack a duplicate room (the reported loop).
+        if (requestId && claimAcceptedTransition(requestId)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (navigationRef as any).navigate('ChatRequestAccepted', { requestId });
+        }
         break;
       case 'chat_request_declined':
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
