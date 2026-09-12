@@ -93,6 +93,9 @@ export type ChatHistoryItem = {
   /** Last message body, or null when no messages have been sent yet. */
   lastMessage: string | null;
   lastMessageAt: Date | null;
+  /** When the chat session started — always present, so the card can show a
+   *  date/time even for a room with no messages. */
+  startedAt: Date;
   status: 'active' | 'ended';
   /** How long the room lasted, in seconds. Null while active or unsettled. */
   durationSeconds: number | null;
@@ -535,6 +538,7 @@ export async function listChatHistory(): Promise<ReadonlyArray<ChatHistoryItem>>
       counterpartAvatarUrl: profile?.profile_picture_url ?? null,
       lastMessage: snippet?.body ?? null,
       lastMessageAt: lastMessageAtIso ? new Date(lastMessageAtIso) : null,
+      startedAt: new Date(r.started_at),
       status: r.status,
       durationSeconds,
     };
@@ -802,15 +806,29 @@ export async function getSentRequestStatus(requestId: string): Promise<SentReque
   }
   const { data, error } = await getSupabaseClient()
     .from('chat_requests')
-    .select('status')
+    .select('status, expires_at')
     .eq('id', requestId)
     .maybeSingle();
   if (error) {
     throw mapSupabaseError(error);
   }
-  const status = (data as { status?: string } | null)?.status;
+  const row = data as { status?: string; expires_at?: string } | null;
+  const status = row?.status;
   if (status === 'accepted' || status === 'declined' || status === 'expired') {
     return status;
+  }
+  // A request past its expires_at is effectively expired even while its row is
+  // still 'pending' — the 60s expiry cron hasn't swept it yet. The female side
+  // already treats that window as expired (fetchPendingIncomingRequest filters
+  // it out, and the accept-guard rejects it), so the male must see the same
+  // outcome instead of waiting on a dead request. Server-authoritative expiry,
+  // measured against the synced server clock (skew-safe), keeps both sides in
+  // lockstep.
+  if (status === 'pending' && row?.expires_at) {
+    const expiresAt = new Date(row.expires_at).getTime();
+    if (Number.isFinite(expiresAt) && expiresAt <= serverNowMs()) {
+      return 'expired';
+    }
   }
   return 'pending';
 }

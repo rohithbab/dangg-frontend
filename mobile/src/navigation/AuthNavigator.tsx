@@ -11,6 +11,7 @@ import {
 import BankUpiDetailsScreen from '@features/auth/screens/female/BankUpiDetailsScreen';
 import FaceCaptureScreen from '@features/auth/screens/female/FaceCaptureScreen';
 import VerificationInfoScreen from '@features/auth/screens/female/VerificationInfoScreen';
+import VerificationRejectedScreen from '@features/auth/screens/female/VerificationRejectedScreen';
 import VerificationSubmittedScreen from '@features/auth/screens/female/VerificationSubmittedScreen';
 import LoginPhoneScreen from '@features/auth/screens/login/LoginPhoneScreen';
 import OtpVerificationScreen from '@features/auth/screens/shared/OtpVerificationScreen';
@@ -68,7 +69,7 @@ function AuthNavigator(): React.ReactElement {
     if (verificationStatus === VerificationStatus.Rejected) {
       navigationRef.reset({
         index: 0,
-        routes: [{ name: 'Auth', params: { screen: 'FemaleSignupVerificationInfo' } }],
+        routes: [{ name: 'Auth', params: { screen: 'FemaleSignupVerificationRejected' } }],
       });
     } else if (verificationStatus === VerificationStatus.Pending) {
       navigationRef.reset({
@@ -102,6 +103,11 @@ function AuthNavigator(): React.ReactElement {
       <Stack.Screen
         name="FemaleSignupVerificationSubmitted"
         component={VerificationSubmittedScreen}
+        options={{ animation: 'fade' }}
+      />
+      <Stack.Screen
+        name="FemaleSignupVerificationRejected"
+        component={VerificationRejectedScreen}
         options={{ animation: 'fade' }}
       />
 

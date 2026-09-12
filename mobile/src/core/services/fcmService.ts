@@ -82,6 +82,41 @@ export const fcmService = {
   async clearLocalToken(): Promise<void> {
     await secureStorage.removeItem(SecureKey.FcmToken);
   },
+
+  /**
+   * Unregisters THIS device's push token from the backend, then clears it
+   * locally. Call on logout / account deletion — WHILE the session is still
+   * valid, since the delete is authorised by RLS (`fcm_tokens_delete_own`,
+   * auth.uid() = user_id).
+   *
+   * Deletes by TOKEN, never by user_id: a second device signed into the same
+   * account has its own row (different token) and must keep receiving. Without
+   * this, a logged-out device's row lingered against the user and push-dispatch
+   * (SELECT token WHERE user_id = recipient) kept pushing to it — a logged-out
+   * device still got "New chat request" notifications.
+   */
+  async unregister(): Promise<void> {
+    if (!Env.enableFirebase) {
+      return;
+    }
+    try {
+      const token = await secureStorage.getItem(SecureKey.FcmToken);
+      if (token) {
+        const { error } = await getSupabaseClient()
+          .from('fcm_tokens')
+          .delete()
+          .eq('token', token);
+        if (error) {
+          logger.warn('fcm unregister: delete failed', error);
+        } else {
+          logger.debug('FCM token unregistered from backend');
+        }
+      }
+    } catch (e) {
+      logger.warn('fcm unregister threw', e);
+    }
+    await this.clearLocalToken();
+  },
 };
 
 /**

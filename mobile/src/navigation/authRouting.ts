@@ -28,13 +28,17 @@ export function resolveInitialRoute(
       return 'SignupProfile';
     }
     if (role === UserRole.Female) {
+      // Each verification state is handled explicitly. `rejected` in particular
+      // must NOT fall through to the "Get verified" (Take Photo) info screen the
+      // way `none` does — that silently hid the rejection from her; it gets its
+      // own screen that states the outcome and offers a resubmit.
       if (verificationStatus === VerificationStatus.Pending) {
         return 'FemaleSignupVerificationSubmitted';
       }
-      if (
-        verificationStatus === VerificationStatus.None ||
-        verificationStatus === VerificationStatus.Rejected
-      ) {
+      if (verificationStatus === VerificationStatus.Rejected) {
+        return 'FemaleSignupVerificationRejected';
+      }
+      if (verificationStatus === VerificationStatus.None) {
         return 'FemaleSignupVerificationInfo';
       }
     }

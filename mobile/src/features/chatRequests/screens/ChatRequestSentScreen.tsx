@@ -1,4 +1,4 @@
-import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { type RouteProp, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -35,6 +35,10 @@ import {
   syncServerClock,
   type SentRequestStatus,
 } from '../api/chatRequestApi';
+import {
+  claimAcceptedTransition,
+  resetAcceptedTransition,
+} from '../navigation/acceptedChatTransition';
 
 type Nav = NativeStackNavigationProp<MaleAppStackParamList, 'ChatRequestSent'>;
 type Route = RouteProp<MaleAppStackParamList, 'ChatRequestSent'>;
@@ -79,9 +83,33 @@ function ChatRequestSentScreen(): React.ReactElement {
   const [secondsLeft, setSecondsLeft] = useState(remaining);
   const [cancelDialog, setCancelDialog] = useState(false);
   const cancelInFlightRef = useRef(false);
+  const isFocused = useIsFocused();
+  // This screen routes to its outcome exactly once. Without it, the status poll
+  // (which keeps a stale tick in flight) or a re-entry could fire a second
+  // navigation after we've already left — a source of the duplicate-room loop.
+  const hasRoutedRef = useRef(false);
+
+  // A fresh waiting flow: release the accepted→room guard so this request can
+  // claim the transition. Keyed by requestId, so remounts for the same request
+  // (e.g. resume) stay consistent.
+  useEffect(() => {
+    resetAcceptedTransition();
+  }, []);
 
   const routeForOutcome = useCallback(
     (status: SentRequestStatus): void => {
+      if (hasRoutedRef.current) {
+        return;
+      }
+      // The accepted→room transition is shared with the FCM push and the
+      // cold-start resume check. Claim it here so those never double-navigate
+      // into a duplicate room; if one of them already claimed this request, we
+      // yield (it is driving the transition).
+      if (status === 'accepted' && !claimAcceptedTransition(requestId)) {
+        hasRoutedRef.current = true;
+        return;
+      }
+      hasRoutedRef.current = true;
       switch (status) {
         case 'accepted':
           navigation.replace('ChatRequestAccepted', { requestId });
@@ -94,6 +122,7 @@ function ChatRequestSentScreen(): React.ReactElement {
           break;
         case 'pending':
         default:
+          hasRoutedRef.current = false;
           break;
       }
     },
@@ -148,6 +177,15 @@ function ChatRequestSentScreen(): React.ReactElement {
   }, [routeForOutcome]);
 
   useEffect(() => {
+    // Poll only while this screen is actually focused. Once another screen is
+    // pushed on top (the FCM "accepted" push, or our own outcome navigation),
+    // this screen stays mounted underneath — a still-running poll would keep
+    // firing `replace` from a background route and fight the top-of-stack
+    // navigation. Gating on focus stops that cleanly; `hasRoutedRef` +
+    // `claimAcceptedTransition` are the belt-and-suspenders against a late tick.
+    if (!isFocused) {
+      return undefined;
+    }
     let cancelled = false;
     const poll = async (): Promise<void> => {
       try {
@@ -159,6 +197,9 @@ function ChatRequestSentScreen(): React.ReactElement {
         logger.warn('getSentRequestStatus failed', e);
       }
     };
+    // Poll immediately on (re)focus so a resume detects an acceptance that
+    // landed while backgrounded without waiting a full interval.
+    void poll();
     const interval = setInterval(() => {
       void poll();
     }, POLL_INTERVAL_MS);
@@ -166,7 +207,7 @@ function ChatRequestSentScreen(): React.ReactElement {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [requestId, routeForOutcome]);
+  }, [requestId, routeForOutcome, isFocused]);
 
   useEffect(() => {
     if (secondsLeft === 0) {
