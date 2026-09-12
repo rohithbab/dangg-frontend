@@ -10,6 +10,7 @@ import { mapSupabaseError } from '@core/network/apiErrorMapper';
 import { AuthException } from '@core/network/apiException';
 import { uploadToR2 } from '@core/network/mediaService';
 import { getSupabaseClient } from '@core/network/supabaseClient';
+import { fcmService } from '@core/services/fcmService';
 import { PrefsKey, prefsStorage } from '@core/storage/prefsStorage';
 
 import { useSessionStore } from '@store/sessionStore';
@@ -248,6 +249,11 @@ export async function signOut(): Promise<void> {
     return;
   }
   try {
+    // Remove THIS device's push token BEFORE the session is revoked (the delete
+    // is RLS-authorised by the live session). Otherwise the row lingers against
+    // the user and this logged-out device keeps receiving the account's pushes.
+    // Best-effort: a failure must never block the logout the user asked for.
+    await fcmService.unregister();
     const { error } = await getSupabaseClient().auth.signOut();
     if (error && !isAuthSessionMissing(error)) {
       throw mapSupabaseError(error);
@@ -274,6 +280,10 @@ export async function deleteAccount(): Promise<void> {
     useSessionStore.getState().clear();
     return;
   }
+  // Remove this device's push token first, while the session is still fully
+  // valid — delete_self_account severs the GoTrue identity, after which the
+  // RLS-authorised delete (in signOut → unregister below) could no longer run.
+  await fcmService.unregister();
   const { error } = await getSupabaseClient().rpc('delete_self_account');
   if (error) {
     throw mapSupabaseError(error);
